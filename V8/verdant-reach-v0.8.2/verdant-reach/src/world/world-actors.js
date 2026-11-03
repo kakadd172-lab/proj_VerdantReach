@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { buildDrapedRoadData } from './road-geometry.js';
 import { createShipModel, disposeShipModel } from './ship-models.js';
-import { createFreeCityModel, createRuinedCastleModel } from './settlement-models.js';
+import { createFreeCityModel, createRuinedCastleModel } from './settlement-models.js?v=0.8.2';
 
 function material(color, roughness = 0.9, extra = {}) {
   return new THREE.MeshStandardMaterial({ color, roughness, ...extra });
