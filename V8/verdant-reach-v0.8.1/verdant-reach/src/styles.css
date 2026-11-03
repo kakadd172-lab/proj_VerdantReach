@@ -284,3 +284,25 @@ button { color: inherit; cursor: pointer; }
   overflow-wrap: anywhere;
 }
 
+
+
+/* v0.8.1 Creative shipyard specification summary */
+.shipyard-specs {
+  margin: 12px 0 16px;
+  padding: 12px;
+  border: 1px solid rgba(188, 167, 119, 0.28);
+  border-radius: 10px;
+  background: rgba(13, 26, 24, 0.48);
+}
+.shipyard-spec-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.shipyard-spec-grid > div { display: grid; gap: 3px; }
+.shipyard-spec-grid b { color: #e5d4a9; font-size: 0.95rem; }
+.shipyard-spec-grid span { color: #9da99c; font-size: 0.62rem; letter-spacing: 0.08em; }
+.shipyard-spec-meta { margin: 10px 0 0; color: #bac6b8; font-size: 0.78rem; line-height: 1.45; }
+@media (max-width: 520px) {
+  .shipyard-spec-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
