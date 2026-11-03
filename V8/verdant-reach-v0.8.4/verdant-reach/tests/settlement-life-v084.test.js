@@ -82,7 +82,8 @@ test('galleon sterncastle uses tapered faceted cabins, framed windows and open g
   assert.ok(models.includes('function addSideCabinWindow'));
   assert.ok(models.includes('function addGalleonBalcony'));
   assert.ok(models.includes('galleon-stern-lantern-frame'));
-  assert.ok(models.includes('galleon-stern-lower-deckhouse'));
+  assert.ok(models.includes("makePart(root, parts, 'galleon-stern-' + tier + '-deckhouse', parent)"));
+  assert.ok(models.includes("tier: 'lower'"));
   assert.ok(!models.includes('addDeckhouse(0.52, lowerHeight'));
   assert.match(structures, /galleon:.*shroudPairs: 2, ratlineCount: 8/);
 });
