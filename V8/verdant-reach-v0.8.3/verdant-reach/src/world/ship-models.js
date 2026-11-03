@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { SHIP_DESIGNS, WORLD_UNITS_PER_METRE, getShipDesign } from './ship-designs.js?v=0.8.1';
+import { SHIP_DESIGNS, WORLD_UNITS_PER_METRE, getShipDesign } from './ship-designs.js?v=0.8.3';
+import { getHullHalfBeam, getHullSectionWidth } from './ship-structures.js?v=0.8.3';
 
 const PALETTE = Object.freeze({
   hull: 0x684632, lowerHull: 0x3f342b, plank: 0x8b6748, deck: 0xa88a61,
@@ -64,37 +65,30 @@ function beam(parent, material, start, end, radius, name = '') {
   return mesh;
 }
 
+function hullSheerAt(design, t) {
+  const edge = Math.pow(Math.abs(t - 0.5) * 2, design.structure?.sheer ?? 1);
+  const rise = t < 0.5 ? design.hull.bowRise : design.hull.sternRise;
+  return design.deckHeightUnits + design.hull.sheer * design.deckHeightUnits * edge
+    + rise * design.deckHeightUnits * Math.pow(edge, 1.25);
+}
+
 function addLoftGeometry(design) {
-  const { hullLengthUnits: length, beamUnits: beamWidth, draftUnits: draft, deckHeightUnits: freeboard, hull } = design;
-  const stations = 56;
-  const ringSegments = 24;
+  const { hullLengthUnits: length, draftUnits: draft } = design;
+  const stations = 72;
+  const ringSegments = 28;
   const positions = [];
   const indices = [];
-  const bowExponent = 0.58 + (1 - hull.entry) * 1.05;
-  const sternExponent = hull.stern === 'transom' ? 0.52 : hull.stern === 'counter' ? 0.72 : 0.9;
   for (let i = 0; i <= stations; i += 1) {
     const t = i / stations;
     const z = (t - 0.5) * length;
-    const bow = Math.pow(Math.max(0.0005, Math.sin(Math.PI * Math.min(0.5, t))), bowExponent);
-    const aftTaper = t > 0.74
-      ? THREE.MathUtils.lerp(1, hull.sternWidth, Math.pow((t - 0.74) / 0.26, sternExponent))
-      : 1;
-    const foreTaper = t < 0.2 ? THREE.MathUtils.lerp(0.12, 1, Math.pow(t / 0.2, bowExponent)) : 1;
-    const stationFactor = Math.min(1, bow * 1.22) * aftTaper * foreTaper;
-    const fullness = 0.74 + hull.fullness * 0.36;
-    const halfBeam = beamWidth * 0.5 * stationFactor * fullness;
-    const sheerFactor = Math.pow(Math.abs(t - 0.5) * 2, 1.32);
-    const sheerY = freeboard + hull.sheer * freeboard * sheerFactor
-      + (t < 0.5 ? hull.bowRise : hull.sternRise) * freeboard * Math.pow(sheerFactor, 1.25);
+    const halfBeam = getHullHalfBeam(design, t);
+    const sheerY = hullSheerAt(design, t);
     for (let j = 0; j <= ringSegments; j += 1) {
       const angle = (j / ringSegments) * Math.PI * 2;
       const vertical = (Math.cos(angle) + 1) * 0.5;
-      const tumble = vertical > 0.58 ? 1 - hull.tumblehome * ((vertical - 0.58) / 0.42) : 1;
-      const bilge = Math.sin(angle);
-      const verticalY = -draft + vertical * (draft + sheerY);
-      const waterlineBulge = 0.84 + 0.16 * Math.sin(Math.PI * vertical);
-      const x = bilge * halfBeam * waterlineBulge * tumble;
-      positions.push(x, verticalY, z);
+      const y = -draft + vertical * (draft + sheerY);
+      const x = Math.sin(angle) * halfBeam * getHullSectionWidth(design, vertical);
+      positions.push(x, y, z);
     }
   }
   const startCenter = positions.length / 3;
@@ -102,14 +96,9 @@ function addLoftGeometry(design) {
   const endCenter = positions.length / 3;
   positions.push(0, -draft * 0.22, length * 0.5);
   const ring = ringSegments + 1;
-  for (let i = 0; i < stations; i += 1) {
-    for (let j = 0; j < ringSegments; j += 1) {
-      const a = i * ring + j;
-      const b = a + 1;
-      const c = a + ring;
-      const d = c + 1;
-      indices.push(a, b, c, b, d, c);
-    }
+  for (let i = 0; i < stations; i += 1) for (let j = 0; j < ringSegments; j += 1) {
+    const a = i * ring + j, b = a + 1, c = a + ring, d = c + 1;
+    indices.push(a, b, c, b, d, c);
   }
   for (let j = 0; j < ringSegments; j += 1) {
     indices.push(startCenter, j + 1, j);
@@ -124,14 +113,7 @@ function addLoftGeometry(design) {
 }
 
 function stationHalfBeam(design, t, deck = false) {
-  const h = design.hull;
-  const length = design.hullLengthUnits;
-  const bowExponent = 0.58 + (1 - h.entry) * 1.05;
-  const bow = Math.pow(Math.max(0.0005, Math.sin(Math.PI * Math.min(0.5, t))), bowExponent);
-  const aft = t > 0.74 ? THREE.MathUtils.lerp(1, h.sternWidth, Math.pow((t - 0.74) / 0.26, h.stern === 'transom' ? 0.52 : 0.82)) : 1;
-  const fore = t < 0.2 ? THREE.MathUtils.lerp(0.12, 1, Math.pow(t / 0.2, bowExponent)) : 1;
-  const width = design.beamUnits * 0.5 * Math.min(1, bow * 1.22) * aft * fore * (0.74 + h.fullness * 0.36);
-  return deck ? width * (1 - h.tumblehome * 0.4) * 0.94 : width;
+  return getHullHalfBeam(design, t) * getHullSectionWidth(design, deck ? 0.98 : 0.78) * (deck ? 0.98 : 1);
 }
 
 function addDeckGeometry(design) {
@@ -172,6 +154,27 @@ function makePart(root, registry, name, parent = root) {
   parent.add(group);
   registry.set(name, group);
   return group;
+}
+
+function addHullFrames(design, root, parts, mats) {
+  const frames = makePart(root, parts, 'hull-frames');
+  const count = design.structure.frameCount, length = design.hullLengthUnits, draft = design.draftUnits;
+  for (let index = 0; index < count; index += 1) {
+    const t = 0.055 + (index / Math.max(1, count - 1)) * 0.89;
+    const half = Math.max(0.08, stationHalfBeam(design, t, false) - 0.045);
+    const top = hullSheerAt(design, t) - 0.06;
+    const points = [];
+    for (let sample = 0; sample <= 32; sample += 1) {
+      const angle = sample / 32 * Math.PI * 2, vertical = (Math.cos(angle) + 1) * 0.5;
+      const width = half * getHullSectionWidth(design, vertical) * 0.985;
+      points.push(V3(Math.sin(angle) * width, -draft + vertical * (draft + top), (t - 0.5) * length));
+    }
+    const frame = makePart(root, parts, `frame-${String(index + 1).padStart(2, '0')}`, frames);
+    ownMesh(frame, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points, false, 'centripetal'), 48, Math.max(0.035, design.beamUnits * 0.0028), 5, false), mats.trim, 'internal-transverse-frame');
+  }
+  const keelson = makePart(root, parts, 'keelson');
+  beam(keelson, mats.trim, [0, -draft * 0.72, -length * 0.39], [0, -draft * 0.72, length * 0.4], Math.max(0.045, design.beamUnits * 0.012), 'longitudinal-keelson');
+  return frames;
 }
 
 function addHull(design, root, parts, mats) {
@@ -395,7 +398,7 @@ function makeSquareSail(mastGroup, mast, design, mats, level, index) {
   const sheets = makePart(root, registry, `sheets-${mast.id}-${id}`, group);
   beam(sheets, mats.rope, [-width * 0.5, 0.02, 0], [-width * 0.5, -sailHeight * 0.8, 0], 0.022, 'port-sheet');
   beam(sheets, mats.rope, [width * 0.5, 0.02, 0], [width * 0.5, -sailHeight * 0.8, 0], 0.022, 'starboard-sheet');
-  group.userData.sailControl = { mastId: mast.id, kind: 'square', base: 0 };
+  group.userData.sailControl = { mastId: mast.id, kind: 'square', base: 0, clothPart: canvas.name };
   return group;
 }
 
@@ -420,7 +423,7 @@ function addGaffAssembly(mastGroup, mast, design, mats) {
   beam(gaff, mats.trim, [0, upperY, 0], [0, upperY - height * 0.12, aftZ * 0.82], Math.max(0.045, design.beamUnits * 0.006), 'gaff-spar');
   const lines = makePart(root, registry, `sail-lines-${mast.id}-gaff`, sail);
   beam(lines, mats.rope, [0, upperY - height * 0.12, aftZ * 0.82], [0, lowerY, aftZ], 0.018, 'gaff-lift');
-  sail.userData.sailControl = { mastId: mast.id, kind: 'gaff', base: 0 };
+  sail.userData.sailControl = { mastId: mast.id, kind: 'gaff', base: 0, clothPart: canvas.name };
   return sail;
 }
 
@@ -442,7 +445,7 @@ function addLateenAssembly(mastGroup, mast, design, mats) {
   beam(yard, mats.trim, upper, lower, Math.max(0.06, design.beamUnits * 0.009), 'lateen-yard-spar');
   const lines = makePart(root, registry, `sail-lines-${mast.id}-lateen`, group);
   beam(lines, mats.rope, upper, [0, design.deckHeightUnits + 0.18, mast.z * design.hullLengthUnits], 0.018, 'lateen-halyard');
-  group.userData.sailControl = { mastId: mast.id, kind: 'lateen', base: 0 };
+  group.userData.sailControl = { mastId: mast.id, kind: 'lateen', base: 0, clothPart: canvas.name };
   return group;
 }
 
@@ -459,7 +462,7 @@ function addTrysail(mastGroup, mast, design, mats) {
   sail.rotation.y = Math.PI / 2;
   const gaff = makePart(root, registry, `trysail-gaff-${mast.id}`, group);
   beam(gaff, mats.trim, [0, height * 0.8, 0], [0, height * 0.4, span], 0.055, 'trysail-gaff-spar');
-  group.userData.sailControl = { mastId: mast.id, kind: 'trysail', base: 0 };
+  group.userData.sailControl = { mastId: mast.id, kind: 'trysail', base: 0, clothPart: canvas.name };
   return group;
 }
 
@@ -590,10 +593,8 @@ function addMastsAndRigging(design, root, parts, mats) {
         const chainplateZ = mast.z * L + (i === 0 ? -L * 0.075 : L * 0.07) + pairOffset * L;
         const shroudName = pair === 0 ? `shroud-${mast.id}-${label}` : `shroud-${mast.id}-${label}-${pair + 1}`;
         const shroud = makePart(root, parts, shroudName, shrouds);
-        beam(shroud, mats.rope,
-          [side * B * pairOffset * 0.16, design.deckHeightUnits + height * (0.88 + pair * 0.012), mast.z * L],
-          [side * B * (0.39 + pair * 0.035), design.deckHeightUnits + 0.16, chainplateZ],
-          0.027, `${mast.id}-shroud-${label}-${pair + 1}`);
+        beam(shroud, mats.rope, [side * B * pairOffset * 0.16, design.deckHeightUnits + height * (0.88 + pair * 0.012), mast.z * L],
+          [side * B * (0.39 + pair * 0.035), design.deckHeightUnits + 0.16, chainplateZ], 0.027, `${mast.id}-shroud-${label}-${pair + 1}`);
       }
       const ratlineSide = makePart(root, parts, `ratlines-${mast.id}-${label}`, ratlines);
       const ratlineCount = design.structure?.rigging?.ratlineCount ?? 6;
@@ -737,8 +738,12 @@ function setupPartApi(root, registry, design) {
     };
   };
   const sailControls = [...registry.values()].filter((part) => part.userData.sailControl);
+  const sailCloths = new Map(sailControls.map((part) => {
+    const cloth = registry.get(part.userData.sailControl.clothPart);
+    return [part.name, { cloth, from: cloth?.scale.y ?? 1, target: cloth?.scale.y ?? 1, elapsed: 0, duration: 0 }];
+  }));
   const mastControls = [...registry.values()].filter((part) => part.userData.mastControl);
-  const state = { rudderAngle: 0, sailTrim: {}, mastLean: {}, hiddenParts: {}, unlinkedParts: [], partTransforms: {} };
+  const state = { rudderAngle: 0, sailTrim: {}, sailDeployment: {}, mastLean: {}, hiddenParts: {}, unlinkedParts: [], partTransforms: {} };
   const api = {
     parts: registry,
     getPart(name) { return registry.get(name) ?? null; },
@@ -823,6 +828,20 @@ function setupPartApi(root, registry, design) {
       target.rotation.x = value + (state.partTransforms[target.name]?.rx ?? 0);
       return true;
     },
+    setSailDeployment(mastId, deployment = 'full', duration = 0.85) {
+      const targets = sailControls.filter((part) => part.userData.sailControl.mastId === mastId);
+      if (!targets.length || !['full', 'reefed', 'furled'].includes(deployment)) return false;
+      const targetScale = deployment === 'full' ? 1 : deployment === 'reefed' ? 0.48 : 0.001;
+      state.sailDeployment[mastId] = deployment;
+      for (const part of targets) {
+        const animation = sailCloths.get(part.name);
+        if (!animation?.cloth) continue;
+        animation.from = animation.cloth.scale.y; animation.target = targetScale;
+        animation.elapsed = 0; animation.duration = clamp(duration, 0, 4);
+        if (animation.duration === 0) animation.cloth.scale.y = targetScale;
+      }
+      return true;
+    },
     animateShip(delta = 0.016, weather = {}) {
       state.time = (state.time ?? 0) + clamp(delta, 0, 0.1);
       const wind = clamp(weather.windStrength ?? 0.25, 0, 1);
@@ -832,12 +851,20 @@ function setupPartApi(root, registry, design) {
         const manual = state.sailTrim[mastId] ?? 0;
         const gust = Math.sin(state.time * 1.4 + mastId.length) * 0.018 * wind;
         part.rotation.y = (state.partTransforms[part.name]?.ry ?? 0) + manual + Math.sin(angle) * 0.08 * wind + gust;
+        const animation = sailCloths.get(part.name);
+        if (animation?.cloth && animation.elapsed < animation.duration) {
+          animation.elapsed = Math.min(animation.duration, animation.elapsed + clamp(delta, 0, 0.1));
+          const t = animation.duration > 0 ? animation.elapsed / animation.duration : 1;
+          const eased = t * t * (3 - 2 * t);
+          animation.cloth.scale.y = THREE.MathUtils.lerp(animation.from, animation.target, eased);
+        }
       }
     },
     getShipState() {
       return {
         rudderAngle: state.rudderAngle,
         sailTrim: { ...state.sailTrim },
+        sailDeployment: { ...state.sailDeployment },
         mastLean: { ...state.mastLean },
         hiddenParts: { ...state.hiddenParts },
         unlinkedParts: [...state.unlinkedParts],
@@ -853,6 +880,7 @@ function setupPartApi(root, registry, design) {
       }
       api.setRudderAngle(saved.rudderAngle ?? 0);
       for (const [id, value] of Object.entries(saved.sailTrim ?? {})) api.setSailTrim(id, value);
+      for (const [id, value] of Object.entries(saved.sailDeployment ?? {})) api.setSailDeployment(id, value, 0);
       for (const [id, value] of Object.entries(saved.mastLean ?? {})) api.setMastLean(id, value);
       for (const [name, hidden] of Object.entries(saved.hiddenParts ?? {})) if (registry.has(name)) api.setPartVisible(name, !hidden);
       return true;
@@ -895,6 +923,7 @@ export function createShipModel(type) {
   root.userData.vehicle = { mode: 'boat', vesselType: design.id, deckHeight: design.deckHeightUnits, label: `Board ${design.label}` };
 
   addHull(design, root, registry, mats);
+  addHullFrames(design, root, registry, mats);
   addHullStrakes(design, root, registry, mats);
   addDecorativeGunports(design, root, registry, mats);
   addSternworks(design, root, registry, mats);
@@ -915,6 +944,7 @@ export function createShipModel(type) {
   root.userData.setRudderAngle = api.setRudderAngle;
   root.userData.setSailTrim = api.setSailTrim;
   root.userData.setMastLean = api.setMastLean;
+  root.userData.setSailDeployment = api.setSailDeployment;
   root.userData.animateShip = api.animateShip;
   root.userData.getShipState = api.getShipState;
   root.userData.applyShipState = api.applyShipState;

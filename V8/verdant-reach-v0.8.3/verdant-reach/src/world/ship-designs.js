@@ -10,15 +10,19 @@
  * 0.75 m, so 1 real metre = 4/3 game units. This keeps hull dimensions and
  * the player standing on deck in a consistent scale.
  */
+import { getShipStructureBlueprint } from './ship-structures.js?v=0.8.3';
+
 export const WORLD_UNITS_PER_METRE = 4 / 3;
 
 const basePartNames = Object.freeze([
-  'hull', 'hull-strakes', 'deck', 'keel', 'sternworks', 'bowworks',
+  'hull', 'hull-strakes', 'hull-frames', 'keelson', 'deck', 'keel', 'sternworks', 'bowworks',
   'rudder', 'helm', 'helm-wheel', 'anchors', 'anchor-port', 'anchor-starboard',
   'deck-fittings', 'standing-rigging', 'running-rigging', 'head-sails', 'gunports',
 ]);
 
 function freezeDesign(data) {
+  const structure = getShipStructureBlueprint(data.id);
+  const frameNames = Array.from({ length: structure?.frameCount ?? 0 }, (_, index) => `frame-${String(index + 1).padStart(2, '0')}`);
   const mastPartNames = data.masts.flatMap((mast) => {
     const names = [
       `mast-${mast.id}`, `mast-lower-${mast.id}`, `mast-topmast-${mast.id}`, `mast-step-${mast.id}`,
@@ -83,6 +87,7 @@ function freezeDesign(data) {
 
   const design = {
     ...data,
+    structure,
     mastCount: data.primaryMastCount ?? data.masts.filter((mast) => !mast.auxiliary).length,
     totalMastSpars: data.masts.length,
     mastHeights: data.masts.map((mast) => mast.height),
@@ -91,7 +96,7 @@ function freezeDesign(data) {
     beamUnits: data.beam * WORLD_UNITS_PER_METRE,
     draftUnits: data.draft * WORLD_UNITS_PER_METRE,
     deckHeightUnits: data.freeboard * WORLD_UNITS_PER_METRE,
-    partNames: [...basePartNames, ...accessoryNames, ...headSailNames, ...mastPartNames],
+    partNames: [...basePartNames, ...frameNames, ...accessoryNames, ...headSailNames, ...mastPartNames],
     modelScaleNote: data.modelScaleNote ?? 'Dimensions are historical reference values where stated; rig heights and unrecorded details are reconstruction estimates.',
     hullFormNote: data.hullFormNote ?? 'Original parametric hull loft informed by the cited vessel type; not a traced CAD or surviving lines plan.',
   };
