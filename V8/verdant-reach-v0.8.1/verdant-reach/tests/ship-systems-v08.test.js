@@ -156,3 +156,48 @@ test('headsail trim is attached to the actual foremast ID, including single-mast
   assert.equal(SHIP_DESIGNS.sloop.masts[0].id, 'single');
   assert.equal(SHIP_DESIGNS.cutter.masts[0].id, 'single');
 });
+
+
+test('v0.8.1 shipyard preserves selection and restores saved component controls', () => {
+  const ui = read('src/ui/interface.js');
+  assert.ok(ui.includes('creativeShipSelection'));
+  assert.ok(ui.includes('this._bindCreativeShipyard(state)'));
+  assert.ok(ui.includes('saved.partTransforms?.[part]'));
+  assert.ok(ui.includes('saved.sailTrim?.[mast]'));
+  assert.ok(ui.includes('creative-ship-specs'));
+  assert.ok(ui.includes('WORLD_UNITS_PER_METRE'));
+});
+
+test('v0.8.1 transform copy and paste covers all six local transform values', () => {
+  const ui = read('src/ui/interface.js');
+  for (const id of ['creative-ship-transform-copy', 'creative-ship-transform-paste']) assert.ok(ui.includes(id));
+  for (const id of ['creative-ship-part-x', 'creative-ship-part-y', 'creative-ship-part-z', 'creative-ship-part-rx', 'creative-ship-part-ry', 'creative-ship-part-rz']) assert.ok(ui.includes(id));
+  assert.ok(ui.includes("Math.round((Number(value('creative-ship-part-x')) || 0) * 10) / 10"));
+  assert.ok(ui.includes("Math.round((Number(value('creative-ship-part-y')) || 0) * 10) / 10"));
+  assert.ok(ui.includes("Math.round((Number(value('creative-ship-part-z')) || 0) * 10) / 10"));
+});
+
+test('v0.8.1 ship restore reapplies saved hierarchy before component offsets', () => {
+  const models = read('src/world/ship-models.js');
+  const start = models.indexOf('applyShipState(saved = {})');
+  const end = models.indexOf('summary()', start);
+  const block = models.slice(start, end);
+  const detach = block.indexOf('api.detachPart(name)');
+  const transform = block.indexOf('api.setPartTransform(name, transform)');
+  const rudder = block.indexOf('api.setRudderAngle(saved.rudderAngle ?? 0)');
+  assert.ok(detach >= 0 && transform > detach && rudder > transform);
+});
+
+test('v0.8.1 cache-busts the browser entry, stylesheet and ship module graph', () => {
+  const html = read('index.html');
+  const main = read('src/main.js');
+  const ui = read('src/ui/interface.js');
+  const entities = read('src/world/creative-entities.js');
+  const models = read('src/world/ship-models.js');
+  assert.ok(html.includes('styles.css?v=0.8.1'));
+  assert.ok(html.includes('main.js?v=0.8.1'));
+  assert.ok(main.includes('ship-designs.js?v=0.8.1'));
+  assert.ok(ui.includes('ship-designs.js?v=0.8.1'));
+  assert.ok(entities.includes('ship-models.js?v=0.8.1'));
+  assert.ok(models.includes('ship-designs.js?v=0.8.1'));
+});
