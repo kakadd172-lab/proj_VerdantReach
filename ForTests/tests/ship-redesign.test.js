@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SHIP_DESIGNS } from '../ship-designs.js?v=0.8.5';
-import { getHullHalfBeam,getSheerPoint,getShipStructureBlueprint } from '../ship-structures.js?v=0.8.5';
+import { SHIP_DESIGNS, getShipDesign, setShipDesignOverrides } from '../ship-designs.js?v=0.8.5';
+import { getHullHalfBeam,getSheerPoint,getShipStructureBlueprint,setShipStructureOverrides } from '../ship-structures.js?v=0.8.5';
 import { cubicBezierScalar,getCrossSectionHalfBreadthRatio,getKeelLineHeight,getOpenHullPoint,getParametricHullPoint } from '../ship-hull-parameterization.js?v=0.8.5';
 import { createShipModel,disposeShipModel } from '../ship-models.js?v=0.8.5';
 const ids=Object.keys(SHIP_DESIGNS);
@@ -125,4 +125,23 @@ test('component transforms support scale and persist when a model is rebuilt',()
   const state=second.userData.getPartTransform('mast-single');
   assert.ok(Math.abs(state.x-.4)<1e-8&&Math.abs(state.ry-.2)<1e-8&&Math.abs(state.sx-1.25)<1e-8);
  }finally{disposeShipModel(second);}
+});
+
+test('live design and structure overrides feed the parametric model helpers',()=>{
+ const base=getShipDesign('sloop');
+ try{
+  assert.equal(setShipDesignOverrides('sloop',{beam:5.2,hull:{fullness:.72}}),true);
+  assert.equal(setShipStructureOverrides('sloop',{beamStation:.42}),true);
+  const edited=getShipDesign('sloop');
+  const profile=getShipStructureBlueprint('sloop');
+  assert.ok(Math.abs(edited.beam-5.2)<1e-9);
+  assert.ok(Math.abs(edited.hull.fullness-.72)<1e-9);
+  assert.ok(Math.abs(edited.beamUnits-5.2*4/3)<1e-9);
+  assert.ok(Math.abs(profile.beamStation-.42)<1e-9);
+  assert.ok(Math.abs(getHullHalfBeam(edited,.42)-edited.beamUnits*.5)<1e-6);
+ }finally{
+  setShipDesignOverrides('sloop',{});
+  setShipStructureOverrides('sloop',{});
+ }
+ assert.ok(Math.abs(getShipDesign('sloop').beam-base.beam)<1e-9);
 });
