@@ -93,7 +93,7 @@ test('sails and mast assemblies rotate around their own attachment points', () =
     const expectedZ = mainMast.z * design.hullLengthUnits;
     assert.ok(Math.abs(mastGroup.position.z - expectedZ) < 1e-6);
     assert.equal(sailGroup.parent, mastGroup);
-    assert.ok(sailGroup.position.length() < 1e-6, 'the sail uses the mast group's local attachment origin');
+    assert.ok(sailGroup.position.length() < 1e-6, "the sail uses the mast group's local attachment origin");
     const sailOrigin = sailGroup.position.clone();
     assert.equal(ship.userData.setSailTrim('main', .22), true);
     assert.ok(Math.abs(sailGroup.rotation.y - .22) < 1e-6);
