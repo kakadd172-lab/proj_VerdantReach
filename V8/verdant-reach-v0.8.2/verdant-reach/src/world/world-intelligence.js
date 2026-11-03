@@ -852,7 +852,7 @@ export class WorldIntelligence {
     const resolution = options.resolution ?? 84;
     const cacheKey = `road-v2|${a.id}|${b.id}|${resolution}`;
     if (!this.roadPathCache) this.roadPathCache = new Map();
-    if (this.roadPathCache.has(cacheKey)) return this.roadPathCache.get(cacheKey).map((point) => ({ ...point }));
+    if (!options.debug && this.roadPathCache.has(cacheKey)) return this.roadPathCache.get(cacheKey).map((point) => ({ ...point }));
 
     const toCell = (value) => Math.round(value / resolution);
     const cellCostCache = new Map();
@@ -880,6 +880,7 @@ export class WorldIntelligence {
     const startCell = findDryEndpointCell(toCell(a.x), toCell(a.z));
     const targetCell = findDryEndpointCell(toCell(b.x), toCell(b.z));
     if (!startCell || !targetCell) {
+      if (options.debug) console.log('ROAD_DEBUG_ENDPOINT_SNAP', a.id, b.id, startCell, targetCell, a, b);
       this.roadPathCache.set(cacheKey, []);
       return [];
     }
@@ -969,6 +970,7 @@ export class WorldIntelligence {
       }
     }
 
+    if (options.debug) console.log('ROAD_DEBUG_SEARCH', a.id, b.id, resolution, visited, found, open.length, startCell, targetCell);
     let cells = [];
     if (found) {
       let key = keyOf(tx, tz);
@@ -1004,6 +1006,7 @@ export class WorldIntelligence {
       const snappedEnd = { x: tx * resolution, z: tz * resolution };
       if (!this._roadSegmentIsBuildable(a, snappedStart, 1.6)
         || !this._roadSegmentIsBuildable(snappedEnd, b, 1.6)) {
+        if (options.debug) console.log('ROAD_DEBUG_CONNECTOR', a, snappedStart, snappedEnd, b);
         this.roadPathCache.set(cacheKey, []);
         return [];
       }
