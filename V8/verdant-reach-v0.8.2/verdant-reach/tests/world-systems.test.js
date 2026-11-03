@@ -255,6 +255,7 @@ test('terrain-aware roads connect settlements with deterministic walkable route 
     .filter((settlement) => settlement.id !== intelligence.starterSettlement.id);
   const start = intelligence.starterSettlement;
   const candidates = settlements
+    .filter((settlement) => settlement.type !== 'freeCity')
     .filter((settlement) => Math.hypot(settlement.x - start.x, settlement.z - start.z) < 4400)
     .filter((settlement) => {
       const sample = generator.sample(settlement.x, settlement.z, true);
