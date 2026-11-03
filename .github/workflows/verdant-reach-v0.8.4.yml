@@ -15,12 +15,15 @@ on:
       - '.github/workflows/verdant-reach-v0.8.4.yml'
   workflow_dispatch:
 
+concurrency:
+  group: verdant-reach-pages
+  cancel-in-progress: false
+
 jobs:
-  verify:
+  verify-and-publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pages: write
+      contents: write
     defaults:
       run:
         working-directory: V8/verdant-reach-v0.8.4/verdant-reach
@@ -37,28 +40,11 @@ jobs:
         run: npm test
       - name: Build production site
         run: npm run build
-      - name: Configure GitHub Pages
+      - name: Publish v0.8.4 to GitHub Pages
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        uses: actions/configure-pages@v5
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          enablement: true
-      - name: Upload Pages artifact
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: V8/verdant-reach-v0.8.4/verdant-reach/dist
-
-  deploy:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: verify
-    permissions:
-      pages: write
-      id-token: write
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./V8/verdant-reach-v0.8.4/verdant-reach/dist
+          publish_branch: gh-pages
+          commit_message: 'Publish Verdant Reach v0.8.4'
