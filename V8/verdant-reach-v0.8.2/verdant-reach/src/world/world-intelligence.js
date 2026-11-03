@@ -855,10 +855,38 @@ export class WorldIntelligence {
     if (this.roadPathCache.has(cacheKey)) return this.roadPathCache.get(cacheKey).map((point) => ({ ...point }));
 
     const toCell = (value) => Math.round(value / resolution);
-    const sx = toCell(a.x);
-    const sz = toCell(a.z);
-    const tx = toCell(b.x);
-    const tz = toCell(b.z);
+    const cellCostCache = new Map();
+    const findDryEndpointCell = (baseX, baseZ) => {
+      // A settlement can sit close to a shoreline or steep plot edge. Snap the
+      // grid node to the nearest traversable cell, then connect back to the exact
+      // settlement/gate coordinate with a short terrain-checked approach.
+      for (let radius = 0; radius <= 4; radius += 1) {
+        let best = null;
+        for (let dx = -radius; dx <= radius; dx += 1) {
+          for (let dz = -radius; dz <= radius; dz += 1) {
+            if (Math.max(Math.abs(dx), Math.abs(dz)) !== radius) continue;
+            const x = baseX + dx;
+            const z = baseZ + dz;
+            const cost = this._roadCellCost(x * resolution, z * resolution, cellCostCache);
+            if (!Number.isFinite(cost)) continue;
+            const score = dx * dx + dz * dz + cost * 0.0005;
+            if (!best || score < best.score) best = { x, z, score };
+          }
+        }
+        if (best) return best;
+      }
+      return null;
+    };
+    const startCell = findDryEndpointCell(toCell(a.x), toCell(a.z));
+    const targetCell = findDryEndpointCell(toCell(b.x), toCell(b.z));
+    if (!startCell || !targetCell) {
+      this.roadPathCache.set(cacheKey, []);
+      return [];
+    }
+    const sx = startCell.x;
+    const sz = startCell.z;
+    const tx = targetCell.x;
+    const tz = targetCell.z;
     const margin = Math.max(10, Math.ceil(Math.hypot(tx - sx, tz - sz) * 0.32));
     const minX = Math.min(sx, tx) - margin;
     const maxX = Math.max(sx, tx) + margin;
@@ -869,7 +897,6 @@ export class WorldIntelligence {
     const open = [{ x: sx, z: sz, g: 0, f: heuristic(sx, sz) }];
     const cameFrom = new Map();
     const bestCost = new Map([[keyOf(sx, sz), 0]]);
-    const cellCostCache = new Map();
     const directions = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
     const blockedDiagonal = (x, z, dx, dz) => {
       if (!dx || !dz) return false;
@@ -931,7 +958,7 @@ export class WorldIntelligence {
         const currentHeight = this.generator.heightAt(current.x * resolution, current.z * resolution);
         const nextHeight = this.generator.heightAt(wx, wz);
         const grade = Math.abs(nextHeight - currentHeight) / (resolution * stepLength);
-        if (!Number.isFinite(grade) || grade > 0.90) continue;
+        if (!Number.isFinite(grade) || grade > 1.6) continue;
         const gradePenalty = grade * 16 + Math.max(0, grade - 0.08) ** 2 * 120;
         const nextG = current.g + (terrainCost + gradePenalty) * stepLength;
         const nextKey = keyOf(nx, nz);
@@ -973,6 +1000,13 @@ export class WorldIntelligence {
       simplified.push({ x: cells[i].x * resolution, z: cells[i].z * resolution });
     }
     if (simplified.length) {
+      const snappedStart = { x: sx * resolution, z: sz * resolution };
+      const snappedEnd = { x: tx * resolution, z: tz * resolution };
+      if (!this._roadSegmentIsBuildable(a, snappedStart, 1.6)
+        || !this._roadSegmentIsBuildable(snappedEnd, b, 1.6)) {
+        this.roadPathCache.set(cacheKey, []);
+        return [];
+      }
       simplified[0] = { x: a.x, z: a.z };
       simplified[simplified.length - 1] = { x: b.x, z: b.z };
     }
