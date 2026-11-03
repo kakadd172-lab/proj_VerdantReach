@@ -393,9 +393,11 @@ test('regional roads do not fall back to an unchecked straight line across impas
 
 test('regional road planner applies landform, wet-ground and grade costs', () => {
   const intelligence = new WorldIntelligence(new WorldGenerator('EMBERFALL'));
-  const source = intelligence._roadCellCost.toString();
-  assert.match(source, /cliffIntensity/);
-  assert.match(source, /ravineIntensity/);
-  assert.match(source, /floodplain/);
-  assert.match(source, /grade/);
+  const costSource = intelligence._roadCellCost.toString();
+  const routeSource = intelligence.routePathFor.toString();
+  assert.match(costSource, /cliffIntensity/);
+  assert.match(costSource, /ravineIntensity/);
+  assert.match(costSource, /floodplain/);
+  assert.match(routeSource, /grade/);
+  assert.match(routeSource, /blockedDiagonal/);
 });
