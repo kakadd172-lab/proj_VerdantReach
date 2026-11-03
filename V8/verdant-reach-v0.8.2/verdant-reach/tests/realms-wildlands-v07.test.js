@@ -237,6 +237,9 @@ test('regional trade roads connect free cities through their generated gates, no
     const city = intelligence.regionalFreeCity;
     assert.ok(city, `${seed} should have a regional free city for gate-road validation`);
     const target = { id: 'audit:trade-destination', name: 'Trade Destination', type: 'village', x: city.x + 1800, z: city.z + 120 };
+    const endpointA = intelligence._roadEndpointFor(city, target);
+    const endpointB = intelligence._roadEndpointFor(target, city);
+    intelligence.routePathFor(endpointA.routeNode, endpointB.routeNode, { debug: true, resolution: 84 });
     const link = intelligence.roadLinksFor([city, target], 3600)[0];
     assert.ok(link, `${seed} should connect the city to a nearby settlement`);
     const cityIsStart = link.a.id === city.id;
