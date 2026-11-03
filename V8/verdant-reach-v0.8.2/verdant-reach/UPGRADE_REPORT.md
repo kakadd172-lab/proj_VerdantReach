@@ -1,8 +1,8 @@
-# Verdant Reach v0.8.1 — Upgrade Report
+# Verdant Reach v0.8.2 — Upgrade Report
 
 ## Summary
 
-Version 0.8.1 is a focused shipyard reliability and release-engineering follow-up to v0.8.0. It retains the current ship catalogue, historical research, world generation and save structure.
+Version 0.8.2 focuses on terrain-aware road routing, terrain-conforming road geometry, city streets and river crossings. The v0.8.1 shipyard improvements are retained in this snapshot.
 
 ## v0.8.1 follow-up changes
 
@@ -72,3 +72,18 @@ Sources and individual evidence notes are in `SHIP_RESEARCH.md`. Some example di
 - Rigging is a stylized proportional rope network, not a full tackle/block-and-tackle simulation with tension.
 - No ship artillery, projectile system or naval combat is part of v0.8.0; closed hull-port details are decorative only.
 - The fleet is representative, not exhaustive; more region-/period-specific forms can be added in future releases.
+
+## v0.8.2 road-system changes
+
+- Fine-grid terrain-weighted routing with grade, landform and wet-ground penalties.
+- Safe diagonal transitions and terrain-validated route smoothing.
+- No unchecked straight-line fallback when a valid route cannot be found.
+- Dense cross-section sampling at approximately 4 m spacing, with a shallow crown and shoulders.
+- Raised timber deck treatment where routes cross generated river channels.
+- City avenues use the same terrain-draping utility.
+- Added road geometry and route-planning regression tests.
+- GitHub Actions runs tests and a production build; it does not create an archive.
+
+## v0.8.3 planned building-model release
+
+The separate `BUILDINGS_PLAN.md` records the planned scale rules, architectural families, research references and implementation checklist. No building models are changed in v0.8.2.
