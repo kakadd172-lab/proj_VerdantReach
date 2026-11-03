@@ -145,4 +145,6 @@ The completion branch extends the review build without changing the save metadat
 - Ruined castles gain broken crenellations, flanking gatehouse towers and reinforced keep-corner piers.
 - Browser cache keys are advanced for the changed game entry point and runtime modules.
 
-The screenshot mentioned in the review prompt was not attached to the completion session, so the galleon has not been visually reworked in response to that screenshot. Its existing v0.8.4 headsail and stepped-aftercastle corrections are retained.
+- The galleon sterncastle is redesigned from stacked solid cuboids into three connected tapered, chamfered deckhouse tiers with framed transom and side windows, open side galleries, railings, projecting decks, a glazed stern lantern and a brass transom ornament.
+- The redesigned stern components remain under the `sternworks` hierarchy so Creative editor detach/relink and saved component transforms continue to work.
+- A runtime galleon-model regression test verifies the generated stern tiers, window details, lantern, geometry and component hierarchy.
