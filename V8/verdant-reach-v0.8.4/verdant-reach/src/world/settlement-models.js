@@ -248,7 +248,6 @@ function addLargeHall(batches, feature, generator, style = 0) {
 
   if (feature.kind === 'market-hall') {
     const marketStallCount = 12;
-    group.userData.marketStallCount = marketStallCount;
     batches.add('box', 'paleStone', { x: feature.x, y: ground + 0.16, z: feature.z },
       { x: feature.width + 1.5, y: 0.24, z: feature.depth + 1.5 }, feature.yaw);
 
