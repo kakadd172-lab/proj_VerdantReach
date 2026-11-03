@@ -133,3 +133,16 @@ The following release is reserved for a dedicated building-model pass: human-sca
 - The shipyard supports full, reefed and furled sail states per mast, saved with the vessel.
 
 The source-level static launcher remains available as `run-static.bat`. It is unchanged by the Pages build configuration.
+
+
+## v0.8.4 completion pass
+
+The completion branch extends the review build without changing the save metadata version:
+
+- Free cities now render a covered, open-sided civic market with 12 individually detailed stalls, display goods and awnings instead of counters hidden inside a solid hall.
+- Ports, market towns and villages now receive 7, 6 and 3 market stalls respectively; duplicate empty counters have been removed.
+- Visible resident rosters are 64 in free cities, 24 in ports, 18 in market towns and 12 in villages. Traders are distributed around the market district during business hours.
+- Ruined castles gain broken crenellations, flanking gatehouse towers and reinforced keep-corner piers.
+- Browser cache keys are advanced for the changed game entry point and runtime modules.
+
+The screenshot mentioned in the review prompt was not attached to the completion session, so the galleon has not been visually reworked in response to that screenshot. Its existing v0.8.4 headsail and stepped-aftercastle corrections are retained.
