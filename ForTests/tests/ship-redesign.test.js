@@ -110,3 +110,19 @@ test('raked hull end caps are present',()=>{
   assert.equal(pos.count,(96+1)*(40+1)+2);assert.ok(hull.geometry.getIndex().count>96*40*6);
  }finally{disposeShipModel(ship);}
 });
+
+test('component transforms support scale and persist when a model is rebuilt',()=>{
+ const first=createShipModel('sloop');
+ let saved={};
+ try{
+  assert.equal(first.userData.setPartTransform('mast-single',{x:.4,ry:.2,sx:1.25,sy:1.1,sz:.9}),true);
+  saved={'mast-single':first.userData.getPartTransform('mast-single')};
+  const state=saved['mast-single'];
+  assert.ok(Math.abs(state.x-.4)<1e-8&&Math.abs(state.ry-.2)<1e-8&&Math.abs(state.sx-1.25)<1e-8);
+ }finally{disposeShipModel(first);}
+ const second=createShipModel('sloop',saved);
+ try{
+  const state=second.userData.getPartTransform('mast-single');
+  assert.ok(Math.abs(state.x-.4)<1e-8&&Math.abs(state.ry-.2)<1e-8&&Math.abs(state.sx-1.25)<1e-8);
+ }finally{disposeShipModel(second);}
+});
