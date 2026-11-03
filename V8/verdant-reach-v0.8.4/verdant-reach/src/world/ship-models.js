@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { SHIP_DESIGNS, WORLD_UNITS_PER_METRE, getShipDesign } from './ship-designs.js?v=0.8.3';
-import { getHullHalfBeam, getHullSectionWidth } from './ship-structures.js?v=0.8.3';
+import { SHIP_DESIGNS, WORLD_UNITS_PER_METRE, getShipDesign } from './ship-designs.js?v=0.8.4';
+import { getHullHalfBeam, getHullSectionWidth } from './ship-structures.js?v=0.8.4';
 
 const PALETTE = Object.freeze({
   hull: 0x684632, lowerHull: 0x3f342b, plank: 0x8b6748, deck: 0xa88a61,
