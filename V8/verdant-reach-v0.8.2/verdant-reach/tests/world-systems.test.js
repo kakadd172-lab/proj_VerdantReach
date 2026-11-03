@@ -256,6 +256,7 @@ test('terrain-aware roads connect settlements with deterministic walkable route 
   const start = intelligence.starterSettlement;
   const end = settlements.find((settlement) => Math.hypot(settlement.x - start.x, settlement.z - start.z) < 4400);
   assert.ok(end, 'expected a nearby settlement for the road test');
+  intelligence.routePathFor(start, end, { debug: true, resolution: 84 });
   const first = intelligence.roadLinksFor([start, end], 4400)[0];
   const second = intelligence.roadLinksFor([start, end], 4400)[0];
   assert.ok(first?.terrainAware);
