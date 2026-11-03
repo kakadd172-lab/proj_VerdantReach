@@ -250,8 +250,8 @@ function makeTaperedDeckhouseGeometry(width, height, depth) {
     const upper = (ring + 1) * ringSize;
     for (let i = 0; i < ringSize; i += 1) {
       const next = (i + 1) % ringSize;
-      indices.push(lower + i, lower + next, upper + i);
-      indices.push(lower + next, upper + next, upper + i);
+      indices.push(lower + i, upper + i, lower + next);
+      indices.push(lower + next, upper + i, upper + next);
     }
   }
   const bottomCenter = positions.length / 3;
@@ -260,9 +260,9 @@ function makeTaperedDeckhouseGeometry(width, height, depth) {
   positions.push(0, height, -depth * 0.04);
   for (let i = 0; i < ringSize; i += 1) {
     const next = (i + 1) % ringSize;
-    indices.push(bottomCenter, next, i);
+    indices.push(bottomCenter, i, next);
     const top = (rings.length - 1) * ringSize;
-    indices.push(topCenter, top + i, top + next);
+    indices.push(topCenter, top + next, top + i);
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -317,27 +317,27 @@ function addSideCabinWindow(parent, mats, side, x, y, width, height, z, name) {
     [x + side * 0.17, y + frameHeight * 0.47, z], name + '-lintel');
 }
 
-function addGalleonBalcony(parent, mats, width, depth, height, name, includeSternWalk = true) {
-  const deckY = height * 0.22;
+function addGalleonBalcony(parent, mats, width, depth, height, level, z, name, includeSternWalk = true) {
+  const deckY = level + height * 0.22;
   const railY = deckY + 0.78;
   for (const side of [-1, 1]) {
     const edgeX = side * (width * 0.5 + 0.37);
     box(parent, mats.deck, [0.76, 0.13, depth * 0.68],
-      [side * (width * 0.5 + 0.28), deckY, 0], name + '-side-walk-' + side);
+      [side * (width * 0.5 + 0.28), deckY, z], name + '-side-walk-' + side);
     beam(parent, mats.trim,
-      [edgeX, railY, -depth * 0.34], [edgeX, railY, depth * 0.34],
+      [edgeX, railY, z - depth * 0.34], [edgeX, railY, z + depth * 0.34],
       0.055, name + '-side-handrail-' + side);
     beam(parent, mats.trim,
-      [edgeX, deckY + 0.18, -depth * 0.34], [edgeX, deckY + 0.18, depth * 0.34],
+      [edgeX, deckY + 0.18, z - depth * 0.34], [edgeX, deckY + 0.18, z + depth * 0.34],
       0.035, name + '-side-lower-rail-' + side);
     for (let post = 0; post <= 4; post += 1) {
-      const z = -depth * 0.34 + post * depth * 0.17;
-      beam(parent, mats.trim, [edgeX, deckY + 0.16, z], [edgeX, railY, z],
+      const postZ = z - depth * 0.34 + post * depth * 0.17;
+      beam(parent, mats.trim, [edgeX, deckY + 0.16, postZ], [edgeX, railY, postZ],
         0.045, name + '-side-baluster-' + side + '-' + post);
     }
   }
   if (includeSternWalk) {
-    const aftZ = depth * 0.5 + 0.38;
+    const aftZ = z + depth * 0.5 + 0.38;
     box(parent, mats.deck, [width * 0.82, 0.13, 0.72],
       [0, deckY, aftZ], name + '-transom-walk');
     beam(parent, mats.trim,
@@ -367,7 +367,7 @@ function addGalleonDeckhouse(root, parts, mats, {
   box(cabin, mats.trim, [width * 1.02, 0.18, 0.18],
     [0, level + height * 0.86, z + depth * 0.445], tier + '-transom-cornice');
 
-  const transomZ = z + depth * 0.455;
+  const transomZ = z + depth * 0.515;
   const windowY = level + height * 0.49;
   const windowHeight = Math.max(0.42, height * 0.34);
   const windowWidth = Math.min(width * 0.145, depth * 0.16);
@@ -394,7 +394,7 @@ function addGalleonDeckhouse(root, parts, mats, {
     }
   }
 
-  if (gallery) addGalleonBalcony(cabin, mats, width, depth, height, tier, sternWalk);
+  if (gallery) addGalleonBalcony(cabin, mats, width, depth, height, level, z, tier, sternWalk);
 
   // A restrained timber crown rail keeps the poop deck open and walkable.
   const topRailY = level + height + 0.93;
@@ -449,6 +449,9 @@ function addSternworks(design, root, parts, mats) {
       z: L * 0.43, level: y + middleLevel, windowCount: 4,
       sideWindowCount: 2, gallery: true, sternWalk: true,
     });
+    const upperGalleryPlatform = makePart(root, parts, 'galleon-upper-gallery-platform', group);
+    box(upperGalleryPlatform, mats.deck, [B * 0.64, 0.16, L * 0.13],
+      [0, y + middleLevel + middleHeight + 0.12, L * 0.43], 'upper-gallery-walkway');
     const upper = addGalleonDeckhouse(root, parts, mats, {
       tier: 'upper', width: B * 0.39, height: upperHeight, depth: L * 0.085,
       z: L * 0.46, level: y + upperLevel, windowCount: 3,
