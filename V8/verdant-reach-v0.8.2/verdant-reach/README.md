@@ -1,6 +1,6 @@
-# Verdant Reach v0.8.1 — Caribbean Age of Sail
+# Verdant Reach v0.8.2 — Caribbean Age of Sail
 
-Verdant Reach v0.8.1 is a focused follow-up to the v0.8.0 Caribbean Age-of-Sail release. It improves shipyard editing continuity, saved component restoration and release verification while retaining the existing articulated fleet and world systems. Existing procedural terrain, world streaming, Creative/Survival modes, settlement systems, world saves, player transport and the Wayfarer’s Circuit remain in the project.
+Verdant Reach v0.8.2 focuses on terrain-aware roads and routes, improving route selection across ridges, ravines, marshes and river corridors while keeping the existing articulated fleet and world systems. Existing procedural terrain, world streaming, Creative/Survival modes, settlement systems, world saves, player transport and the Wayfarer’s Circuit remain in the project.
 
 ## Run locally
 
@@ -83,3 +83,17 @@ npm test
 - Sail trim, mast lean, rudder motion and sail flutter are component-level game approximations, not a physically complete wind/sail solver.
 - No ship artillery, projectile system, or naval combat is part of this ship-model release. Decorative closed gunport shutters on selected hulls are static exterior fittings only.
 - A production build and full graphical playthrough must be distinguished from source-level testing. See `UPGRADE_REPORT.md` for the tests actually run and any environment limitations.
+
+## v0.8.2 roads and routes
+
+- Terrain-weighted A* routing uses a finer 42 m planning grid by default, penalising steep ground, escarpments, ravines, ridgelines, marshes and floodplains.
+- Diagonal corner-cutting is prevented, route grades are checked, and smoothing is accepted only when sampled segments remain buildable.
+- The planner no longer invents a straight road when no valid terrain route is found.
+- Regional roads and city avenues use dense terrain-draped cross-sections with a shallow crown and gravel shoulders.
+- River crossings are raised above sampled water and receive timber deck boards and simple rails.
+- Streamed road geometry is disposed when settlements unload.
+- No ZIP archive is generated; changes are committed directly to GitHub.
+
+## Next release: v0.8.3 buildings and architecture
+
+The following release is reserved for a dedicated building-model pass: human-scale doors and windows, realistic floor heights, wall thickness, roof pitch by climate/material, structural foundations, timber framing, masonry and plaster variants, warehouses, inns, workshops, civic halls, farmsteads and regional architectural styles. The design brief and references are in `BUILDINGS_PLAN.md`.
