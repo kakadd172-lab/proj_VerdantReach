@@ -32,4 +32,4 @@ This release responds to the first in-browser review of v0.8.3. It improves the 
 
 The separate `chatgpt-v0.8.4-completion` branch adds a visible twelve-stall open city market, larger resident rosters, distributed trader schedules, additional port/town/village stalls and further ruined-castle masonry details. These changes retain the `0.8.4` save-data version for compatibility.
 
-The original galleon screenshot was not present in the review message received for this pass. The existing model corrections are retained, but no screenshot-specific visual claim is made. Automated validation is pending the completion-branch CI run.
+The supplied in-game screenshot showed the galleon sterncastle as a stack of plain rectangular volumes with little visible gallery or window detail. The completion pass replaces that block assembly with custom tapered chamfered deckhouse geometry, framed transom and side windows, projecting gallery decks, side balustrades, a small glazed stern lantern and brass ornament. The new parts remain in the `sternworks` component tree and are covered by a runtime model-construction regression test.
