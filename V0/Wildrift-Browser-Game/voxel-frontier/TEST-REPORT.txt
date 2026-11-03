@@ -1,0 +1,18 @@
+WILDRIFT BUILD CHECKS
+====================
+
+Passed:
+- JavaScript syntax check across every source module and test module.
+- Static relative-import check: all local module references resolve to existing files.
+- Generator smoke test: same seed and chunk produce byte-identical block data.
+- Generator smoke test: changing the seed changes the generated block data.
+- Generator coverage test: all 13 biome categories appear in a broad-area sample.
+- Chunk-boundary terrain check: adjacent columns use the same global-coordinate height field and stay within the checked smoothness threshold.
+- Block registry check: generated block IDs are valid.
+- HTTP smoke check: index.html and module worker files are served successfully by Python's local HTTP server.
+- ZIP integrity check: archive opens without errors.
+
+Not fully verified in this build environment:
+- Full interactive browser playthrough and rendered screenshot. The environment could not resolve the external jsDelivr host used to download Three.js, so the WebGL scene could not be loaded here. The game therefore requires an internet connection on first load (or access to the pinned Three.js module URL).
+
+The project includes `tests/generator-smoke.mjs` for rerunning deterministic terrain checks with Node.js. Node.js is not required to play the game.

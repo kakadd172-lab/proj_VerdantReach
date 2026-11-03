@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#101c24" />
+  <title>Wildrift — A Living Voxel World</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="game-root">
+    <div id="viewport"></div>
+
+    <section id="main-menu" class="screen visible">
+      <div class="menu-backdrop"></div>
+      <div class="menu-card">
+        <div class="eyebrow"><span class="eyebrow-dot"></span> PROCEDURAL SANDBOX</div>
+        <h1>WILDRIFT<span class="title-dot">.</span></h1>
+        <p class="tagline">A world that keeps unfolding.</p>
+        <div class="menu-rule"></div>
+        <label class="field-label" for="seed-input">WORLD SEED</label>
+        <div class="seed-row">
+          <input id="seed-input" type="text" maxlength="32" value="wildrift-01" autocomplete="off" spellcheck="false" />
+          <button id="random-seed" class="icon-button" title="Random seed" aria-label="Random seed">⤨</button>
+        </div>
+        <button id="play-button" class="primary-button">ENTER WORLD <span>↗</span></button>
+        <button id="continue-button" class="secondary-button" hidden>CONTINUE LAST WORLD</button>
+        <div class="menu-footnote"><span class="keycap">W A S D</span> move <span class="footnote-sep">·</span> <span class="keycap">MOUSE</span> look <span class="footnote-sep">·</span> <span class="keycap">E</span> inventory</div>
+      </div>
+      <div class="menu-corner menu-corner-left">BUILD · EXPLORE · DISCOVER</div>
+      <div class="menu-corner menu-corner-right">WILDRIFT / 001</div>
+    </section>
+
+    <section id="pause-screen" class="screen">
+      <div class="menu-card compact-card">
+        <div class="eyebrow"><span class="eyebrow-dot"></span> WORLD PAUSED</div>
+        <h2>Take a breath.</h2>
+        <p class="subtle-copy" id="pause-world-label">Your world is safe here.</p>
+        <button id="resume-button" class="primary-button">RESUME <span>↗</span></button>
+        <button id="save-button" class="secondary-button">SAVE WORLD</button>
+        <button id="settings-button" class="secondary-button">SETTINGS</button>
+        <button id="quit-button" class="text-button">RETURN TO TITLE</button>
+      </div>
+    </section>
+
+    <section id="settings-screen" class="screen">
+      <div class="menu-card compact-card settings-card">
+        <div class="eyebrow"><span class="eyebrow-dot"></span> WORLD SETTINGS</div>
+        <h2>Make it yours.</h2>
+        <label class="setting-line" for="render-distance"><span>Render distance</span><strong id="render-distance-value">3 chunks</strong></label>
+        <input id="render-distance" type="range" min="2" max="5" step="1" value="3" />
+        <label class="setting-line" for="fov-setting"><span>Field of view</span><strong id="fov-value">78°</strong></label>
+        <input id="fov-setting" type="range" min="65" max="100" step="1" value="78" />
+        <label class="setting-line" for="sensitivity-setting"><span>Look sensitivity</span><strong id="sensitivity-value">0.12</strong></label>
+        <input id="sensitivity-setting" type="range" min="0.04" max="0.30" step="0.01" value="0.12" />
+        <button id="settings-back" class="primary-button">BACK</button>
+      </div>
+    </section>
+
+    <section id="loading-screen" class="screen">
+      <div class="loading-card">
+        <div class="loading-mark">W<span>.</span></div>
+        <h2>Shaping your world</h2>
+        <p id="loading-message">Finding the first horizon…</p>
+        <div class="loading-track"><div id="loading-progress"></div></div>
+      </div>
+    </section>
+
+    <div id="hud" class="hidden">
+      <div class="top-left-hud">
+        <div class="brand-chip"><span class="brand-mark">W</span><span>WILDRIFT</span></div>
+        <div id="biome-label" class="biome-chip">PLAINS</div>
+      </div>
+      <div class="top-right-hud">
+        <div id="fps-counter" class="stat-chip">-- FPS</div>
+        <div id="coords-label" class="stat-chip">X 0 · Y 0 · Z 0</div>
+      </div>
+      <div id="crosshair" aria-hidden="true"><i></i><b></b></div>
+      <div id="target-label" class="target-label"></div>
+      <div id="toast" class="toast"></div>
+      <div id="hotbar" class="hotbar" aria-label="Hotbar"></div>
+      <div class="bottom-hint"><span class="keycap">LMB</span> mine <span class="hint-gap"></span><span class="keycap">RMB</span> place <span class="hint-gap"></span><span class="keycap">E</span> inventory <span class="hint-gap"></span><span class="keycap">ESC</span> pause</div>
+    </div>
+
+    <section id="inventory-screen" class="screen inventory-screen">
+      <div class="inventory-card">
+        <div class="inventory-header"><div><div class="eyebrow">YOUR COLLECTION</div><h2>Inventory</h2></div><button id="inventory-close" class="icon-button" aria-label="Close inventory">✕</button></div>
+        <p class="subtle-copy">Choose a block, then close your inventory to place it.</p>
+        <div id="inventory-grid" class="inventory-grid"></div>
+        <div class="inventory-footer">Press <span class="keycap">E</span> to close</div>
+      </div>
+    </section>
+
+    <div id="save-indicator" class="save-indicator"><span></span> WORLD SAVED</div>
+    <div id="error-panel" class="error-panel hidden"></div>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

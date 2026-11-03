@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101b1a" />
+    <meta name="description" content="Verdant Reach — a procedural fantasy exploration RPG." />
+    <title>Verdant Reach</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <style>
+      #startup-diagnostic { display: none; position: fixed; inset: 0; z-index: 100000; place-items: center; padding: 22px; background: rgba(5, 12, 12, .94); color: #e8e1cd; font: 14px/1.6 Arial, sans-serif; }
+      #startup-diagnostic.is-visible { display: grid; }
+      #startup-diagnostic .diagnostic-card { width: min(680px, 100%); max-height: 88vh; overflow: auto; padding: 26px; border: 1px solid rgba(211,184,125,.45); background: #142320; box-shadow: 0 20px 80px #0009; }
+      #startup-diagnostic h2 { margin: 0 0 8px; color: #e7d7a9; font: 600 22px Georgia, serif; }
+      #startup-diagnostic p { color: #bac6b8; }
+      #startup-error-detail { white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; background: #091311; color: #e2c99b; font: 12px/1.5 Consolas, monospace; }
+      #startup-diagnostic button { margin-top: 14px; padding: 11px 18px; border: 1px solid #b8a775; background: #b8a775; color: #17231e; cursor: pointer; font-weight: 700; }
+    </style>
+    <script>
+      (() => {
+        const showDiagnostic = (title, detail) => {
+          const panel = document.getElementById('startup-diagnostic');
+          const heading = document.getElementById('startup-error-title');
+          const output = document.getElementById('startup-error-detail');
+          if (!panel || !heading || !output) return;
+          heading.textContent = title || 'The game could not start';
+          output.textContent = String(detail || 'No additional details were provided.');
+          panel.classList.add('is-visible');
+        };
+        window.__verdantReportError = showDiagnostic;
+        window.__verdantGameReady = false;
+        window.addEventListener('error', (event) => {
+          if (window.__verdantGameReady && !(event.target instanceof HTMLScriptElement)) return;
+          if (event.target instanceof HTMLScriptElement) {
+            showDiagnostic('A game module could not be loaded', `Module: ${event.target.src || '(unknown)'}\n\nCheck that the local server is still running and that the browser can reach the Three.js CDN.`);
+          } else if (event.message) {
+            showDiagnostic('A JavaScript error stopped the game', `${event.message}\n${event.filename || ''}:${event.lineno || 0}:${event.colno || 0}`);
+          }
+        }, true);
+        window.addEventListener('unhandledrejection', (event) => {
+          if (window.__verdantGameReady) return;
+          const reason = event.reason;
+          showDiagnostic('A game operation failed', reason?.stack || reason?.message || String(reason));
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+          document.getElementById('startup-error-reload')?.addEventListener('click', () => location.reload());
+        });
+      })();
+    </script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="startup-diagnostic" role="alert" aria-live="assertive">
+      <div class="diagnostic-card">
+        <h2 id="startup-error-title">The game could not start</h2>
+        <p>The menu was kept available, but a startup error prevented the game from running. The detail below identifies the failure.</p>
+        <pre id="startup-error-detail">Waiting for game startup…</pre>
+        <p>Common causes: blocked Three.js CDN access, unavailable WebGL 2, or a JavaScript module error.</p>
+        <button id="startup-error-reload" type="button">Reload page</button>
+      </div>
+    </div>
+    <div id="app">
+      <canvas id="world-canvas"></canvas>
+      <div id="screen-vignette"></div>
+
+      <section id="main-menu" class="screen screen-visible">
+        <div class="menu-backdrop"></div>
+        <div class="menu-content">
+          <div class="eyebrow"><span class="eyebrow-line"></span> A WORLD WITHOUT EDGES <span class="eyebrow-line"></span></div>
+          <div class="brand-mark">✦</div>
+          <h1>VERDANT <em>REACH</em></h1>
+          <p class="brand-subtitle">An ever-unfolding fantasy wilderness</p>
+          <p class="menu-copy">Beyond the old roads, the land remembers a thousand stories.<br />Walk gently. The horizon is only the beginning.</p>
+          <div class="seed-panel">
+            <div class="mode-picker" role="group" aria-label="Choose game mode">
+              <button id="mode-survival" class="mode-choice is-selected" data-world-mode="survival" type="button">
+                <b>Survival</b><span>Gather, trade, manage supplies and endure the Reach.</span>
+              </button>
+              <button id="mode-creative" class="mode-choice" data-world-mode="creative" type="button">
+                <b>Creative</b><span>Build freely, summon entities and shape the world.</span>
+              </button>
+            </div>
+            <label for="world-seed">WORLD SEED</label>
+            <div class="seed-row">
+              <input id="world-seed" maxlength="32" value="EMBERFALL" spellcheck="false" autocomplete="off" />
+              <button id="random-seed" class="icon-button" title="Generate random seed">⤨</button>
+            </div>
+            <button id="start-world" class="primary-button">Begin your journey <span>↗</span></button>
+            <button id="continue-world" class="text-button hidden">Continue saved journey</button>
+            <button id="open-saved-worlds" class="secondary-button menu-secondary">Saved worlds <span>▤</span></button>
+          </div>
+          <div id="saved-worlds-view" class="saved-worlds-view hidden">
+            <div class="saved-worlds-heading">
+              <div class="eyebrow"><span class="eyebrow-line"></span> YOUR JOURNEYS <span class="eyebrow-line"></span></div>
+              <h2>Saved Worlds</h2>
+              <p>Return to a realm you have already explored, or enter the prepared field-test circuit.</p>
+            </div>
+            <div id="saved-worlds-list" class="saved-worlds-list"><div class="saved-worlds-empty">Reading your saved journeys…</div></div>
+            <button id="saved-worlds-back" class="text-button">← Back to main menu</button>
+          </div>
+          <div class="menu-footnote">PROCEDURAL REALM · DETERMINISTIC SEEDS · YOUR WORLD TO DISCOVER</div>
+        </div>
+        <div class="menu-version">LIVING WORLD & WORLD BUILDER · 0.5.0</div>
+      </section>
+
+      <section id="hud" class="hidden">
+        <header class="top-hud">
+          <div class="location-block">
+            <div class="location-symbol">⌖</div>
+            <div>
+              <div id="biome-name" class="location-name">The Greenward</div>
+              <div id="world-coords" class="location-sub">0, 0 · DAY 1</div>
+            </div>
+          </div>
+          <div class="top-right">
+            <div class="time-block"><span id="game-mode-chip" class="game-mode-chip">SURVIVAL</span><span class="time-icon">◷</span><span id="world-time">08:00</span><span id="weather-label">CLEAR</span></div>
+            <button id="pause-button" class="hud-icon-button" title="Pause (Esc)">Ⅱ</button>
+          </div>
+        </header>
+
+        <aside class="status-panel">
+          <div class="portrait"><div class="portrait-glyph">✦</div></div>
+          <div class="status-bars">
+            <div class="stat-line"><span>HEALTH</span><b id="health-value">100 / 100</b></div>
+            <div class="bar-track"><div id="health-bar" class="bar-fill health-fill" style="width:100%"></div></div>
+            <div class="stat-line stamina-line"><span>STAMINA</span><b id="stamina-value">100 / 100</b></div>
+            <div class="bar-track"><div id="stamina-bar" class="bar-fill stamina-fill" style="width:100%"></div></div>
+            <div id="survival-needs" class="survival-needs">
+              <div class="stat-line"><span>HUNGER</span><b id="hunger-value">100%</b></div>
+              <div class="bar-track"><div id="hunger-bar" class="bar-fill hunger-fill" style="width:100%"></div></div>
+              <div class="stat-line"><span>THIRST</span><b id="thirst-value">100%</b></div>
+              <div class="bar-track"><div id="thirst-bar" class="bar-fill thirst-fill" style="width:100%"></div></div>
+            </div>
+            <div class="level-line"><span>LEVEL <b id="level-value">1</b></span><div class="xp-track"><div id="xp-bar" class="xp-fill" style="width:0%"></div></div><span id="xp-value">0 / 100 XP</span></div>
+          </div>
+        </aside>
+
+        <div id="field-test-guide" class="field-test-guide hidden">
+          <div class="field-test-eyebrow">WAYFARER'S CIRCUIT <span id="field-test-count">1 / 12</span></div>
+          <div id="field-test-title" class="field-test-title">Survey the Reach</div>
+          <div id="field-test-hint" class="field-test-hint">Read this region’s biome, elevation and climate.</div>
+          <div class="field-test-track"><i id="field-test-progress"></i></div>
+        </div>
+        <div class="quest-chip">
+          <div class="quest-chip-mark">✧</div>
+          <div><div class="quest-chip-label">CURRENT THREAD</div><div id="quest-chip-title">Greenward Errand</div><div id="quest-chip-progress">Moonleaf 0 / 5</div></div>
+          <button id="open-journal" class="mini-arrow" title="Open journal">↗</button>
+        </div>
+
+        <div class="right-rail">
+          <button class="rail-button" data-panel="inventory"><span>▤</span><small>I</small><em>PACK</em></button>
+          <button class="rail-button" data-panel="journal"><span>✧</span><small>J</small><em>JOURNAL</em></button>
+          <button class="rail-button" data-panel="map"><span>⌖</span><small>M</small><em>MAP</em></button>
+          <button class="rail-button" data-panel="realm"><span>⌂</span><small>G</small><em>REALM</em></button>
+          <button class="rail-button" data-panel="character"><span>♙</span><small>C</small><em>CHARACTER</em></button>
+          <button id="creative-tools-button" class="rail-button hidden" data-panel="creative"><span>✥</span><small>B</small><em>CREATE</em></button>
+          <button class="rail-button" data-panel="settings"><span>⚙</span><small>O</small><em>SETTINGS</em></button>
+        </div>
+
+        <div class="interaction-prompt hidden" id="interaction-prompt"><span class="key-cap">E</span><span id="interaction-text">Gather moonleaf</span></div>
+        <div id="toast-stack" class="toast-stack"></div>
+        <div class="bottom-hud">
+          <div class="control-hint"><span>W A S D</span> MOVE <i></i><span>SHIFT</span> RUN <i></i><span>SPACE</span> STRIKE <i></i><span>R</span> MOUNT <i></i><span>B</span> BUILD <i></i><span>DRAG</span> ORBIT <i></i><span>SCROLL</span> ZOOM</div>
+          <div class="ability-row"><div class="ability-slot"><span class="ability-key">F</span><span class="ability-icon">✧</span><span class="ability-name">RESONANCE</span></div><div class="ability-slot"><span class="ability-key">E</span><span class="ability-icon">◇</span><span class="ability-name">INTERACT</span></div></div>
+        </div>
+      </section>
+
+      <section id="panel-layer" class="hidden">
+        <div class="panel-scrim"></div>
+        <div id="game-panel" class="game-panel">
+          <button id="close-panel" class="close-panel" aria-label="Close panel">×</button>
+          <div id="panel-content"></div>
+        </div>
+      </section>
+
+      <section id="pause-screen" class="screen hidden">
+        <div class="pause-card">
+          <div class="eyebrow">THE WORLD CAN WAIT</div>
+          <h2>Journey paused</h2>
+          <p>Your path is saved when you choose to rest.</p>
+          <button id="resume-game" class="primary-button">Return to the wild</button>
+          <button id="save-game" class="secondary-button">Save journey</button>
+          <button id="return-menu" class="text-button">Return to title</button>
+        </div>
+      </section>
+
+      <div id="loading-cover" class="loading-cover hidden"><div class="loading-inner"><div class="loading-sigil">✦</div><div class="loading-title">SHAPING THE REACH</div><div class="loading-track"><div id="loading-progress"></div></div><div id="loading-status">Reading the old earth…</div></div></div>
+    </div>
+    <script type="module" src="/src/main.js?v=0.5.0"></script>
+  </body>
+</html>
