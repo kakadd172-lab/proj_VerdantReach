@@ -804,7 +804,7 @@ function setupPartApi(root, registry, design) {
   const state = { rudderAngle: 0, sailTrim: {}, sailDeployment: {}, mastLean: {}, hiddenParts: {}, unlinkedParts: [], partTransforms: {}, time: 0 };
   for (const [name, part] of registry) {
     original.set(name, { parent: part.parent, position: part.position.clone(), quaternion: part.quaternion.clone(), rotation: part.rotation.clone(), scale: part.scale.clone() });
-    transformBase.set(name, { position: part.position.clone(), rotation: part.rotation.clone() });
+    transformBase.set(name, { position: part.position.clone(), rotation: part.rotation.clone(), scale: part.scale.clone() });
   }
   const sailControls = [...registry.values()].filter((part) => part.userData.sailControl);
   const sailCloths = new Map(sailControls.map((part) => {
@@ -815,6 +815,15 @@ function setupPartApi(root, registry, design) {
   const api = {
     parts: registry,
     getPart(name) { return registry.get(name) ?? null; },
+    getPartTransform(name) {
+      const part = registry.get(name), base = transformBase.get(name);
+      if (!part || !base) return null;
+      return {
+        x: part.position.x - base.position.x, y: part.position.y - base.position.y, z: part.position.z - base.position.z,
+        rx: part.rotation.x - base.rotation.x, ry: part.rotation.y - base.rotation.y, rz: part.rotation.z - base.rotation.z,
+        sx: part.scale.x / (base.scale.x || 1), sy: part.scale.y / (base.scale.y || 1), sz: part.scale.z / (base.scale.z || 1),
+      };
+    },
     detachPart(name) {
       const part = registry.get(name);
       if (!part || part === unlinked || part.parent === unlinked) return false;
@@ -826,7 +835,7 @@ function setupPartApi(root, registry, design) {
       unlinked.updateMatrixWorld(true);
       const local = unlinked.matrixWorld.clone().invert().multiply(world);
       local.decompose(part.position, part.quaternion, part.scale);
-      transformBase.set(name, { position: part.position.clone(), rotation: part.rotation.clone() });
+      transformBase.set(name, { position: part.position.clone(), rotation: part.rotation.clone(), scale: part.scale.clone() });
       state.unlinkedParts = [...new Set([...state.unlinkedParts, name])];
       return true;
     },
@@ -840,7 +849,7 @@ function setupPartApi(root, registry, design) {
       info.parent.add(part);
       const local = info.parent.matrixWorld.clone().invert().multiply(world);
       local.decompose(part.position, part.quaternion, part.scale);
-      transformBase.set(name, { position: part.position.clone(), rotation: part.rotation.clone() });
+      transformBase.set(name, { position: part.position.clone(), rotation: part.rotation.clone(), scale: part.scale.clone() });
       state.unlinkedParts = state.unlinkedParts.filter((item) => item !== name);
       return true;
     },
@@ -858,9 +867,11 @@ function setupPartApi(root, registry, design) {
       const values = {
         x: clamp(transform.x, -24, 24), y: clamp(transform.y, -24, 24), z: clamp(transform.z, -24, 24),
         rx: clamp(transform.rx, -Math.PI, Math.PI), ry: clamp(transform.ry, -Math.PI, Math.PI), rz: clamp(transform.rz, -Math.PI, Math.PI),
+        sx: clamp(transform.sx ?? 1, .05, 20), sy: clamp(transform.sy ?? 1, .05, 20), sz: clamp(transform.sz ?? 1, .05, 20),
       };
       part.position.copy(base.position).add(V(values.x, values.y, values.z));
       part.rotation.set(base.rotation.x + values.rx, base.rotation.y + values.ry, base.rotation.z + values.rz, 'XYZ');
+      part.scale.set(base.scale.x * values.sx, base.scale.y * values.sy, base.scale.z * values.sz);
       state.partTransforms[name] = values;
       return true;
     },
@@ -958,7 +969,7 @@ function setupPartApi(root, registry, design) {
   return api;
 }
 
-export function createShipModel(type) {
+export function createShipModel(type, componentTransforms = {}) {
   const design = getShipDesign(type);
   if (!design) throw new Error('Unknown historical ship type: ' + type);
   const root = new THREE.Group();
@@ -987,7 +998,8 @@ export function createShipModel(type) {
   addDeckDetails(design, root, registry, mats);
 
   const api = setupPartApi(root, registry, design);
-  for (const key of ['getPart', 'detachPart', 'relinkPart', 'setPartVisible', 'setPartTransform', 'resetPartTransform', 'setRudderAngle', 'setSailTrim', 'setMastLean', 'setSailDeployment', 'animateShip', 'getShipState', 'applyShipState']) {
+  if (componentTransforms && typeof componentTransforms === 'object') api.applyShipState({ partTransforms: componentTransforms });
+  for (const key of ['getPart', 'getPartTransform', 'detachPart', 'relinkPart', 'setPartVisible', 'setPartTransform', 'resetPartTransform', 'setRudderAngle', 'setSailTrim', 'setMastLean', 'setSailDeployment', 'animateShip', 'getShipState', 'applyShipState']) {
     root.userData[key] = api[key].bind(api);
   }
   root.userData.shipModelSummary = api.summary.bind(api);
