@@ -3,8 +3,20 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "engines": {"node": ">=22"},
-  "scripts": {"dev":"vite --host 127.0.0.1","build":"vite build","test":"node --test"},
-  "dependencies": {"three":"0.187.0"},
-  "devDependencies": {"vite":"8.3.5"}
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "test": "node --test",
+    "smoke": "node browser-smoke.mjs"
+  },
+  "dependencies": {
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "vite": "8.3.5",
+    "playwright": "1.64.1"
+  }
 }
