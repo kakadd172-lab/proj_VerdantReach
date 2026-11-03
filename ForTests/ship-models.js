@@ -414,7 +414,8 @@ function addSternworks(design, root, registry, mats) {
         const width = design.beamUnits * tiers[level].w;
         const depth = design.hullLengthUnits * tiers[level].d;
         const y = deckY + tiers.slice(0, level + 1).reduce((sum, item) => sum + item.h * (4 / 3), 0);
-        const z = baseZ + level * depth * .17 + depth * .35;
+        const levelBaseZ = sternDeckEdge.z - depth * .72 + level * depth * .17;
+        const z = levelBaseZ + depth * .35;
         const railX = side * width * .53;
         addBeam(gallery, mats.trim, V(railX, y, z - depth * .55), V(railX, y, z + depth * .48), .052, 'gallery-rail-' + side + '-' + level);
         for (let post = 0; post < 5; post += 1) {
