@@ -174,31 +174,6 @@ function makePart(root, registry, name, parent = root) {
   return group;
 }
 
-function addHullFrames(design, root, parts, mats) {
-  const frames = makePart(root, parts, 'hull-frames');
-  const count = design.structure.frameCount;
-  const length = design.hullLengthUnits;
-  const draft = design.draftUnits;
-  for (let index = 0; index < count; index += 1) {
-    const t = 0.055 + (index / Math.max(1, count - 1)) * 0.89;
-    const half = Math.max(0.08, stationHalfBeam(design, t, false) - 0.045);
-    const top = hullSheerAt(design, t) - 0.06;
-    const points = [];
-    for (let sample = 0; sample <= 32; sample += 1) {
-      const angle = sample / 32 * Math.PI * 2;
-      const vertical = (Math.cos(angle) + 1) * 0.5;
-      const width = half * getHullSectionWidth(design, vertical) * 0.985;
-      points.push(V3(Math.sin(angle) * width, -draft + vertical * (draft + top), (t - 0.5) * length));
-    }
-    const frame = makePart(root, parts, `frame-${String(index + 1).padStart(2, '0')}`, frames);
-    const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal');
-    ownMesh(frame, new THREE.TubeGeometry(curve, 48, Math.max(0.035, design.beamUnits * 0.0028), 5, false), mats.trim, 'internal-transverse-frame');
-  }
-  const keelson = makePart(root, parts, 'keelson');
-  beam(keelson, mats.trim, [0, -draft * 0.72, -length * 0.39], [0, -draft * 0.72, length * 0.4], Math.max(0.045, design.beamUnits * 0.012), 'longitudinal-keelson');
-  return frames;
-}
-
 function addHull(design, root, parts, mats) {
   const hull = makePart(root, parts, 'hull');
   const main = ownMesh(hull, addLoftGeometry(design), mats.hull, 'continuous-carvel-hull');
@@ -408,8 +383,9 @@ function makeSquareSail(mastGroup, mast, design, mats, level, index) {
   const group = makePart(root, registry, name, mastGroup);
   const height = design.mastHeights[design.masts.findIndex((item) => item.id === mast.id)] * WORLD_UNITS_PER_METRE;
   const y = height * level;
-  const width = design.beamUnits * [1.38, 1.12, 0.82][index];
-  const sailHeight = height * [0.205, 0.15, 0.105][index];
+  const rig = design.structure?.rigging ?? {};
+  const width = design.beamUnits * [1.38, 1.12, 0.82][index] * (rig.yardSpread ?? 1);
+  const sailHeight = height * [0.205, 0.15, 0.105][index] * (rig.sailArea ?? 1);
   group.position.set(0, y, 0);
   const yard = makePart(root, registry, `yard-${mast.id}-${id}`, group);
   cylinder(yard, mats.trim, 0.065, 0.075, width * 1.08, [0, 0, 0], { axis: 'x', radialSegments: 7, name: `${id}-yard-spar` });
@@ -419,7 +395,7 @@ function makeSquareSail(mastGroup, mast, design, mats, level, index) {
   const sheets = makePart(root, registry, `sheets-${mast.id}-${id}`, group);
   beam(sheets, mats.rope, [-width * 0.5, 0.02, 0], [-width * 0.5, -sailHeight * 0.8, 0], 0.022, 'port-sheet');
   beam(sheets, mats.rope, [width * 0.5, 0.02, 0], [width * 0.5, -sailHeight * 0.8, 0], 0.022, 'starboard-sheet');
-  group.userData.sailControl = { mastId: mast.id, kind: 'square', base: 0, clothPart: canvas.name };
+  group.userData.sailControl = { mastId: mast.id, kind: 'square', base: 0 };
   return group;
 }
 
@@ -444,7 +420,7 @@ function addGaffAssembly(mastGroup, mast, design, mats) {
   beam(gaff, mats.trim, [0, upperY, 0], [0, upperY - height * 0.12, aftZ * 0.82], Math.max(0.045, design.beamUnits * 0.006), 'gaff-spar');
   const lines = makePart(root, registry, `sail-lines-${mast.id}-gaff`, sail);
   beam(lines, mats.rope, [0, upperY - height * 0.12, aftZ * 0.82], [0, lowerY, aftZ], 0.018, 'gaff-lift');
-  sail.userData.sailControl = { mastId: mast.id, kind: 'gaff', base: 0, clothPart: canvas.name };
+  sail.userData.sailControl = { mastId: mast.id, kind: 'gaff', base: 0 };
   return sail;
 }
 
@@ -466,7 +442,7 @@ function addLateenAssembly(mastGroup, mast, design, mats) {
   beam(yard, mats.trim, upper, lower, Math.max(0.06, design.beamUnits * 0.009), 'lateen-yard-spar');
   const lines = makePart(root, registry, `sail-lines-${mast.id}-lateen`, group);
   beam(lines, mats.rope, upper, [0, design.deckHeightUnits + 0.18, mast.z * design.hullLengthUnits], 0.018, 'lateen-halyard');
-  group.userData.sailControl = { mastId: mast.id, kind: 'lateen', base: 0, clothPart: canvas.name };
+  group.userData.sailControl = { mastId: mast.id, kind: 'lateen', base: 0 };
   return group;
 }
 
@@ -483,7 +459,7 @@ function addTrysail(mastGroup, mast, design, mats) {
   sail.rotation.y = Math.PI / 2;
   const gaff = makePart(root, registry, `trysail-gaff-${mast.id}`, group);
   beam(gaff, mats.trim, [0, height * 0.8, 0], [0, height * 0.4, span], 0.055, 'trysail-gaff-spar');
-  group.userData.sailControl = { mastId: mast.id, kind: 'trysail', base: 0, clothPart: canvas.name };
+  group.userData.sailControl = { mastId: mast.id, kind: 'trysail', base: 0 };
   return group;
 }
 
@@ -592,8 +568,8 @@ function addMastsAndRigging(design, root, parts, mats) {
     const ratlines = makePart(root, parts, `ratlines-${mast.id}`, standingMast);
     const stays = makePart(root, parts, `mast-stays-${mast.id}`, standingMast);
     const braces = makePart(root, parts, `running-braces-${mast.id}`, runningMast);
-    const lowerHeight = height * 0.69;
-    const topHeight = height * 0.31;
+    const lowerHeight = height * (design.structure?.rigging?.lowerMastRatio ?? 0.69);
+    const topHeight = height - lowerHeight;
     const radius = Math.max(0.095, B * (mast.auxiliary ? 0.011 : 0.018));
     const lowerMast = makePart(root, parts, `mast-lower-${mast.id}`, mastGroup);
     cylinder(lowerMast, mats.trim, radius * 0.48, radius, lowerHeight, [0, lowerHeight * 0.5, 0], { radialSegments: 10, name: `${mast.id}-lower-mast` });
@@ -607,16 +583,26 @@ function addMastsAndRigging(design, root, parts, mats) {
     }
     // Shrouds, ratlines, stays and braces are independently editable linked groups.
     for (const side of [-1, 1]) {
-      const chainplateZ = mast.z * L + (i === 0 ? -L * 0.075 : L * 0.07);
-      const shroud = makePart(root, parts, `shroud-${mast.id}-${side < 0 ? 'port' : 'starboard'}`, shrouds);
-      beam(shroud, mats.rope, [0, design.deckHeightUnits + height * 0.92, mast.z * L], [side * B * 0.43, design.deckHeightUnits + 0.16, chainplateZ], 0.027, `${mast.id}-shroud-${side}`);
-      const ratlineSide = makePart(root, parts, `ratlines-${mast.id}-${side < 0 ? 'port' : 'starboard'}`, ratlines);
-      for (let r = 0; r < 6; r += 1) {
-        const f = (r + 1) / 7;
+      const label = side < 0 ? 'port' : 'starboard';
+      const pairCount = design.structure?.rigging?.shroudPairs ?? 1;
+      for (let pair = 0; pair < pairCount; pair += 1) {
+        const pairOffset = (pair - (pairCount - 1) * 0.5) * 0.028;
+        const chainplateZ = mast.z * L + (i === 0 ? -L * 0.075 : L * 0.07) + pairOffset * L;
+        const shroudName = pair === 0 ? `shroud-${mast.id}-${label}` : `shroud-${mast.id}-${label}-${pair + 1}`;
+        const shroud = makePart(root, parts, shroudName, shrouds);
+        beam(shroud, mats.rope,
+          [side * B * pairOffset * 0.16, design.deckHeightUnits + height * (0.88 + pair * 0.012), mast.z * L],
+          [side * B * (0.39 + pair * 0.035), design.deckHeightUnits + 0.16, chainplateZ],
+          0.027, `${mast.id}-shroud-${label}-${pair + 1}`);
+      }
+      const ratlineSide = makePart(root, parts, `ratlines-${mast.id}-${label}`, ratlines);
+      const ratlineCount = design.structure?.rigging?.ratlineCount ?? 6;
+      for (let r = 0; r < ratlineCount; r += 1) {
+        const f = (r + 1) / (ratlineCount + 1);
         beam(ratlineSide, mats.rope,
           [side * B * (0.08 + f * 0.35), design.deckHeightUnits + height * (0.72 - f * 0.42), mast.z * L - L * 0.012],
-          [side * B * (0.08 + f * 0.35), design.deckHeightUnits + height * (0.72 - f * 0.42) - 0.13, chainplateZ],
-          0.009, `${mast.id}-ratline-${side}-${r}`);
+          [side * B * (0.08 + f * 0.35), design.deckHeightUnits + height * (0.72 - f * 0.42) - 0.13, mast.z * L + (i === 0 ? -L * 0.075 : L * 0.07)],
+          0.009, `${mast.id}-ratline-${label}-${r}`);
       }
       beam(braces, mats.rope, [0, design.deckHeightUnits + height, mast.z * L], [side * B * 0.4, design.deckHeightUnits + 0.14, mast.z * L + L * 0.16], 0.018, `${mast.id}-brace-${side}`);
     }
@@ -751,12 +737,8 @@ function setupPartApi(root, registry, design) {
     };
   };
   const sailControls = [...registry.values()].filter((part) => part.userData.sailControl);
-  const sailCloths = new Map(sailControls.map((part) => {
-    const cloth = registry.get(part.userData.sailControl.clothPart);
-    return [part.name, { cloth, baseScale: cloth?.scale.y ?? 1, from: cloth?.scale.y ?? 1, target: cloth?.scale.y ?? 1, elapsed: 0, duration: 0 }];
-  }));
   const mastControls = [...registry.values()].filter((part) => part.userData.mastControl);
-  const state = { rudderAngle: 0, sailTrim: {}, sailDeployment: {}, mastLean: {}, hiddenParts: {}, unlinkedParts: [], partTransforms: {} };
+  const state = { rudderAngle: 0, sailTrim: {}, mastLean: {}, hiddenParts: {}, unlinkedParts: [], partTransforms: {} };
   const api = {
     parts: registry,
     getPart(name) { return registry.get(name) ?? null; },
@@ -841,22 +823,6 @@ function setupPartApi(root, registry, design) {
       target.rotation.x = value + (state.partTransforms[target.name]?.rx ?? 0);
       return true;
     },
-    setSailDeployment(mastId, deployment = 'full', duration = 0.85) {
-      const targets = sailControls.filter((part) => part.userData.sailControl.mastId === mastId);
-      if (!targets.length || !['full', 'reefed', 'furled'].includes(deployment)) return false;
-      const targetScale = deployment === 'full' ? 1 : deployment === 'reefed' ? 0.48 : 0.001;
-      state.sailDeployment[mastId] = deployment;
-      for (const part of targets) {
-        const animation = sailCloths.get(part.name);
-        if (!animation?.cloth) continue;
-        animation.from = animation.cloth.scale.y;
-        animation.target = targetScale;
-        animation.elapsed = 0;
-        animation.duration = clamp(duration, 0, 4);
-        if (animation.duration === 0) animation.cloth.scale.y = targetScale;
-      }
-      return true;
-    },
     animateShip(delta = 0.016, weather = {}) {
       state.time = (state.time ?? 0) + clamp(delta, 0, 0.1);
       const wind = clamp(weather.windStrength ?? 0.25, 0, 1);
@@ -866,20 +832,12 @@ function setupPartApi(root, registry, design) {
         const manual = state.sailTrim[mastId] ?? 0;
         const gust = Math.sin(state.time * 1.4 + mastId.length) * 0.018 * wind;
         part.rotation.y = (state.partTransforms[part.name]?.ry ?? 0) + manual + Math.sin(angle) * 0.08 * wind + gust;
-        const animation = sailCloths.get(part.name);
-        if (animation?.cloth && animation.elapsed < animation.duration) {
-          animation.elapsed = Math.min(animation.duration, animation.elapsed + clamp(delta, 0, 0.1));
-          const t = animation.duration > 0 ? animation.elapsed / animation.duration : 1;
-          const eased = t * t * (3 - 2 * t);
-          animation.cloth.scale.y = THREE.MathUtils.lerp(animation.from, animation.target, eased);
-        }
       }
     },
     getShipState() {
       return {
         rudderAngle: state.rudderAngle,
         sailTrim: { ...state.sailTrim },
-        sailDeployment: { ...state.sailDeployment },
         mastLean: { ...state.mastLean },
         hiddenParts: { ...state.hiddenParts },
         unlinkedParts: [...state.unlinkedParts],
@@ -895,7 +853,6 @@ function setupPartApi(root, registry, design) {
       }
       api.setRudderAngle(saved.rudderAngle ?? 0);
       for (const [id, value] of Object.entries(saved.sailTrim ?? {})) api.setSailTrim(id, value);
-      for (const [id, value] of Object.entries(saved.sailDeployment ?? {})) api.setSailDeployment(id, value, 0);
       for (const [id, value] of Object.entries(saved.mastLean ?? {})) api.setMastLean(id, value);
       for (const [name, hidden] of Object.entries(saved.hiddenParts ?? {})) if (registry.has(name)) api.setPartVisible(name, !hidden);
       return true;
@@ -938,7 +895,6 @@ export function createShipModel(type) {
   root.userData.vehicle = { mode: 'boat', vesselType: design.id, deckHeight: design.deckHeightUnits, label: `Board ${design.label}` };
 
   addHull(design, root, registry, mats);
-  addHullFrames(design, root, registry, mats);
   addHullStrakes(design, root, registry, mats);
   addDecorativeGunports(design, root, registry, mats);
   addSternworks(design, root, registry, mats);
@@ -959,7 +915,6 @@ export function createShipModel(type) {
   root.userData.setRudderAngle = api.setRudderAngle;
   root.userData.setSailTrim = api.setSailTrim;
   root.userData.setMastLean = api.setMastLean;
-  root.userData.setSailDeployment = api.setSailDeployment;
   root.userData.animateShip = api.animateShip;
   root.userData.getShipState = api.getShipState;
   root.userData.applyShipState = api.applyShipState;
