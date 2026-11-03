@@ -72,12 +72,18 @@ test('timber-framed housing, resident movement and walking animation remain wire
   assert.ok(actors.includes('legMeshes'));
 });
 
-test('galleon headsails and stepped aftercastle retain the visual correction', () => {
+test('galleon sterncastle uses tapered faceted cabins, framed windows and open galleries', () => {
   const models = read('src/world/ship-models.js');
   const structures = read('src/world/ship-structures.js');
   assert.ok(models.includes('[bottomZ - topZ, 0], [0, 0]'));
   assert.ok(models.includes('galleon-upper-gallery-platform'));
-  assert.match(models, /addDeckhouse\(0\.29, y \* 0\.36, 0\.075/);
+  assert.ok(models.includes('function makeTaperedDeckhouseGeometry'));
+  assert.ok(models.includes('function addTransomWindow'));
+  assert.ok(models.includes('function addSideCabinWindow'));
+  assert.ok(models.includes('function addGalleonBalcony'));
+  assert.ok(models.includes('galleon-stern-lantern-frame'));
+  assert.ok(models.includes('galleon-stern-lower-deckhouse'));
+  assert.doesNotMatch(models, /addDeckhouse\\(0\\.52, lowerHeight/);
   assert.match(structures, /galleon:.*shroudPairs: 2, ratlineCount: 8/);
 });
 
