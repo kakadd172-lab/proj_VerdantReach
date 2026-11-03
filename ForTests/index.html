@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#101a22"/><title>Verdant Reach — Ship Redesign Lab</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,Segoe UI,sans-serif;background:#101a22;color:#e8e5dc}
+*{box-sizing:border-box}body{margin:0;min-height:100vh}
+header{display:flex;gap:18px;align-items:center;justify-content:space-between;padding:14px 20px;background:#17242e;border-bottom:1px solid #31434d}
+header h1{margin:0;font:600 19px Georgia,serif;letter-spacing:.03em}header span{color:#9db1b8;font-size:12px}
+main{display:grid;grid-template-columns:minmax(0,1fr) 286px;min-height:calc(100vh - 58px)}
+#viewport{min-height:620px;position:relative;background:radial-gradient(ellipse at 50% 45%,#243b45,#0b141b 78%)}
+#viewport canvas{display:block;width:100%;height:100%}aside{padding:20px;background:#17242e;border-left:1px solid #31434d}
+label{display:block;color:#aebfc3;font-size:12px;margin:0 0 7px}
+select,button{width:100%;min-height:40px;color:#eee9dd;background:#21343e;border:1px solid #40545d;border-radius:7px;padding:8px 10px;font:inherit}
+button{cursor:pointer;margin-top:10px}button:hover{background:#2b4550}
+.metric{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #30414a;padding:10px 0;font-size:13px}
+.metric span{color:#9db1b8}.metric strong{text-align:right;font-weight:600}
+#description{color:#b8c5c8;line-height:1.5;font-size:12px;margin-top:16px}
+#hint{position:absolute;left:14px;bottom:12px;padding:8px 10px;border-radius:6px;background:#0b141bcc;color:#b8c5c8;font-size:11px;pointer-events:none}
+#status{margin-top:12px;color:#9fba9e;font-size:12px;min-height:18px}
+@media(max-width:850px){main{grid-template-columns:1fr}#viewport{min-height:60vh}aside{border-left:0;border-top:1px solid #31434d}}
+</style></head><body>
+<header><h1>Verdant Reach · Ship Redesign Lab</h1><span>Experimental candidate · separate from the game</span></header>
+<main><section id="viewport" aria-label="Interactive 3D ship preview"><div id="hint">Drag to orbit · Scroll to zoom · Right-drag to pan</div></section>
+<aside><label for="ship-select">Vessel family</label><select id="ship-select"></select><button id="reset-camera" type="button">Reset camera</button>
+<div class="metric"><span>Length</span><strong id="length">—</strong></div>
+<div class="metric"><span>Beam</span><strong id="beam">—</strong></div>
+<div class="metric"><span>Loaded draft</span><strong id="draft">—</strong></div>
+<div class="metric"><span>Masts</span><strong id="masts">—</strong></div>
+<div class="metric"><span>Editable parts</span><strong id="parts">—</strong></div>
+<p id="description">Select a vessel to inspect its hull, decks, stern, rig and proportions.</p>
+<div id="status" role="status">Loading preview…</div></aside></main>
+<script type="module" src="./preview.js"></script></body></html>

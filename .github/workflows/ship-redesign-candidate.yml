@@ -1,0 +1,31 @@
+name: Experimental ship redesign candidate checks
+on:
+  push:
+    branches: [chatgpt-v0.8.5-modular-fleet]
+    paths:
+      - 'ForTests/**'
+      - '.github/workflows/ship-redesign-candidate.yml'
+permissions:
+  contents: read
+concurrency:
+  group: experimental-ship-redesign-checks
+  cancel-in-progress: false
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ForTests
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install candidate dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run candidate geometry and integration tests
+        run: npm test
+      - name: Build the standalone 3D preview
+        run: npm run build
