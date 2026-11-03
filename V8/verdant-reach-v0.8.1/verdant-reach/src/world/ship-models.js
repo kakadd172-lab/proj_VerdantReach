@@ -834,12 +834,16 @@ function setupPartApi(root, registry, design) {
       };
     },
     applyShipState(saved = {}) {
+      // Restore the saved hierarchy before local offsets so detached components
+      // retain their original local transform baseline after reload.
+      for (const name of saved.unlinkedParts ?? []) if (registry.has(name)) api.detachPart(name);
+      for (const [name, transform] of Object.entries(saved.partTransforms ?? {})) {
+        if (registry.has(name)) api.setPartTransform(name, transform);
+      }
       api.setRudderAngle(saved.rudderAngle ?? 0);
       for (const [id, value] of Object.entries(saved.sailTrim ?? {})) api.setSailTrim(id, value);
       for (const [id, value] of Object.entries(saved.mastLean ?? {})) api.setMastLean(id, value);
-      for (const [name, transform] of Object.entries(saved.partTransforms ?? {})) if (registry.has(name)) api.setPartTransform(name, transform);
       for (const [name, hidden] of Object.entries(saved.hiddenParts ?? {})) if (registry.has(name)) api.setPartVisible(name, !hidden);
-      for (const name of saved.unlinkedParts ?? []) api.detachPart(name);
       return true;
     },
     summary() {
