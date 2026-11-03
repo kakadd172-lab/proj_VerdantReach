@@ -26,3 +26,10 @@ This release responds to the first in-browser review of v0.8.3. It improves the 
 - Updates browser module cache keys and save metadata to 0.8.4.
 - Adds regression tests for resident counts, migration-safe save top-up, market life, galleon sail geometry and castle detailing.
 - The v0.8.4 CI workflow runs automated tests and a production build; results must be checked before release.
+
+
+## Completion branch update
+
+The separate `chatgpt-v0.8.4-completion` branch adds a visible twelve-stall open city market, larger resident rosters, distributed trader schedules, additional port/town/village stalls and further ruined-castle masonry details. These changes retain the `0.8.4` save-data version for compatibility.
+
+The original galleon screenshot was not present in the review message received for this pass. The existing model corrections are retained, but no screenshot-specific visual claim is made. Automated validation is pending the completion-branch CI run.
