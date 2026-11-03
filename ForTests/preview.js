@@ -1,19 +1,37 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { TransformControls } from 'three/addons/controls/TransformControls.js';
-import DESIGN_OVERRIDES from './design-overrides.json';
-import { SHIP_DESIGNS, getShipDesign, setShipDesignOverrides } from './ship-designs.js?v=0.8.5';
-import { getShipStructureBlueprint, setShipStructureOverrides } from './ship-structures.js?v=0.8.5';
-import { createShipModel, disposeShipModel } from './ship-models.js?v=0.8.5';
-
-const viewport=document.querySelector('#viewport');
-const selector=document.querySelector('#ship-select');
-const partSelector=document.querySelector('#part-select');
-const status=document.querySelector('#status');
+async function bootShipStudio(){
+  const viewport=document.querySelector('#viewport');
+  const selector=document.querySelector('#ship-select');
+  const partSelector=document.querySelector('#part-select');
+  const status=document.querySelector('#status');
+  if(!viewport||!selector||!partSelector||!status){
+    throw new Error('Ship Design Studio HTML is incomplete. Update ForTests/index.html and reload.');
+  }
+  try{
+    // Load modules dynamically so browser import failures can be displayed in the editor.
+    const THREE=await import('three');
+    const {OrbitControls}=await import('three/addons/controls/OrbitControls.js');
+    const {TransformControls}=await import('three/addons/controls/TransformControls.js');
+    const overrideResponse=await fetch('./design-overrides.json',{cache:'no-store'});
+    if(!overrideResponse.ok) throw new Error('Could not read design-overrides.json (HTTP '+overrideResponse.status+').');
+    const DESIGN_OVERRIDES=await overrideResponse.json();
+    const designModule=await import('./ship-designs.js?v=0.8.5');
+    const structureModule=await import('./ship-structures.js?v=0.8.5');
+    const modelModule=await import('./ship-models.js?v=0.8.5');
+    const {SHIP_DESIGNS,getShipDesign,setShipDesignOverrides}=designModule;
+    const {getShipStructureBlueprint,setShipStructureOverrides}=structureModule;
+    const {createShipModel,disposeShipModel}=modelModule;
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x101a22);
 scene.fog=new THREE.Fog(0x101a22,120,900);
 const camera=new THREE.PerspectiveCamera(42,1,.1,4000);
+
+for(const [id,d] of Object.entries(SHIP_DESIGNS)){
+  const option=document.createElement('option');
+  option.value=id;
+  option.textContent=d.label;
+  selector.appendChild(option);
+}
+setStatus('Ship list ready · initializing 3D graphics…');
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -67,11 +85,6 @@ function applyOverrides(){
   }
 }
 applyOverrides();
-for(const [id,d] of Object.entries(SHIP_DESIGNS)){
-  const option=document.createElement('option');
-  option.value=id;option.textContent=d.label;selector.appendChild(option);
-}
-
 let ship=null;
 let selectedName='';
 let undoStack=[];
@@ -375,3 +388,16 @@ loadShip(selector.value||Object.keys(SHIP_DESIGNS)[0]);animate();
 window.addEventListener('beforeunload',()=>{
   resizeObserver.disconnect();if(ship)disposeShipModel(ship);gizmo.dispose();renderer.dispose();
 });
+
+  }catch(error){
+    console.error('[Ship Design Studio startup]',error);
+    const message=error&&error.message?error.message:String(error);
+    status.textContent='Editor startup failed: '+message;
+    status.style.color='#f0a49b';
+    const notice=document.createElement('div');
+    notice.style.cssText='position:absolute;inset:14px 14px 52px;display:flex;align-items:center;justify-content:center;padding:24px;border:1px solid #8c5550;border-radius:10px;background:#21191acc;color:#f4d8d4;text-align:left;white-space:pre-wrap;overflow:auto;font:12px/1.6 ui-monospace,monospace;z-index:5';
+    notice.textContent='SHIP EDITOR COULD NOT START\\n\\n'+message+'\\n\\nOpen the terminal running npm run dev for the detailed error.\\nThe ship selector has been populated when the design modules loaded; if it is still empty, the import error occurred before the fleet catalogue could load.';
+    viewport?.appendChild(notice);
+  }
+}
+bootShipStudio();
