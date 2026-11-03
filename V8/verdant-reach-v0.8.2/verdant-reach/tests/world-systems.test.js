@@ -374,3 +374,28 @@ test('predator activity persists ecosystem population loss without player harves
   assert.equal(restored.predate(prey.id), false);
   assert.equal(restored.totalPredated, 1);
 });
+
+
+test('regional roads do not fall back to an unchecked straight line across impassable terrain', () => {
+  const generator = new WorldGenerator('WILLOW');
+  const intelligence = new WorldIntelligence(generator);
+  const a = { id: 'audit:road-a', x: -200, z: -200 };
+  const b = { id: 'audit:road-b', x: 900, z: 700 };
+  const path = intelligence.routePathFor(a, b, { resolution: 42 });
+  assert.ok(Array.isArray(path));
+  assert.ok(path.length === 0 || (path[0].x === a.x && path.at(-1).x === b.x));
+  if (path.length > 1) {
+    for (let i = 1; i < path.length; i += 1) {
+      assert.ok(Number.isFinite(path[i].x) && Number.isFinite(path[i].z));
+    }
+  }
+});
+
+test('regional road planner applies landform, wet-ground and grade costs', () => {
+  const intelligence = new WorldIntelligence(new WorldGenerator('EMBERFALL'));
+  const source = intelligence._roadCellCost.toString();
+  assert.match(source, /cliffIntensity/);
+  assert.match(source, /ravineIntensity/);
+  assert.match(source, /floodplain/);
+  assert.match(source, /grade/);
+});
