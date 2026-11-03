@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { getShipTypeFromCreativeKind } from './ship-designs.js';
-import { createShipModel, disposeShipModel } from './ship-models.js';
+import { getShipTypeFromCreativeKind } from './ship-designs.js?v=0.8.1';
+import { createShipModel, disposeShipModel } from './ship-models.js?v=0.8.1';
 
 const COLORS = {
   stone: 0x858b84, darkStone: 0x555f59, wood: 0x765538, darkWood: 0x493a2f,
