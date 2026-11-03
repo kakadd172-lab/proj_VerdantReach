@@ -1,6 +1,6 @@
-# Verdant Reach v0.8.0 — Caribbean Age of Sail
+# Verdant Reach v0.8.1 — Caribbean Age of Sail
 
-Verdant Reach v0.8.0 is an in-place upgrade to the audited v0.7.0 browser RPG. This release is focused on replacing the earlier generic ship forms with a broad, historically informed, articulated Atlantic/Caribbean Age-of-Sail fleet. Existing procedural terrain, world streaming, Creative/Survival modes, settlement systems, world saves, player transport and the Wayfarer’s Circuit remain in the project.
+Verdant Reach v0.8.1 is a focused follow-up to the v0.8.0 Caribbean Age-of-Sail release. It improves shipyard editing continuity, saved component restoration and release verification while retaining the existing articulated fleet and world systems. Existing procedural terrain, world streaming, Creative/Survival modes, settlement systems, world saves, player transport and the Wayfarer’s Circuit remain in the project.
 
 ## Run locally
 
@@ -23,7 +23,17 @@ npm run dev
 npm test
 ```
 
-## v0.8.0 highlights
+## v0.8.1 shipyard improvements
+
+- The selected vessel, linked component and mast remain selected when the Creative panel refreshes or is reopened during the same play session.
+- Saved component translations and rotations are displayed in metres and degrees when their part is selected.
+- Saved rudder angle, sail trim and mast lean are loaded into their corresponding editor controls.
+- Transform values can be copied and pasted between components during the editing session. Pasted values are staged until the Apply button is used.
+- Translation inputs snap to 0.1 m, and the shipyard shows the selected vessel's length, beam, draft, principal mast count, era and rig.
+- Saved detached-part hierarchy is restored before local component offsets are reapplied.
+- Page, stylesheet and ship-module cache keys advance to v0.8.1.
+
+## v0.8.0 fleet foundation
 
 ### New fleet
 - 14 representative vessel families: Caribbean merchant sloop, West Indies schooner, brigantine, brig, snow, cutter, frigate, barque, caravel, carrack/nao, galleon, fluyt, xebec and ship’s pinnace.
