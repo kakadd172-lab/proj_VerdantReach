@@ -72,20 +72,18 @@ test('timber-framed housing, resident movement and walking animation remain wire
   assert.ok(actors.includes('legMeshes'));
 });
 
-test('galleon sterncastle uses tapered faceted cabins, framed windows and open galleries', () => {
+test('galleon stern structure uses curved, separately addressable tiers and galleries', () => {
   const models = read('src/world/ship-models.js');
   const structures = read('src/world/ship-structures.js');
-  assert.ok(models.includes('[bottomZ - topZ, 0], [0, 0]'));
-  assert.ok(models.includes('galleon-upper-gallery-platform'));
-  assert.ok(models.includes('function makeTaperedDeckhouseGeometry'));
-  assert.ok(models.includes('function addTransomWindow'));
-  assert.ok(models.includes('function addSideCabinWindow'));
-  assert.ok(models.includes('function addGalleonBalcony'));
-  assert.ok(models.includes('galleon-stern-lantern-frame'));
-  assert.ok(models.includes("makePart(root, parts, 'galleon-stern-' + tier + '-deckhouse', parent)"));
-  assert.ok(models.includes("tier: 'lower'"));
-  assert.ok(!models.includes('addDeckhouse(0.52, lowerHeight'));
-  assert.match(structures, /galleon:.*shroudPairs: 2, ratlineCount: 8/);
+  const designs = read('src/world/ship-designs.js');
+  assert.ok(models.includes('function sternHouseGeometry'));
+  assert.ok(models.includes('curved-sternhouse-tier-'));
+  assert.ok(models.includes('function addWindowFrame'));
+  assert.ok(models.includes('gallery-rail-'));
+  assert.ok(models.includes("registerPart(registry, 'stern-tier-' + (index + 1), sternworks)"));
+  assert.ok(models.includes("registerPart(registry, 'stern-windows', root)"));
+  assert.ok(structures.includes('galleon:'));
+  assert.ok(designs.includes("sternwork: 'galleon-castle'"));
 });
 
 test('ruined castles retain broken crenellations, flanking gatehouse towers and reinforced keep corners', () => {

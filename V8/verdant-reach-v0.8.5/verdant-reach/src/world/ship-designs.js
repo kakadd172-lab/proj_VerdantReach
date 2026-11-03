@@ -60,7 +60,7 @@ function freezeDesign(data) {
   const sternTierCount = ['galleon-castle', 'high-aftercastle', 'first-rate-aftercastle'].includes(data.sternwork) ? 3
     : ['quarterdeck', 'low-quarter', 'fluyt-roundhouse'].includes(data.sternwork) ? 2 : (data.sternwork === 'open-boat' ? 0 : 1);
   const sternNames = Array.from({ length: sternTierCount }, (_, index) => 'stern-tier-' + (index + 1));
-  const accessoryNames = ['bowsprit', 'deck-fittings', ...sternNames, ...(data.oars ? ['oars'] : [])];
+  const accessoryNames = [...sternNames, ...(data.oars ? ['oars'] : [])];
 
   const design = {
     ...data,
