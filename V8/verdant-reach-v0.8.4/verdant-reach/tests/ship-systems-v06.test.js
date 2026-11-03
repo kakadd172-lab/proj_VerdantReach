@@ -6,7 +6,7 @@ import { SHIP_DESIGNS, HISTORICAL_SHIP_KINDS, getShipDesign, getShipTypeFromCrea
 import { TransportSystem } from '../src/systems/transport.js';
 import { WorldEditSystem, CREATIVE_ENTITY_TYPES } from '../src/systems/world-editing.js';
 import { MaritimeSystem, selectShipType } from '../src/systems/maritime.js';
-import { createShipModel } from '../src/world/ship-models.js?v=0.8.4-completion';
+import { createShipModel, disposeShipModel } from '../src/world/ship-models.js?v=0.8.4-completion';
 import { WorldGenerator } from '../src/world/terrain.js';
 import { WorldIntelligence } from '../src/world/world-intelligence.js';
 
@@ -57,10 +57,7 @@ test('galleon runtime model exposes the detailed sterncastle component hierarchy
     assert.ok(body?.geometry?.getAttribute('position')?.count >= 32);
     assert.ok(body.geometry.index?.count >= 144);
   } finally {
-    ship.traverse((object) => {
-      if (object.userData?.shipOwned) object.geometry?.dispose?.();
-    });
-    for (const material of new Set(ship.userData.shipOwnedMaterials ?? [])) material.dispose?.();
+    disposeShipModel(ship);
   }
 });
 
