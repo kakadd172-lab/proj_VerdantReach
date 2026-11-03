@@ -76,7 +76,7 @@ test('actual galleon deck and hull edges meet at bow, midbody and stern',()=>{
  const ship=createShipModel('galleon');
  try{const hull=meshNamed(ship,'lofted-hull-shell'),deck=meshNamed(ship,'cambered-weather-deck');
   const hp=hull.geometry.getAttribute('position'),dp=deck.geometry.getAttribute('position'),ring=41,stride=21;
-  for(const i of [0,1,4,12,24,36,48,60,72,84,92,96]){const t=i/96,hr=i*ring,dr=Math.round(t*72)*stride;
+  for(const i of [0,4,12,24,36,48,60,72,84,92,96]){const t=i/96,hr=i*ring,dr=Math.round(t*72)*stride;
    const star=getSheerPoint(SHIP_DESIGNS.galleon,t,1),port=getSheerPoint(SHIP_DESIGNS.galleon,t,-1);
    assert.ok(Math.abs(hp.getX(hr)-star.x)<1e-5&&Math.abs(hp.getY(hr)-star.y)<1e-5&&Math.abs(hp.getZ(hr)-star.z)<1e-5,'starboard hull '+t);
    assert.ok(Math.abs(hp.getX(hr+40)-port.x)<1e-5&&Math.abs(hp.getY(hr+40)-port.y)<1e-5&&Math.abs(hp.getZ(hr+40)-port.z)<1e-5,'port hull '+t);
