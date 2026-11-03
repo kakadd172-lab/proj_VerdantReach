@@ -142,8 +142,18 @@ for (const profile of Object.values(profiles)) Object.freeze(profile);
 export const SHIP_STRUCTURE_BLUEPRINTS = Object.freeze(profiles);
 
 const clamp01 = (value) => Math.max(0, Math.min(1, Number(value) || 0));
+const activeStructureOverrides = Object.create(null);
+export function setShipStructureOverrides(id, overrides = {}) {
+  const key = String(id ?? '').replace(/^ship-/, '');
+  if (!Object.hasOwn(SHIP_STRUCTURE_BLUEPRINTS, key)) return false;
+  activeStructureOverrides[key] = overrides && typeof overrides === 'object' ? overrides : {};
+  return true;
+}
 export function getShipStructureBlueprint(id) {
-  return SHIP_STRUCTURE_BLUEPRINTS[String(id ?? '').replace(/^ship-/, '')] ?? null;
+  const key = String(id ?? '').replace(/^ship-/, '');
+  const base = SHIP_STRUCTURE_BLUEPRINTS[key];
+  if (!base) return null;
+  return { ...base, ...(activeStructureOverrides[key] || {}) };
 }
 
 export function getHullHalfBeam(design, station) {
