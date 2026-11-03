@@ -351,11 +351,11 @@ function addGalleonBalcony(parent, mats, width, depth, height, level, z, name, i
   }
 }
 
-function addGalleonDeckhouse(root, parts, mats, {
+function addGalleonDeckhouse(root, parts, parent, mats, {
   tier, width, height, depth, z, level, windowCount, sideWindowCount = 2,
   gallery = false, sternWalk = false,
 }) {
-  const cabin = makePart(root, parts, 'galleon-stern-' + tier + '-deckhouse', root);
+  const cabin = makePart(root, parts, 'galleon-stern-' + tier + '-deckhouse', parent);
   cabin.position.set(0, 0, 0);
   const body = ownMesh(cabin, makeTaperedDeckhouseGeometry(width, height, depth),
     mats.hull, 'tapered-' + tier + '-sterncastle-body');
@@ -439,7 +439,7 @@ function addSternworks(design, root, parts, mats) {
     box(group, mats.deck, [B * 0.84, 0.18, L * 0.19],
       [0, y + 0.12, L * 0.355], 'galleon-quarterdeck-platform');
 
-    addGalleonDeckhouse(root, parts, mats, {
+    addGalleonDeckhouse(root, parts, group, mats, {
       tier: 'lower', width: B * 0.76, height: lowerHeight, depth: L * 0.18,
       z: L * 0.365, level: y + lowerLevel, windowCount: 5,
       sideWindowCount: 3, gallery: true, sternWalk: false,
