@@ -6,10 +6,13 @@ const PROFESSIONS = ['farmer', 'woodworker', 'trader', 'guard', 'herbalist', 'fi
 
 function makeNPCs(settlement) {
   const random = mulberry32(hash2(settlement.seed, settlement.basePopulation, 0x4e5043));
-  const count = settlement.type === 'freeCity' ? 32
-    : settlement.type === 'port' ? 16
-      : settlement.type === 'market' ? 12
-        : 8;
+  // Visible NPC rosters are intentionally a small, deterministic slice of
+  // each settlement's simulated population. Large cities need enough actors
+  // to read as inhabited without overwhelming the streamed 3D scene.
+  const count = settlement.type === 'freeCity' ? 64
+    : settlement.type === 'port' ? 24
+      : settlement.type === 'market' ? 18
+        : 12;
   return Array.from({ length: count }, (_, index) => {
     const first = FIRST_NAMES[Math.floor(random() * FIRST_NAMES.length)];
     const last = LAST_NAMES[Math.floor(random() * LAST_NAMES.length)];
@@ -365,7 +368,12 @@ export class CivilizationSystem {
     const h = ((hour % 24) + 24) % 24;
     const home = npc.homeOffset ?? { x: 0, z: 0 };
     const routine = npc.routineOffset ?? { x: 0, z: 0 };
-    const market = { x: 7 + routine.x * 0.18, z: 5 + routine.z * 0.18 };
+    const marketAngle = ((npc.scheduleSeed ?? 0) % 10000) / 10000 * Math.PI * 2;
+    const marketRadius = settlement.type === 'freeCity' ? 13 : settlement.type === 'port' ? 16 : 14;
+    const market = {
+      x: Math.cos(marketAngle) * marketRadius,
+      z: Math.sin(marketAngle) * marketRadius,
+    };
     const fields = { x: routine.x * 1.25 - 20, z: routine.z * 1.25 + 18 };
     const workshop = { x: routine.x * 0.5 + 19, z: routine.z * 0.5 - 14 };
     const shore = { x: routine.x * 0.35 - 18, z: routine.z * 0.35 - 25 };
