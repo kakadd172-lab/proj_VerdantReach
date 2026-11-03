@@ -456,6 +456,31 @@ export function createRuinedCastleModel(site, generator) {
   group.userData.landmarkId = site.id;
   const batches = new InstanceBatches();
 
+  const addBrokenCrenellations = (a, b, wallHeight) => {
+    const dx = b.x - a.x;
+    const dz = b.z - a.z;
+    const length = Math.hypot(dx, dz);
+    const yaw = Math.atan2(dx, dz);
+    const panels = Math.max(1, Math.ceil(length / 8));
+    for (let panel = 0; panel < panels; panel += 1) {
+      const t0 = panel / panels;
+      const t1 = (panel + 1) / panels;
+      const localLength = length / panels;
+      const crenels = Math.max(1, Math.floor(localLength / 3.4));
+      for (let crenel = 0; crenel < crenels; crenel += 1) {
+        // Ruined walls retain occasional merlons instead of a perfectly whole crown.
+        if ((panel + crenel) % 4 === 1) continue;
+        const t = t0 + (t1 - t0) * ((crenel + 0.5) / crenels);
+        const x = a.x + dx * t;
+        const z = a.z + dz * t;
+        const ground = generator.heightAt(x, z);
+        batches.add('box', 'paleStone',
+          { x, y: ground + wallHeight + 0.72, z },
+          { x: 1.75, y: 1.44, z: 1.9 }, yaw);
+      }
+    }
+  };
+
   const addTerrainWall = (a, b, width, height, materialKey, maxPanelLength = 8, materialIndex = 0) => {
     const dx = b.x - a.x;
     const dz = b.z - a.z;
@@ -487,6 +512,7 @@ export function createRuinedCastleModel(site, generator) {
     const b = plan.outerWall[(i + 1) % plan.outerWall.length];
     const height = 9.5 + ((site.seed + i * 31) % 9);
     addTerrainWall(a, b, 4.8, height, i % 3 ? 'stone' : 'darkStone', 8);
+    addBrokenCrenellations(a, b, height);
   }
   for (const point of plan.towers) {
     const ground = generator.heightAt(point.x, point.z);
@@ -504,6 +530,7 @@ export function createRuinedCastleModel(site, generator) {
     const b = plan.innerWall[(i + 1) % plan.innerWall.length];
     const height = 7 + ((site.seed + i * 17) % 6);
     addTerrainWall(a, b, 2.8, height, 'stone', 8);
+    addBrokenCrenellations(a, b, height);
   }
 
   // The moat is assembled from short terrain-following sections, not one flat
@@ -555,6 +582,18 @@ export function createRuinedCastleModel(site, generator) {
     }
   });
   const keepGround = generator.heightAt(keep.x, keep.z);
+  // Reinforced corner piers frame the roofless keep and make the surviving
+  // masonry read as a structure rather than four unsupported flat panels.
+  for (const sideX of [-1, 1]) {
+    for (const sideZ of [-1, 1]) {
+      const x = keep.x + sideX * (keep.width * 0.5 - 1.5);
+      const z = keep.z + sideZ * (keep.depth * 0.5 - 1.5);
+      const pierHeight = keep.height * 0.86;
+      batches.add('box', 'stone',
+        { x, y: keepGround + pierHeight * 0.5, z },
+        { x: 3.5, y: pierHeight, z: 3.5 });
+    }
+  }
   for (let i = 0; i < 13; i += 1) {
     const x = keep.x - 8 + i * 1.25;
     const z = keep.z - 9;
@@ -568,6 +607,26 @@ export function createRuinedCastleModel(site, generator) {
     addTerrainWall(a, b, 2.5, 7.6, 'stone', 7);
   }
   const gateGround = generator.heightAt(plan.gate.x, plan.gate.z);
+  // Two flanking gatehouse towers give the approach a clear defended entrance.
+  const gateTangentX = Math.cos(plan.gate.angle + Math.PI * 0.5);
+  const gateTangentZ = -Math.sin(plan.gate.angle + Math.PI * 0.5);
+  for (const side of [-1, 1]) {
+    const x = plan.gate.x + gateTangentX * side * 8.5;
+    const z = plan.gate.z + gateTangentZ * side * 8.5;
+    const towerGround = generator.heightAt(x, z);
+    const towerHeight = 15.5;
+    batches.add('cylinder', 'paleStone',
+      { x, y: towerGround + towerHeight * 0.5, z },
+      { x: 7.8, y: towerHeight, z: 7.8 });
+    for (let merlon = 0; merlon < 6; merlon += 1) {
+      const angle = merlon / 6 * Math.PI * 2;
+      batches.add('box', 'stone', {
+        x: x + Math.cos(angle) * 3.45,
+        y: towerGround + towerHeight + 0.8,
+        z: z + Math.sin(angle) * 3.45,
+      }, { x: 1.45, y: 1.55, z: 1.45 });
+    }
+  }
   batches.add('box', 'stone', { x: plan.gate.x, y: gateGround + 5.2, z: plan.gate.z }, { x: 14, y: 10.4, z: 10 }, plan.gate.angle);
   batches.add('box', 'dark', { x: plan.gate.x, y: gateGround + 3.2, z: plan.gate.z + 4.8 }, { x: 5.2, y: 6.4, z: 0.3 }, plan.gate.angle);
   const wellGround = generator.heightAt(plan.courtyardWell.x, plan.courtyardWell.z);
