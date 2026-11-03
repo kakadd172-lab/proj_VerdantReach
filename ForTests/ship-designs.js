@@ -370,8 +370,30 @@ export const SHIP_PART_BASE_NAMES = basePartNames;
 // than rendering the previous generic box-and-plane models.
 const LEGACY_SHIP_KIND_MAP = Object.freeze({ 'sailing-ship': 'sloop', 'large-ship': 'galleon' });
 
+const activeDesignOverrides = Object.create(null);
+export function setShipDesignOverrides(type, overrides = {}) {
+  const id = String(type ?? '').replace(/^ship-/, '');
+  if (!Object.hasOwn(SHIP_DESIGNS, id)) return false;
+  activeDesignOverrides[id] = overrides && typeof overrides === 'object' ? overrides : {};
+  return true;
+}
 export function getShipDesign(type) {
-  return SHIP_DESIGNS[String(type ?? '').replace(/^ship-/, '')] ?? null;
+  const id = String(type ?? '').replace(/^ship-/, '');
+  const base = SHIP_DESIGNS[id];
+  if (!base) return null;
+  const overrides = activeDesignOverrides[id] || {};
+  const hull = { ...base.hull, ...(overrides.hull || {}) };
+  const masts = base.masts.map(mast => ({ ...mast, ...(Array.isArray(overrides.masts) ? (overrides.masts.find(item => item.id === mast.id) || {}) : {}) }));
+  const design = { ...base, ...overrides, hull, masts };
+  design.hullLengthUnits = design.hullLength * WORLD_UNITS_PER_METRE;
+  design.overallLengthUnits = (design.overallLength ?? design.hullLength) * WORLD_UNITS_PER_METRE;
+  design.beamUnits = design.beam * WORLD_UNITS_PER_METRE;
+  design.draftUnits = design.draft * WORLD_UNITS_PER_METRE;
+  design.deckHeightUnits = design.freeboard * WORLD_UNITS_PER_METRE;
+  design.lengthBeamRatio = design.hullLength / design.beam;
+  design.mastHeights = masts.map(mast => mast.height);
+  design.structure = getShipStructureBlueprint(id);
+  return design;
 }
 
 export function getShipTypeFromCreativeKind(kind) {
