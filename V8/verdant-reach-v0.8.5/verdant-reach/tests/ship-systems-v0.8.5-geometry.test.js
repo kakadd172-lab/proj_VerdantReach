@@ -92,7 +92,8 @@ test('sails and mast assemblies rotate around their own attachment points', () =
     const sailGroup = ship.userData.getPart('sail-main-course');
     const expectedZ = mainMast.z * design.hullLengthUnits;
     assert.ok(Math.abs(mastGroup.position.z - expectedZ) < 1e-6);
-    assert.ok(Math.abs(sailGroup.position.z - expectedZ) < 1e-6);
+    assert.equal(sailGroup.parent, mastGroup);
+    assert.ok(sailGroup.position.length() < 1e-6, 'the sail uses the mast group's local attachment origin');
     const sailOrigin = sailGroup.position.clone();
     assert.equal(ship.userData.setSailTrim('main', .22), true);
     assert.ok(Math.abs(sailGroup.rotation.y - .22) < 1e-6);
@@ -150,13 +151,17 @@ test('sail cloth is parented to its mast pivot so mast lean carries yards and ca
       assert.equal(sail.parent, mast);
       assert.equal(junkSail.parent, junkMast);
 
+      const sailMesh = sail.getObjectByName('sail-cloth');
+      assert.ok(sailMesh?.geometry?.getAttribute('position'));
+      const vertex = sailMesh.geometry.getAttribute('position');
+      const localCanvasPoint = new THREE.Vector3(vertex.getX(0), vertex.getY(0), vertex.getZ(0));
+      const sailWorldBefore = localCanvasPoint.clone();
+      sailMesh.localToWorld(sailWorldBefore);
       const sailPosition = sail.position.clone();
-      const sailWorldBefore = new THREE.Vector3();
-      sail.getWorldPosition(sailWorldBefore);
       assert.equal(ship.userData.setMastLean('main', .08), true);
-      const sailWorldAfter = new THREE.Vector3();
-      sail.getWorldPosition(sailWorldAfter);
-      assert.ok(sailWorldBefore.distanceTo(sailWorldAfter) > .01);
+      const sailWorldAfter = localCanvasPoint.clone();
+      sailMesh.localToWorld(sailWorldAfter);
+      assert.ok(sailWorldBefore.distanceTo(sailWorldAfter) > .01, 'mast lean carries the attached sail cloth');
       assert.ok(sail.position.distanceTo(sailPosition) < 1e-6, 'local attachment point remains fixed');
     } finally {
       disposeShipModel(junk);
