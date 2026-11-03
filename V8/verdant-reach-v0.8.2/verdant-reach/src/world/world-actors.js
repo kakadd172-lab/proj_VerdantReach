@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { buildDrapedRoadData } from './road-geometry.js';
 import { createShipModel, disposeShipModel } from './ship-models.js';
 import { createFreeCityModel, createRuinedCastleModel } from './settlement-models.js';
 
@@ -72,6 +73,7 @@ export class WorldActorManager {
       stone: material(0x777c70),
       crop: material(0x758e4f),
       road: material(0x9a896b),
+      roadShoulder: material(0x756b56),
       person: [material(0x49685e), material(0x8b6c4b), material(0x6a647a), material(0xa08b65), material(0x657d88)],
       skin: material(0xc69a76),
       leg: material(0x433f39),
@@ -349,46 +351,99 @@ export class WorldActorManager {
 
   _makeRoad(link) {
     const path = link.path?.length >= 2 ? link.path : [link.a, link.b];
-    const positions = [];
-    const indices = [];
-    const bridgePoints = [];
-    for (let i = 0; i < path.length; i += 1) {
-      const point = path[i];
-      const before = path[Math.max(0, i - 1)];
-      const after = path[Math.min(path.length - 1, i + 1)];
-      const dx = after.x - before.x;
-      const dz = after.z - before.z;
-      const length = Math.hypot(dx, dz) || 1;
-      const nx = -dz / length;
-      const nz = dx / length;
-      const halfWidth = point.bridge ? 2.5 : 1.8;
-      const y = this.generator.heightAt(point.x, point.z) + (point.bridge ? 0.34 : 0.18);
-      positions.push(point.x + nx * halfWidth, y, point.z + nz * halfWidth);
-      positions.push(point.x - nx * halfWidth, y, point.z - nz * halfWidth);
-      if (i > 0) {
-        const base = i * 2;
-        indices.push(base - 2, base, base - 1, base - 1, base, base + 1);
+    const minX = Math.min(...path.map((point) => point.x)) - 80;
+    const maxX = Math.max(...path.map((point) => point.x)) + 80;
+    const minZ = Math.min(...path.map((point) => point.z)) - 80;
+    const maxZ = Math.max(...path.map((point) => point.z)) + 80;
+    const rivers = this.intelligence.riversInBounds(minX, minZ, maxX, maxZ);
+
+    const nearestRiver = (x, z) => {
+      let nearest = null;
+      for (const river of rivers) {
+        for (let i = 1; i < river.path.length; i += 1) {
+          const a = river.path[i - 1];
+          const b = river.path[i];
+          const dx = b.x - a.x;
+          const dz = b.z - a.z;
+          const lengthSq = dx * dx + dz * dz || 1;
+          const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / lengthSq));
+          const px = a.x + dx * t;
+          const pz = a.z + dz * t;
+          const startWidth = a.width ?? 2;
+          const endWidth = b.width ?? startWidth;
+          const width = startWidth + (endWidth - startWidth) * t;
+          const distance = Math.hypot(x - px, z - pz);
+          if (distance <= width * 0.5 + 2.6 && (!nearest || distance < nearest.distance)) {
+            const startY = a.y ?? this.generator.heightAt(px, pz);
+            const endY = b.y ?? startY;
+            nearest = { distance, y: startY * (1 - t) + endY * t, width };
+          }
+        }
       }
-      if (point.bridge) bridgePoints.push({ ...point, y });
-    }
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setIndex(indices);
-    geometry.computeVertexNormals();
+      return nearest;
+    };
+    const surfaceHeightAt = (x, z) => {
+      const terrain = this.generator.heightAt(x, z);
+      const river = nearestRiver(x, z);
+      return river ? Math.max(terrain, river.y + 0.72) : terrain;
+    };
+
+    // Both the road and its shoulder are sampled across their full width and
+    // along the route. A shallow crown sheds water instead of trapping it.
+    const shoulderData = buildDrapedRoadData(path, surfaceHeightAt, {
+      width: 6.2, maxSpacing: 4, clearance: 0.055, camberRatio: 0.018, crossSegments: 4,
+    });
+    const roadData = buildDrapedRoadData(path, surfaceHeightAt, {
+      width: 4.35, maxSpacing: 4, clearance: 0.16, camberRatio: 0.025, crossSegments: 4,
+    });
+    const makeGeometry = (data) => {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(data.positions, 3));
+      geometry.setIndex(data.indices);
+      geometry.computeVertexNormals();
+      geometry.computeBoundingSphere();
+      return geometry;
+    };
     const group = new THREE.Group();
-    const roadSurface = new THREE.Mesh(geometry, this.materials.road);
+    const shoulderGeometry = makeGeometry(shoulderData);
+    const shoulder = new THREE.Mesh(shoulderGeometry, this.materials.roadShoulder);
+    shoulder.receiveShadow = true;
+    group.add(shoulder);
+    const roadGeometry = makeGeometry(roadData);
+    const roadSurface = new THREE.Mesh(roadGeometry, this.materials.road);
     roadSurface.receiveShadow = true;
-    roadSurface.userData.ownedGeometry = true;
     group.add(roadSurface);
+
+    // Where the sampled route meets a river channel, lift the deck over water
+    // and add closely spaced timber boards rather than letting the road vanish.
+    const bridgePoints = roadData.points.filter((point) => nearestRiver(point.x, point.z));
     for (const point of bridgePoints) {
-      const bridge = new THREE.Mesh(this.geometry.road, this.materials.wood);
-      bridge.scale.set(5.4, 1.55, 8.5);
-      bridge.position.set(point.x, point.y + 0.16, point.z);
-      bridge.rotation.y = Math.atan2(path[Math.min(path.length - 1, path.indexOf(point) + 1)]?.x - point.x || 0, path[Math.min(path.length - 1, path.indexOf(point) + 1)]?.z - point.z || 1);
-      bridge.castShadow = true;
-      group.add(bridge);
+      const index = roadData.points.indexOf(point);
+      const before = roadData.points[Math.max(0, index - 1)];
+      const after = roadData.points[Math.min(roadData.points.length - 1, index + 1)];
+      const yaw = Math.atan2(after.x - before.x, after.z - before.z);
+      const deckY = surfaceHeightAt(point.x, point.z) + 0.28;
+      const board = new THREE.Mesh(this.geometry.road, this.materials.wood);
+      board.scale.set(4.75, 1.75, 3.9);
+      board.position.set(point.x, deckY, point.z);
+      board.rotation.y = yaw;
+      board.castShadow = true;
+      group.add(board);
+      if (index % 2 === 0) {
+        for (const side of [-1, 1]) {
+          const rail = new THREE.Mesh(this.geometry.road, this.materials.wood);
+          rail.scale.set(0.16, 0.92, 3.9);
+          rail.position.set(
+            point.x + Math.cos(yaw) * side * 2.25,
+            deckY + 0.54,
+            point.z - Math.sin(yaw) * side * 2.25
+          );
+          rail.rotation.y = yaw;
+          group.add(rail);
+        }
+      }
     }
-    group.userData.routeGeometry = geometry;
+    group.userData.routeGeometries = [shoulderGeometry, roadGeometry];
     return group;
   }
 
@@ -510,6 +565,7 @@ export class WorldActorManager {
     for (const [id, record] of this.settlements) {
       if (!activeIds.has(id)) {
         this.root.remove(record.root);
+        record.root.traverse((child) => { if (child.userData?.ownedGeometry) child.geometry?.dispose(); });
         this.settlements.delete(id);
         for (const npc of record.npcActors) this.npcs.delete(npc.id);
         if (!record.horse.detached) this.vehicles.delete(record.horse.id);
@@ -590,6 +646,7 @@ export class WorldActorManager {
       if (caravan.group) this.root.remove(caravan.group);
       if (caravan.road) {
         this.root.remove(caravan.road);
+        for (const geometry of caravan.road.userData.routeGeometries ?? []) geometry.dispose();
         caravan.road.userData.routeGeometry?.dispose();
       }
     }
@@ -1058,7 +1115,13 @@ export class WorldActorManager {
 
   dispose() {
     this.scene.remove(this.root);
-    for (const caravan of this.caravans) caravan.road?.userData.routeGeometry?.dispose();
+    for (const caravan of this.caravans) {
+      for (const geometry of caravan.road?.userData.routeGeometries ?? []) geometry.dispose();
+      caravan.road?.userData.routeGeometry?.dispose();
+    }
+    for (const record of this.settlements.values()) {
+      record.root.traverse((child) => { if (child.userData?.ownedGeometry) child.geometry?.dispose(); });
+    }
     this.caravans = [];
     for (const ship of this.maritimeShips.values()) {
       this.root.remove(ship.group);
