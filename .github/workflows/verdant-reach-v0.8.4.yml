@@ -8,6 +8,8 @@ on:
       - 'V8/verdant-reach-v0.8.4/verdant-reach/**'
       - '.github/workflows/verdant-reach-v0.8.4.yml'
   pull_request:
+    branches:
+      - chatgpt-v0.8.4-populated-settlements
     paths:
       - 'V8/verdant-reach-v0.8.4/verdant-reach/**'
       - '.github/workflows/verdant-reach-v0.8.4.yml'
@@ -16,6 +18,9 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
     defaults:
       run:
         working-directory: V8/verdant-reach-v0.8.4/verdant-reach
@@ -32,3 +37,28 @@ jobs:
         run: npm test
       - name: Build production site
         run: npm run build
+      - name: Configure GitHub Pages
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload Pages artifact
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: V8/verdant-reach-v0.8.4/verdant-reach/dist
+
+  deploy:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: verify
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
