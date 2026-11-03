@@ -117,8 +117,8 @@ test('ship model source builds a continuous swept hull, deck, class-specific rig
   for (const token of ['addLoftGeometry', 'addDeckGeometry', 'makeSquareSail', 'addGaffAssembly', 'addLateenAssembly', 'createShipModel', 'disposeShipModel', 'setupPartApi']) {
     assert.ok(source.includes(token), `Ship model source is missing ${token}`);
   }
-  assert.match(source, /const stations = 56/);
-  assert.match(source, /const ringSegments = 24/);
+  assert.match(source, /const stations = 72/);
+  assert.match(source, /const ringSegments = 28/);
   assert.match(source, /forwardAxis = '-z'/);
   assert.match(source, /ownedGeometries/);
   assert.match(source, /ownedMaterials/);
