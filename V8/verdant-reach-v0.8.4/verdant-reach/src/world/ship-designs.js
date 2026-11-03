@@ -10,7 +10,7 @@
  * 0.75 m, so 1 real metre = 4/3 game units. This keeps hull dimensions and
  * the player standing on deck in a consistent scale.
  */
-import { getShipStructureBlueprint } from './ship-structures.js?v=0.8.4';
+import { getShipStructureBlueprint } from './ship-structures.js?v=0.8.4-completion';
 
 export const WORLD_UNITS_PER_METRE = 4 / 3;
 
