@@ -45,7 +45,7 @@ jobs:
         if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: V8/verdant-reach-v0.8.3/verdant-reach/dist
 
   deploy:
     if: github.event_name == 'push'
