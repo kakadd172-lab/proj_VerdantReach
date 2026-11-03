@@ -1,6 +1,14 @@
-# Verdant Reach v0.8.2 — Caribbean Age of Sail
+# Verdant Reach v0.8.3 — Caribbean Age of Sail
 
-Verdant Reach v0.8.2 focuses on terrain-aware roads and routes, improving route selection across ridges, ravines, marshes and river corridors while keeping the existing articulated fleet and world systems. Existing procedural terrain, world streaming, Creative/Survival modes, settlement systems, world saves, player transport and the Wayfarer’s Circuit remain in the project.
+Verdant Reach v0.8.3 focuses on the procedural ship-generator overhaul, with separate structural blueprints, refined hull profiles, visible internal framing and saved sail deployment controls. It retains the v0.8.2 terrain-aware roads and earlier world systems.
+
+## Play online
+
+The v0.8.3 review build is published with GitHub Pages at:
+
+https://kakadd172-lab.github.io/proj_VerdantReach/
+
+The online site is a production build of this version. The Pages workflow republishes it when changes are pushed to the v0.8.3 branch or, after release, to `main`.
 
 ## Run locally
 
@@ -106,3 +114,13 @@ The following release is reserved for a dedicated building-model pass: human-sca
 - Preserves vessel-specific mast placement and rig types while scaling shroud/ratline layout from the design data.
 - Adds smooth full, reefed and furled sail deployment per mast; deployment state is saved with Creative ship state.
 - Historical dimensions remain evidence-labelled; undocumented offsets and complete lines plans are still reconstruction estimates.
+
+
+## v0.8.3 ship generator
+
+- Each of the 14 vessel families has its own structural blueprint and rigging proportions.
+- Hulls use 72 longitudinal stations × 28 cross-section segments.
+- Internal transverse frames and the keelson can be inspected by hiding the outer hull in Creative mode.
+- The shipyard supports full, reefed and furled sail states per mast, saved with the vessel.
+
+The source-level static launcher remains available as `run-static.bat`. It is unchanged by the Pages build configuration.
