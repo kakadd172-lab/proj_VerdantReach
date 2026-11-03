@@ -442,9 +442,9 @@ function clothGeometry(corners, fullness = .06, rows = 14, columns = 20, fullnes
   return geometry;
 }
 
-function addSail(registry, root, mats, name, mastId, corners, fullness, parent = root, fullnessAxis = 'z', pivot = V()) {
+function addSail(registry, root, mats, name, mastId, corners, fullness, parent = root, fullnessAxis = 'z', pivot = V(), pivotInParent = false) {
   const control = registerPart(registry, name, parent);
-  control.position.copy(pivot);
+  control.position.copy(pivotInParent ? V() : pivot);
   control.userData.sailControl = { mastId, clothPart: 'cloth-' + name };
   const localCorners = corners.map((point) => point.clone().sub(pivot));
   const cloth = registerPart(registry, 'cloth-' + name, control);
@@ -466,7 +466,7 @@ function addSquareRig(registry, root, mats, design, mast, mastGroup, mastBase, m
     Math.max(.055, design.beamUnits * .012), 'square-yard');
   const sail = addSail(registry, root, mats, 'sail-' + mast.id + '-' + levelName, mast.id, [
     V(-width * .48, y0, mastZ), V(-width * .43, y1, mastZ), V(width * .43, y1, mastZ), V(width * .48, y0, mastZ),
-  ], .085 + levelIndex * .012, root, 'z', origin);
+  ], .085 + levelIndex * .012, mastGroup, 'z', origin, true);
   const sheets = registerPart(registry, 'sheets-' + mast.id + '-' + levelName, mastGroup);
   for (const side of [-1, 1]) {
     addBeam(sheets, mats.rope,
@@ -493,7 +493,7 @@ function addGaffRig(registry, root, mats, design, mast, mastGroup, mastBase, mas
   return addSail(registry, root, mats, 'sail-' + mast.id + '-' + type, mast.id, [
     V(0, lowY, mastZ + .04), V(0, highY, mastZ - .15),
     V(0, highY + .08, mastZ + run), V(0, lowY, mastZ + run * 1.02),
-  ], .095, root, 'x', origin);
+  ], .095, mastGroup, 'x', origin, true);
 }
 function addLateenRig(registry, root, mats, design, mast, mastGroup, mastBase, mastTop) {
   const mastZ = mast.z * design.hullLengthUnits;
@@ -507,7 +507,7 @@ function addLateenRig(registry, root, mats, design, mast, mastGroup, mastBase, m
     .085, 'lateen-yard');
   return addSail(registry, root, mats, 'sail-' + mast.id + '-lateen', mast.id, [
     V(0, mastBase + .2, mastZ), high, low, V(0, mastBase + .15, mastZ + span),
-  ], .1, root, 'x', origin);
+  ], .1, mastGroup, 'x', origin, true);
 }
 function addJunkRig(registry, root, mats, design, mast, mastGroup, mastBase, mastTop) {
   const mastZ = mast.z * design.hullLengthUnits;
@@ -521,8 +521,7 @@ function addJunkRig(registry, root, mats, design, mast, mastGroup, mastBase, mas
     mastLocalPoint(mastGroup, V(0, highY - .08, mastZ + run)),
     Math.max(.09, design.beamUnits * .015), 'upper-lug-spar');
 
-  const sail = registerPart(registry, 'sail-' + mast.id + '-junk', root);
-  sail.position.copy(origin);
+  const sail = registerPart(registry, 'sail-' + mast.id + '-junk', mastGroup);
   sail.userData.sailControl = { mastId: mast.id, clothPart: 'cloth-sail-' + mast.id + '-junk' };
   const cloth = registerPart(registry, 'cloth-sail-' + mast.id + '-junk', sail);
   addMesh(cloth, clothGeometry([

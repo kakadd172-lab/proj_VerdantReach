@@ -134,3 +134,34 @@ test('Chinese junk omits the European stem-post silhouette and generic bow ornam
     disposeShipModel(ship);
   }
 });
+
+
+test('sail cloth is parented to its mast pivot so mast lean carries yards and canvas together', () => {
+  const ship = createShipModel('galleon');
+  try {
+    const mast = ship.userData.getPart('mast-main');
+    const yard = ship.userData.getPart('yard-main-course');
+    const sail = ship.userData.getPart('sail-main-course');
+    const junk = createShipModel('junk');
+    try {
+      const junkMast = junk.userData.getPart('mast-main');
+      const junkSail = junk.userData.getPart('sail-main-junk');
+      assert.equal(yard.parent, mast);
+      assert.equal(sail.parent, mast);
+      assert.equal(junkSail.parent, junkMast);
+
+      const sailPosition = sail.position.clone();
+      const sailWorldBefore = new THREE.Vector3();
+      sail.getWorldPosition(sailWorldBefore);
+      assert.equal(ship.userData.setMastLean('main', .08), true);
+      const sailWorldAfter = new THREE.Vector3();
+      sail.getWorldPosition(sailWorldAfter);
+      assert.ok(sailWorldBefore.distanceTo(sailWorldAfter) > .01);
+      assert.ok(sail.position.distanceTo(sailPosition) < 1e-6, 'local attachment point remains fixed');
+    } finally {
+      disposeShipModel(junk);
+    }
+  } finally {
+    disposeShipModel(ship);
+  }
+});
