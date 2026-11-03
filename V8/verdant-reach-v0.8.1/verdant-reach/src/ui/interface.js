@@ -1,6 +1,6 @@
 import { BIOMES } from '../world/biomes.js';
 import { CREATIVE_ENTITY_TYPES } from '../systems/world-editing.js';
-import { SHIP_DESIGNS, getShipTypeFromCreativeKind, describeShipDimensions } from '../world/ship-designs.js';
+import { SHIP_DESIGNS, getShipTypeFromCreativeKind, describeShipDimensions, WORLD_UNITS_PER_METRE } from '../world/ship-designs.js?v=0.8.1';
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -34,6 +34,8 @@ export class GameInterface {
     this.selectedMode = 'survival';
     this.onNeedsAction = null;
     this.onCreativeAction = null;
+    this.creativeShipSelection = { shipId: null, part: null, mast: null };
+    this.shipTransformClipboard = null;
 
     document.querySelectorAll('[data-world-mode]').forEach((button) => {
       button.addEventListener('click', () => this.setSelectedMode(button.dataset.worldMode));
@@ -243,28 +245,122 @@ export class GameInterface {
         rudderAngle: Number(value('creative-rudder-angle')) || 0,
         sailTrim: Number(value('creative-sail-trim')) || 0,
         mastLean: Number(value('creative-mast-lean')) || 0,
-        partX: Number(value('creative-ship-part-x')) || 0,
-        partY: Number(value('creative-ship-part-y')) || 0,
-        partZ: Number(value('creative-ship-part-z')) || 0,
+        partX: Math.round((Number(value('creative-ship-part-x')) || 0) * 10) / 10,
+        partY: Math.round((Number(value('creative-ship-part-y')) || 0) * 10) / 10,
+        partZ: Math.round((Number(value('creative-ship-part-z')) || 0) * 10) / 10,
         partRx: Number(value('creative-ship-part-rx')) || 0,
         partRy: Number(value('creative-ship-part-ry')) || 0,
         partRz: Number(value('creative-ship-part-rz')) || 0,
       });
     }));
-    const shipSelect = this.panelContent.querySelector('#creative-ship-id');
-    if (shipSelect) {
-      const ships = state.creativeShips ?? [];
-      const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-      shipSelect.addEventListener('change', () => {
-        const ship = ships.find((item) => item.id === shipSelect.value);
-        const parts = this.panelContent.querySelector('#creative-ship-part');
-        const masts = this.panelContent.querySelector('#creative-ship-mast');
-        if (parts) parts.innerHTML = (ship?.parts ?? []).map((part) => `<option value="${escape(part)}">${escape(part.replaceAll('-', ' '))}</option>`).join('');
-        if (masts) masts.innerHTML = (ship?.masts ?? []).map((mast) => `<option value="${escape(mast)}">${escape(mast)}</option>`).join('');
-      });
-    }
+    this._bindCreativeShipyard(state);
     const slider = $('#camera-sensitivity');
     if (slider) slider.addEventListener('input', () => this.onCameraSensitivity?.(Number(slider.value)));
+  }
+
+
+  _bindCreativeShipyard(state) {
+    const shipSelect = this.panelContent.querySelector('#creative-ship-id');
+    if (!shipSelect) return;
+    const ships = state.creativeShips ?? [];
+    const partSelect = this.panelContent.querySelector('#creative-ship-part');
+    const mastSelect = this.panelContent.querySelector('#creative-ship-mast');
+    const specs = this.panelContent.querySelector('#creative-ship-specs');
+    const copyButton = this.panelContent.querySelector('#creative-ship-transform-copy');
+    const pasteButton = this.panelContent.querySelector('#creative-ship-transform-paste');
+    const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+    const currentShip = () => ships.find((ship) => ship.id === shipSelect.value) ?? null;
+    const options = (values, selected) => values.map((value) =>
+      '<option value="' + escape(value) + '"' + (value === selected ? ' selected' : '') + '>' + escape(String(value).replaceAll('-', ' ')) + '</option>'
+    ).join('');
+    const setInput = (id, value) => {
+      const input = this.panelContent.querySelector('#' + id);
+      if (input) input.value = String(Number.isFinite(value) ? Number(value.toFixed(2)) : 0);
+    };
+    const setRange = (id, outputId, value, min, max) => {
+      const rounded = Math.round(Math.max(min, Math.min(max, value)));
+      const input = this.panelContent.querySelector('#' + id);
+      const output = this.panelContent.querySelector('#' + outputId);
+      if (input) input.value = String(rounded);
+      if (output) output.textContent = String(rounded);
+    };
+    const syncControls = () => {
+      const ship = currentShip();
+      if (!ship) return;
+      const saved = ship.shipState ?? {};
+      const part = partSelect?.value ?? '';
+      const mast = mastSelect?.value ?? '';
+      const transform = saved.partTransforms?.[part] ?? {};
+      const degrees = (value) => (Number(value) || 0) * 180 / Math.PI;
+      setInput('creative-ship-part-x', (Number(transform.x) || 0) / WORLD_UNITS_PER_METRE);
+      setInput('creative-ship-part-y', (Number(transform.y) || 0) / WORLD_UNITS_PER_METRE);
+      setInput('creative-ship-part-z', (Number(transform.z) || 0) / WORLD_UNITS_PER_METRE);
+      setInput('creative-ship-part-rx', degrees(transform.rx));
+      setInput('creative-ship-part-ry', degrees(transform.ry));
+      setInput('creative-ship-part-rz', degrees(transform.rz));
+      setRange('creative-rudder-angle', 'creative-rudder-angle-value', degrees(saved.rudderAngle), -35, 35);
+      setRange('creative-sail-trim', 'creative-sail-trim-value', degrees(saved.sailTrim?.[mast]), -63, 63);
+      setRange('creative-mast-lean', 'creative-mast-lean-value', degrees(saved.mastLean?.[mast]), -9, 9);
+      const design = SHIP_DESIGNS[getShipTypeFromCreativeKind(ship.kind)];
+      if (specs) {
+        specs.innerHTML = design
+          ? '<div class="shipyard-spec-grid"><div><b>' + design.hullLength.toFixed(1) + ' m</b><span>LENGTH</span></div><div><b>' + design.beam.toFixed(1) + ' m</b><span>BEAM</span></div><div><b>' + design.draft.toFixed(1) + ' m</b><span>DRAFT</span></div><div><b>' + design.mastCount + '</b><span>MASTS</span></div></div><p class="shipyard-spec-meta">' + escape(design.era) + ' · ' + escape(design.rig) + '</p>'
+          : '<p class="panel-note">Vessel specifications are unavailable.</p>';
+      }
+      if (pasteButton) pasteButton.disabled = !this.shipTransformClipboard;
+    };
+
+    const initialShip = currentShip() ?? ships[0] ?? null;
+    if (!initialShip) return;
+    shipSelect.value = initialShip.id;
+    this.creativeShipSelection.shipId = initialShip.id;
+    const initialPart = initialShip.parts?.includes(this.creativeShipSelection.part)
+      ? this.creativeShipSelection.part : initialShip.parts?.[0] ?? '';
+    const initialMast = initialShip.masts?.includes(this.creativeShipSelection.mast)
+      ? this.creativeShipSelection.mast : initialShip.masts?.[0] ?? '';
+    if (partSelect) partSelect.innerHTML = options(initialShip.parts ?? [], initialPart);
+    if (mastSelect) mastSelect.innerHTML = options(initialShip.masts ?? [], initialMast);
+    this.creativeShipSelection.part = initialPart || null;
+    this.creativeShipSelection.mast = initialMast || null;
+    syncControls();
+
+    shipSelect.addEventListener('change', () => {
+      const ship = currentShip();
+      if (!ship) return;
+      this.creativeShipSelection.shipId = ship.id;
+      const part = ship.parts?.includes(this.creativeShipSelection.part) ? this.creativeShipSelection.part : ship.parts?.[0] ?? '';
+      const mast = ship.masts?.includes(this.creativeShipSelection.mast) ? this.creativeShipSelection.mast : ship.masts?.[0] ?? '';
+      if (partSelect) partSelect.innerHTML = options(ship.parts ?? [], part);
+      if (mastSelect) mastSelect.innerHTML = options(ship.masts ?? [], mast);
+      this.creativeShipSelection.part = part || null;
+      this.creativeShipSelection.mast = mast || null;
+      syncControls();
+    });
+    partSelect?.addEventListener('change', () => {
+      this.creativeShipSelection.part = partSelect.value || null;
+      syncControls();
+    });
+    mastSelect?.addEventListener('change', () => {
+      this.creativeShipSelection.mast = mastSelect.value || null;
+      syncControls();
+    });
+
+    const transformIds = [
+      ['x', 'creative-ship-part-x'], ['y', 'creative-ship-part-y'], ['z', 'creative-ship-part-z'],
+      ['rx', 'creative-ship-part-rx'], ['ry', 'creative-ship-part-ry'], ['rz', 'creative-ship-part-rz'],
+    ];
+    copyButton?.addEventListener('click', () => {
+      this.shipTransformClipboard = Object.fromEntries(transformIds.map(([key, id]) => [
+        key, Number(this.panelContent.querySelector('#' + id)?.value) || 0,
+      ]));
+      if (pasteButton) pasteButton.disabled = false;
+      this.toast('Transform copied', 'The six local position and rotation values are ready to paste onto another component.', 'success');
+    });
+    pasteButton?.addEventListener('click', () => {
+      if (!this.shipTransformClipboard) return;
+      for (const [key, id] of transformIds) setInput(id, Number(this.shipTransformClipboard[key]) || 0);
+      this.toast('Transform pasted', 'Review the values, then apply the component transform to save them.', 'success');
+    });
   }
 
   closePanel() {
@@ -360,11 +456,24 @@ export class GameInterface {
         return `<optgroup label="${escapeHtml(category)}">${options}</optgroup>`;
       }).join('');
       const ships = state.creativeShips ?? [];
-      const selectedShip = ships[0] ?? null;
-      const shipOptions = ships.map((ship) => `<option value="${String(ship.id).replaceAll('\"', '&quot;')}">${ship.label} · ${Math.round(ship.distance)} m</option>`).join('');
-      const shipPartOptions = (selectedShip?.parts ?? []).map((part) => `<option value="${part}">${part.replaceAll('-', ' ')}</option>`).join('');
-      const shipMastOptions = (selectedShip?.masts ?? []).map((mast) => `<option value="${mast}">${mast}</option>`).join('');
+      const previousSelection = this.creativeShipSelection ?? {};
+      const selectedShip = ships.find((ship) => ship.id === previousSelection.shipId) ?? ships[0] ?? null;
+      const selectedPart = selectedShip?.parts?.includes(previousSelection.part) ? previousSelection.part : selectedShip?.parts?.[0] ?? '';
+      const selectedMast = selectedShip?.masts?.includes(previousSelection.mast) ? previousSelection.mast : selectedShip?.masts?.[0] ?? '';
+      this.creativeShipSelection = { shipId: selectedShip?.id ?? null, part: selectedPart || null, mast: selectedMast || null };
+      const shipEscape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+      const shipOptions = ships.map((ship) => '<option value="' + shipEscape(ship.id) + '"' + (ship.id === selectedShip?.id ? ' selected' : '') + '>' + shipEscape(ship.label) + ' · ' + Math.round(ship.distance) + ' m</option>').join('');
+      const shipPartOptions = (selectedShip?.parts ?? []).map((part) => '<option value="' + shipEscape(part) + '"' + (part === selectedPart ? ' selected' : '') + '>' + shipEscape(part.replaceAll('-', ' ')) + '</option>').join('');
+      const shipMastOptions = (selectedShip?.masts ?? []).map((mast) => '<option value="' + shipEscape(mast) + '"' + (mast === selectedMast ? ' selected' : '') + '>' + shipEscape(mast) + '</option>').join('');
       const shipDisabled = ships.length === 0;
+      const selectedDesign = selectedShip ? SHIP_DESIGNS[getShipTypeFromCreativeKind(selectedShip.kind)] : null;
+      const savedShipState = selectedShip?.shipState ?? {};
+      const selectedTransform = savedShipState.partTransforms?.[selectedPart] ?? {};
+      const transformMetres = (value) => Number(((Number(value) || 0) / WORLD_UNITS_PER_METRE).toFixed(2));
+      const transformDegrees = (value) => Number(((Number(value) || 0) * 180 / Math.PI).toFixed(2));
+      const shipSpecs = selectedDesign
+        ? '<div class="shipyard-spec-grid"><div><b>' + selectedDesign.hullLength.toFixed(1) + ' m</b><span>LENGTH</span></div><div><b>' + selectedDesign.beam.toFixed(1) + ' m</b><span>BEAM</span></div><div><b>' + selectedDesign.draft.toFixed(1) + ' m</b><span>DRAFT</span></div><div><b>' + selectedDesign.mastCount + '</b><span>MASTS</span></div></div><p class="shipyard-spec-meta">' + shipEscape(selectedDesign.era) + ' · ' + shipEscape(selectedDesign.rig) + '</p>'
+        : '<p class="panel-note">Summon a historical ship to inspect its dimensions and edit its linked components.</p>';
       const counts = state.worldEditCounts ?? {};
       const selectedWeather = state.creativeWeatherOverride ?? 'natural';
       return `
@@ -390,25 +499,27 @@ export class GameInterface {
           <h3>Shipyard · linked components</h3>
           <p class="panel-note">Each vessel is a linked, articulated assembly. Hull shell, planking, deck, keel, sternworks, rudder, helm, anchors, mast sections, yards, booms, individual sails, shrouds, ratlines and stays are named components. Detach or relink parts, hide them, or edit local transforms. Component transforms persist with the ship; sail, mast and rudder controls animate their linked parts.</p>
           <div class="creative-field"><label for="creative-ship-id">VESSEL TO EDIT</label><select id="creative-ship-id" ${shipDisabled ? 'disabled' : ''}>${shipOptions || '<option value="">Summon a ship first</option>'}</select></div>
+          <div id="creative-ship-specs" class="shipyard-specs">${shipSpecs}</div>
           <div class="creative-field"><label for="creative-ship-part">LINKED COMPONENT</label><select id="creative-ship-part" ${shipDisabled ? 'disabled' : ''}>${shipPartOptions}</select></div>
           <div class="creative-actions"><button class="secondary-button" data-creative-action="ship-detach-part" ${shipDisabled ? 'disabled' : ''}>Unlink part</button><button class="secondary-button" data-creative-action="ship-relink-part" ${shipDisabled ? 'disabled' : ''}>Relink part</button><button class="secondary-button" data-creative-action="ship-toggle-part" ${shipDisabled ? 'disabled' : ''}>Toggle visibility</button></div>
           <div class="creative-field"><label for="creative-ship-mast">MAST / SAIL GROUP</label><select id="creative-ship-mast" ${shipDisabled ? 'disabled' : ''}>${shipMastOptions}</select></div>
-          <div class="creative-field"><label for="creative-rudder-angle">RUDDER ANGLE · <output id="creative-rudder-angle-value">0</output>°</label><input id="creative-rudder-angle" type="range" min="-35" max="35" step="1" value="0" oninput="document.getElementById('creative-rudder-angle-value').value=this.value" /></div>
+          <div class="creative-field"><label for="creative-rudder-angle">RUDDER ANGLE · <output id="creative-rudder-angle-value">${Math.round(Math.max(-35, Math.min(35, transformDegrees(savedShipState.rudderAngle))))}</output>°</label><input id="creative-rudder-angle" type="range" min="-35" max="35" step="1" value="${Math.round(Math.max(-35, Math.min(35, transformDegrees(savedShipState.rudderAngle))))}" oninput="document.getElementById('creative-rudder-angle-value').value=this.value" /></div>
           <button class="secondary-button" data-creative-action="ship-rudder" ${shipDisabled ? 'disabled' : ''}>Apply rudder angle</button>
-          <div class="creative-field"><label for="creative-sail-trim">SAIL TRIM · <output id="creative-sail-trim-value">0</output>°</label><input id="creative-sail-trim" type="range" min="-60" max="60" step="1" value="0" oninput="document.getElementById('creative-sail-trim-value').value=this.value" /></div>
+          <div class="creative-field"><label for="creative-sail-trim">SAIL TRIM · <output id="creative-sail-trim-value">${Math.round(Math.max(-63, Math.min(63, transformDegrees(savedShipState.sailTrim?.[selectedMast]))))}</output>°</label><input id="creative-sail-trim" type="range" min="-63" max="63" step="1" value="${Math.round(Math.max(-63, Math.min(63, transformDegrees(savedShipState.sailTrim?.[selectedMast]))))}" oninput="document.getElementById('creative-sail-trim-value').value=this.value" /></div>
           <button class="secondary-button" data-creative-action="ship-sail-trim" ${shipDisabled ? 'disabled' : ''}>Apply sail trim</button>
-          <div class="creative-field"><label for="creative-mast-lean">MAST LEAN · <output id="creative-mast-lean-value">0</output>°</label><input id="creative-mast-lean" type="range" min="-8" max="8" step="1" value="0" oninput="document.getElementById('creative-mast-lean-value').value=this.value" /></div>
+          <div class="creative-field"><label for="creative-mast-lean">MAST LEAN · <output id="creative-mast-lean-value">${Math.round(Math.max(-9, Math.min(9, transformDegrees(savedShipState.mastLean?.[selectedMast]))))}</output>°</label><input id="creative-mast-lean" type="range" min="-9" max="9" step="1" value="${Math.round(Math.max(-9, Math.min(9, transformDegrees(savedShipState.mastLean?.[selectedMast]))))}" oninput="document.getElementById('creative-mast-lean-value').value=this.value" /></div>
           <button class="secondary-button" data-creative-action="ship-mast-lean" ${shipDisabled ? 'disabled' : ''}>Apply mast lean</button>
           <h4>Selected component transform</h4>
           <div class="creative-grid-two">
-            <div class="creative-field"><label for="creative-ship-part-x">LOCAL X · METRES</label><input id="creative-ship-part-x" type="number" min="-5" max="5" step="0.1" value="0" /></div>
-            <div class="creative-field"><label for="creative-ship-part-y">LOCAL Y · METRES</label><input id="creative-ship-part-y" type="number" min="-5" max="5" step="0.1" value="0" /></div>
-            <div class="creative-field"><label for="creative-ship-part-z">LOCAL Z · METRES</label><input id="creative-ship-part-z" type="number" min="-5" max="5" step="0.1" value="0" /></div>
-            <div class="creative-field"><label for="creative-ship-part-rx">ROTATE X · DEGREES</label><input id="creative-ship-part-rx" type="number" min="-180" max="180" step="1" value="0" /></div>
-            <div class="creative-field"><label for="creative-ship-part-ry">ROTATE Y · DEGREES</label><input id="creative-ship-part-ry" type="number" min="-180" max="180" step="1" value="0" /></div>
-            <div class="creative-field"><label for="creative-ship-part-rz">ROTATE Z · DEGREES</label><input id="creative-ship-part-rz" type="number" min="-180" max="180" step="1" value="0" /></div>
+            <div class="creative-field"><label for="creative-ship-part-x">LOCAL X · METRES</label><input id="creative-ship-part-x" type="number" min="-18" max="18" step="0.1" value="${transformMetres(selectedTransform.x)}" /></div>
+            <div class="creative-field"><label for="creative-ship-part-y">LOCAL Y · METRES</label><input id="creative-ship-part-y" type="number" min="-18" max="18" step="0.1" value="${transformMetres(selectedTransform.y)}" /></div>
+            <div class="creative-field"><label for="creative-ship-part-z">LOCAL Z · METRES</label><input id="creative-ship-part-z" type="number" min="-18" max="18" step="0.1" value="${transformMetres(selectedTransform.z)}" /></div>
+            <div class="creative-field"><label for="creative-ship-part-rx">ROTATE X · DEGREES</label><input id="creative-ship-part-rx" type="number" min="-180" max="180" step="0.1" value="${transformDegrees(selectedTransform.rx)}" /></div>
+            <div class="creative-field"><label for="creative-ship-part-ry">ROTATE Y · DEGREES</label><input id="creative-ship-part-ry" type="number" min="-180" max="180" step="0.1" value="${transformDegrees(selectedTransform.ry)}" /></div>
+            <div class="creative-field"><label for="creative-ship-part-rz">ROTATE Z · DEGREES</label><input id="creative-ship-part-rz" type="number" min="-180" max="180" step="0.1" value="${transformDegrees(selectedTransform.rz)}" /></div>
           </div>
-          <div class="creative-actions"><button class="secondary-button" data-creative-action="ship-part-transform" ${shipDisabled ? 'disabled' : ''}>Apply component transform</button><button class="secondary-button" data-creative-action="ship-part-reset" ${shipDisabled ? 'disabled' : ''}>Reset component</button></div>
+          <div class="creative-actions"><button class="secondary-button" data-creative-action="ship-part-transform" ${shipDisabled ? 'disabled' : ''}>Apply component transform</button><button class="secondary-button" data-creative-action="ship-part-reset" ${shipDisabled ? 'disabled' : ''}>Reset component</button><button id="creative-ship-transform-copy" class="secondary-button" type="button" ${shipDisabled ? 'disabled' : ''}>Copy transform</button><button id="creative-ship-transform-paste" class="secondary-button" type="button" ${shipDisabled || !this.shipTransformClipboard ? 'disabled' : ''}>Paste transform</button></div>
+          <p class="panel-note">Position snaps to 0.1 m. Copy and paste transfers the six local position and rotation values between ship components; apply the result to save them.</p>
         </section>
         <section class="creative-section">
           <h3>Object tools</h3>
