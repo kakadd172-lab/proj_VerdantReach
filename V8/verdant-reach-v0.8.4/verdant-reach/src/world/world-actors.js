@@ -178,7 +178,7 @@ export class WorldActorManager {
         crop.position.set(settlement.x - 19 + i * 2, settlement.elevation + 0.12, settlement.z + 32 + (i % 2) * 1.3);
         root.add(crop);
       }
-      const stallCount = settlement.type === 'port' ? 5 : settlement.type === 'market' ? 4 : 2;
+      const stallCount = settlement.type === 'port' ? 7 : settlement.type === 'market' ? 6 : 3;
       for (let index = 0; index < stallCount; index += 1) {
         const angle = (index / stallCount) * Math.PI * 2 + 0.35;
         const radius = settlement.type === 'port' ? 16 : 14;
