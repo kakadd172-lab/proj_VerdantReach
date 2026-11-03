@@ -236,10 +236,22 @@ test('regional trade roads connect free cities through their generated gates, no
     const intelligence = new WorldIntelligence(generator, generator.findSpawn());
     const city = intelligence.regionalFreeCity;
     assert.ok(city, `${seed} should have a regional free city for gate-road validation`);
-    const target = { id: 'audit:trade-destination', name: 'Trade Destination', type: 'village', x: city.x + 1800, z: city.z + 120 };
-    const endpointA = intelligence._roadEndpointFor(city, target);
-    const endpointB = intelligence._roadEndpointFor(target, city);
-    intelligence.routePathFor(endpointA.routeNode, endpointB.routeNode, { debug: true, resolution: 84 });
+    const nominalX = city.x + 1800;
+    const nominalZ = city.z + 120;
+    let target = null;
+    for (let radius = 0; radius <= 1500 && !target; radius += 100) {
+      for (let angleIndex = 0; angleIndex < 32; angleIndex += 1) {
+        const angle = angleIndex / 32 * Math.PI * 2;
+        const x = nominalX + Math.cos(angle) * radius;
+        const z = nominalZ + Math.sin(angle) * radius;
+        const sample = generator.sample(x, z, true);
+        if (sample.height > 2.5 && sample.slope < 0.75 && sample.biome !== 'ocean') {
+          target = { id: 'audit:trade-destination', name: 'Trade Destination', type: 'village', x, z };
+          break;
+        }
+      }
+    }
+    assert.ok(target, `${seed} needs a dry test destination`);
     const link = intelligence.roadLinksFor([city, target], 3600)[0];
     assert.ok(link, `${seed} should connect the city to a nearby settlement`);
     const cityIsStart = link.a.id === city.id;
