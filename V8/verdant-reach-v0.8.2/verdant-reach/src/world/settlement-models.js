@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { buildFreeCityPlan, buildRuinedCastlePlan, isCityGateWallPanelGap } from './settlement-layouts.js';
+import { buildDrapedRoadData } from './road-geometry.js';
 
 const G = {
   box: new THREE.BoxGeometry(1, 1, 1),
@@ -256,30 +257,27 @@ export function createFreeCityModel(settlement, generator) {
   for (const building of plan.buildings) addHouse(batches, building, generator);
   for (const landmark of plan.landmarks) addLargeHall(batches, landmark, generator, Math.floor(settlement.seed % 4));
 
-  // Radial streets and the central paved market square.
+  // Radial streets use dense terrain-sampled cross-sections. This prevents
+  // long flat panels from bridging over ridges or cutting through hollows.
+  const cityRoadPositions = [];
+  const cityRoadIndices = [];
   for (const road of plan.roads) {
-    const dx = road.to.x - road.from.x;
-    const dz = road.to.z - road.from.z;
-    const length = Math.hypot(dx, dz);
-    const yaw = Math.atan2(dx, dz);
-    const segments = Math.max(1, Math.ceil(length / 13));
-    for (let segment = 0; segment < segments; segment += 1) {
-      const t0 = segment / segments;
-      const t1 = (segment + 1) / segments;
-      const tm = (t0 + t1) * 0.5;
-      const ax = road.from.x + dx * t0;
-      const az = road.from.z + dz * t0;
-      const bx = road.from.x + dx * t1;
-      const bz = road.from.z + dz * t1;
-      const midX = road.from.x + dx * tm;
-      const midZ = road.from.z + dz * tm;
-      const groundA = generator.heightAt(ax, az);
-      const groundB = generator.heightAt(bx, bz);
-      const localLength = length / segments;
-      const pitch = -Math.atan2(groundB - groundA, localLength);
-      batches.add('box', 'field', { x: midX, y: (groundA + groundB) * 0.5 + 0.09, z: midZ }, { x: road.width, y: 0.18, z: localLength + 0.35 }, yaw, 0, pitch);
-    }
+    const data = buildDrapedRoadData([road.from, road.to], generator.heightAt.bind(generator), {
+      width: road.width, maxSpacing: 4, clearance: 0.12, camberRatio: 0.018, crossSegments: 4,
+    });
+    const offset = cityRoadPositions.length / 3;
+    cityRoadPositions.push(...data.positions);
+    cityRoadIndices.push(...data.indices.map((index) => index + offset));
   }
+  const cityRoadGeometry = new THREE.BufferGeometry();
+  cityRoadGeometry.setAttribute('position', new THREE.Float32BufferAttribute(cityRoadPositions, 3));
+  cityRoadGeometry.setIndex(cityRoadIndices);
+  cityRoadGeometry.computeVertexNormals();
+  cityRoadGeometry.computeBoundingSphere();
+  const cityRoadMesh = new THREE.Mesh(cityRoadGeometry, M.field);
+  cityRoadMesh.receiveShadow = true;
+  cityRoadMesh.userData.ownedGeometry = true;
+  group.add(cityRoadMesh);
   batches.add('box', 'paleStone', { x: cx, y: generator.heightAt(cx, cz) + 0.16, z: cz }, { x: 36, y: 0.28, z: 31 }, 0);
   for (let i = 0; i < 9; i += 1) {
     const x = cx - 12 + (i % 3) * 12;
