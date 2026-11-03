@@ -82,3 +82,55 @@ test('rudder steering rotates around the stern stock and square-rigged spankers 
     disposeShipModel(ship);
   }
 });
+
+test('sails and mast assemblies rotate around their own attachment points', () => {
+  const ship = createShipModel('galleon');
+  try {
+    const design = getShipDesign('galleon');
+    const mainMast = design.masts.find((mast) => mast.id === 'main');
+    const mastGroup = ship.userData.getPart('mast-main');
+    const sailGroup = ship.userData.getPart('sail-main-course');
+    const expectedZ = mainMast.z * design.hullLengthUnits;
+    assert.ok(Math.abs(mastGroup.position.z - expectedZ) < 1e-6);
+    assert.ok(Math.abs(sailGroup.position.z - expectedZ) < 1e-6);
+    const sailOrigin = sailGroup.position.clone();
+    assert.equal(ship.userData.setSailTrim('main', .22), true);
+    assert.ok(Math.abs(sailGroup.rotation.y - .22) < 1e-6);
+    assert.ok(sailGroup.position.distanceTo(sailOrigin) < 1e-6);
+    assert.equal(ship.userData.setMastLean('main', .08), true);
+    assert.ok(Math.abs(mastGroup.rotation.x - .08) < 1e-6);
+    assert.ok(Math.abs(mastGroup.position.z - expectedZ) < 1e-6);
+  } finally {
+    disposeShipModel(ship);
+  }
+});
+
+test('standing rigging follows each vessel blueprint shroud-pair count without duplicate ratlines', () => {
+  const ship = createShipModel('galleon');
+  try {
+    const design = getShipDesign('galleon');
+    const expectedPairs = design.structure.shroudPairs;
+    const shrouds = ship.userData.getPart('shrouds-fore');
+    const ratlines = ship.userData.getPart('ratlines-fore');
+    const stays = ship.userData.getPart('mast-stays-fore');
+    assert.equal(shrouds.children.filter((child) => child.isMesh).length, expectedPairs * 2);
+    assert.equal(ratlines.children.filter((child) => child.isMesh).length, design.structure.ratlines);
+    assert.equal(stays.children.filter((child) => child.isMesh).length, 1);
+  } finally {
+    disposeShipModel(ship);
+  }
+});
+
+test('Chinese junk omits the European stem-post silhouette and generic bow ornament', () => {
+  const ship = createShipModel('junk');
+  try {
+    const stem = ship.userData.getPart('stem');
+    const bowworks = ship.userData.getPart('bowworks');
+    const keel = ship.userData.getPart('keel');
+    assert.equal(stem.children.filter((child) => child.isMesh).length, 0);
+    assert.equal(bowworks.getObjectByName('abstract-bow-ornament'), undefined);
+    assert.ok(keel.children.length > 0, 'a shallow centreline structural group remains available');
+  } finally {
+    disposeShipModel(ship);
+  }
+});

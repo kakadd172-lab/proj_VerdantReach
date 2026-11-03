@@ -18,6 +18,8 @@ Run the automated checks with `npm test` and create a production build with `npm
 - Gives each catalogue family its own longitudinal hull profile, cross-section, frame count, sheer and mast arrangement.
 - Builds the hull, deck, deck seams, keel, stem, each transverse frame, strakes, stern structure, bow structure, rails, rudder, helm, anchors, mast sections, sails, yards, battens and rigging as separately addressable groups.
 - Uses curved loft geometry for stern tiers, with separate tier groups, window framing and gallery rails rather than one solid cabin block.
+- Gives mast groups, square/fore-and-aft sails and the rudder their own attachment-point pivots, so steering, sail trim and mast lean rotate around the actual component base.
+- Generates the number of shroud pairs and ratlines from each vessel's structural blueprint; the Chinese junk uses a separate unstayed battened-lug rig and does not receive a generic European stem-post or bow ornament.
 - Keeps square, gaff, lateen, brigantine and snow arrangements, and adds a distinct battened-lug Chinese junk rig with minimal standing rigging.
 - Retains Creative Shipyard visibility, detach/relink, local transforms, rudder angle, sail trim, mast lean, sail deployment and save-state restoration.
 - Keeps the legacy `sailing-ship` and `large-ship` save aliases compatible.
@@ -26,7 +28,7 @@ Run the automated checks with `npm test` and create a production build with `npm
 
 The catalogue contains 16 original vessel families: sloop, schooner, brigantine, brig, snow, cutter, frigate, barque, caravel, carrack, galleon, fluyt, xebec, Chinese sea junk, first-rate ship of the line and pinnace.
 
-The Chinese junk is a historically informed original model. Public App Store release notes for the reference game mention a premium Chinese Junk named “Executor”; the Verdant Reach model is not a recreation of that game's mesh. The first-rate uses HMS Victory as a dimensional reference point.
+The Chinese junk is a historically informed original model. Public release notes for the reference game mention a Chinese Junk named “Executor”; the Verdant Reach model is not a recreation of that game's mesh. The first-rate uses HMS Victory as a dimensional reference: its hull length is anchored to the 186 ft (56.73 m) gun-deck length, while the 227 ft (68.88 m) overall length is treated separately as a whole-vessel check.
 
 The public Home Net Games page describes unlockable ships but does not provide a complete model roster or a dimensional catalogue. For that reason, this release does not claim that the 16 families are a verified one-to-one list of every in-game vessel. It is a new original fleet foundation with room to add further named variants when reliable references are available.
 

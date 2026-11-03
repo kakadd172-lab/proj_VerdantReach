@@ -85,8 +85,9 @@ test('Chinese junk rig uses individual battens and a separate sail group per mas
 
 test('first-rate dimensional reference uses a long, deep hull and independently editable tiers', () => {
   const design = SHIP_DESIGNS['first-rate'];
-  assert.equal(design.hullLength, 68.88);
+  assert.equal(design.hullLength, 56.73);
   assert.equal(design.beam, 15.79);
+  assert.ok(design.reference.includes('186 ft (56.73 m) gun-deck length'));
   assert.ok(design.draft > 5);
   assert.ok(design.structure.frameCount >= 40);
   const ship = createShipModel('first-rate');

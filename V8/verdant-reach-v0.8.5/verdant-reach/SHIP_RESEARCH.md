@@ -38,7 +38,7 @@ The Pirate: Plague of the Dead is a broad visual reference. Its developer page d
 
 ### Chinese ocean junk
 
-The design uses a broad and relatively flat-bottomed hull, pronounced rocker toward both ends, raised bow and stern, an overhanging weather deck, and a large central rudder silhouette. The rig uses heavy masts and broad battened lug sails, with independently named battens and sheet groups. This is a generic historical reconstruction, not a copy of the “Executor” model.
+The design uses a broad, relatively flat-bottomed hull with pronounced rocker, raised ends, an overhanging weather deck and a large central rudder. It does not use a European-style projecting keel or stem/stern posts. A shallow centreline structural member remains as an internal model component. The rig uses heavy, largely unstayed masts and broad battened lug sails, with independently named battens and sheet groups. This is a generic historical reconstruction, not a copy of the “Executor” model.
 
 Reference notes:
 - Royal Museums Greenwich records a three-masted Chinese pole junk model with set rectangular sails: [collection record](https://www.rmg.co.uk/collections/objects/rmgc-object-68643).
@@ -74,11 +74,11 @@ Reference notes:
 
 ## v0.8.5 construction method
 
-- Hull shell: 96 longitudinal stations and 40 cross-section points, with class-specific beam taper, floor flatness, bilge fullness, flare, tumblehome, sheer and end rise.
+- Hull shell: 96 longitudinal stations and 40 cross-section points, with class-specific beam taper, floor flatness, bilge fullness, flare, tumblehome, sheer and end rise. The sheer edges reach the full deck breadth; the cross-section closes along the deck line rather than tapering to the centreline.
 - Deck: a separate cambered loft, with independent deck-seam groups.
 - Structure: an independent transverse frame group per station, a keel group and a shaped stem/stern post.
 - Stern: each raised tier is its own curved loft group; transom and side windows, gallery rails and posts are separate groups.
-- Sail rigs: square yards, gaff spars, lateen yards and Chinese junk battens are independently addressable.
+- Sail rigs: square yards, gaff spars, lateen yards and Chinese junk battens are independently addressable. Mast groups pivot at their mast steps; individual sails pivot at their mast/attachment points. Shroud-pair and ratline counts are blueprint-driven, with one forestay per mast in this simplified rig model.
 - Controls: linked/unlinked hierarchy, visibility, six-axis component transforms, sail trim, deployment and mast lean are saved with the vessel.
 
 These are animation-ready and editor-friendly game models. They are not complete shipwright plans, structural scantlings or physically simulated sailing vessels.
