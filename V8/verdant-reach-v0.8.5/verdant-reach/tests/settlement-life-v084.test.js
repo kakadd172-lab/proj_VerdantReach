@@ -80,7 +80,7 @@ test('galleon stern structure uses curved, separately addressable tiers and gall
   assert.ok(models.includes('curved-sternhouse-tier-'));
   assert.ok(models.includes('function addWindowFrame'));
   assert.ok(models.includes('gallery-rail-'));
-  assert.ok(models.includes("registerPart(registry, 'stern-tier-' + (index + 1), sternworks)"));
+  assert.ok(models.includes("const tierName = 'stern-tier-' + (index + 1)"));
   assert.ok(models.includes("registerPart(registry, 'stern-windows', root)"));
   assert.ok(structures.includes('galleon:'));
   assert.ok(designs.includes("sternwork: 'galleon-castle'"));

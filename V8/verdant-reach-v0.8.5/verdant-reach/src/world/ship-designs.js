@@ -41,6 +41,7 @@ function freezeDesign(data) {
       ['course', 'topsail', 'topgallant'].slice(0, mast.squares ?? 2).forEach((level) => {
         names.push('yard-' + id + '-' + level, 'sail-' + id + '-' + level, 'cloth-sail-' + id + '-' + level, 'sheets-' + id + '-' + level);
       });
+      if (mast.spanker) names.push('gaff-spar-' + id, 'boom-' + id, 'sail-' + id + '-spanker', 'cloth-sail-' + id + '-spanker');
     } else if (mast.rig === 'brigantine') {
       names.push('gaff-spar-' + id, 'boom-' + id, 'sail-' + id + '-gaff', 'cloth-sail-' + id + '-gaff');
       names.push('yard-' + id + '-topsail', 'sail-' + id + '-topsail', 'cloth-sail-' + id + '-topsail', 'sheets-' + id + '-topsail');
