@@ -790,7 +790,7 @@ export class WorldIntelligence {
     const gx = this.generator.heightAt(x + step, z) - this.generator.heightAt(x - step, z);
     const gz = this.generator.heightAt(x, z + step) - this.generator.heightAt(x, z - step);
     const slope = Math.hypot(gx, gz) / (step * 2);
-    if (slope > 0.78 || (sample.cliffIntensity ?? 0) > 0.94) {
+    if (slope > 0.92 || (sample.cliffIntensity ?? 0) > 0.98) {
       cache.set(key, Infinity);
       return Infinity;
     }
@@ -849,7 +849,7 @@ export class WorldIntelligence {
   }
 
   routePathFor(a, b, options = {}) {
-    const resolution = options.resolution ?? 42;
+    const resolution = options.resolution ?? 56;
     const cacheKey = `road-v2|${a.id}|${b.id}|${resolution}`;
     if (!this.roadPathCache) this.roadPathCache = new Map();
     if (this.roadPathCache.has(cacheKey)) return this.roadPathCache.get(cacheKey).map((point) => ({ ...point }));
@@ -910,7 +910,7 @@ export class WorldIntelligence {
       return first;
     };
 
-    while (open.length && visited < 18000) {
+    while (open.length && visited < 45000) {
       const current = pop();
       const currentKey = keyOf(current.x, current.z);
       if (current.g > (bestCost.get(currentKey) ?? Infinity) + 1e-6) continue;
@@ -931,8 +931,8 @@ export class WorldIntelligence {
         const currentHeight = this.generator.heightAt(current.x * resolution, current.z * resolution);
         const nextHeight = this.generator.heightAt(wx, wz);
         const grade = Math.abs(nextHeight - currentHeight) / (resolution * stepLength);
-        if (!Number.isFinite(grade) || grade > 0.34) continue;
-        const gradePenalty = grade * 12 + Math.max(0, grade - 0.08) ** 2 * 88;
+        if (!Number.isFinite(grade) || grade > 0.55) continue;
+        const gradePenalty = grade * 16 + Math.max(0, grade - 0.08) ** 2 * 120;
         const nextG = current.g + (terrainCost + gradePenalty) * stepLength;
         const nextKey = keyOf(nx, nz);
         if (nextG >= (bestCost.get(nextKey) ?? Infinity)) continue;
