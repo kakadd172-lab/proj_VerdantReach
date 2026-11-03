@@ -1,0 +1,40 @@
+name: Verdant Reach v0.8.1
+
+on:
+  push:
+    branches: [main, chatgpt-v0.8.1-upgrade]
+    paths:
+      - 'V8/verdant-reach-v0.8.1/verdant-reach/**'
+      - '.github/workflows/verdant-reach-v0.8.1.yml'
+  pull_request:
+    paths:
+      - 'V8/verdant-reach-v0.8.1/verdant-reach/**'
+      - '.github/workflows/verdant-reach-v0.8.1.yml'
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: V8/verdant-reach-v0.8.1/verdant-reach
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run regression tests
+        run: npm test
+      - name: Build production bundle
+        run: npm run build
+      - name: Package project source
+        run: zip -r "$RUNNER_TEMP/verdant-reach-v0.8.1.zip" . -x "node_modules/*" "dist/*"
+      - name: Upload project archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: verdant-reach-v0.8.1
+          path: ${{ runner.temp }}/verdant-reach-v0.8.1.zip
+          if-no-files-found: error
