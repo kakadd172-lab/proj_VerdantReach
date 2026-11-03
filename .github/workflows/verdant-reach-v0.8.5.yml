@@ -1,4 +1,4 @@
-name: Verdant Reach v0.8.5 validation
+name: Verdant Reach v0.8.5 validation and Pages deployment
 
 on:
   push:
@@ -7,32 +7,66 @@ on:
     paths:
       - 'V8/verdant-reach-v0.8.5/verdant-reach/**'
       - '.github/workflows/verdant-reach-v0.8.5.yml'
-  pull_request:
-    branches:
-      - chatgpt-v0.8.4-populated-settlements
-    paths:
-      - 'V8/verdant-reach-v0.8.5/verdant-reach/**'
-      - '.github/workflows/verdant-reach-v0.8.5.yml'
+  workflow_dispatch:
 
+concurrency:
+  group: verdant-reach-pages
+  cancel-in-progress: false
+
+# Validation never needs write access. Only the publish job receives it.
 permissions:
   contents: read
 
 jobs:
   verify:
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/chatgpt-v0.8.5-modular-fleet'
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: V8/verdant-reach-v0.8.5/verdant-reach
     steps:
-      - name: Check out source
+      - name: Check out v0.8.5 source
         uses: actions/checkout@v7
+
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
           node-version: 22
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+
       - name: Run automated tests
         run: npm test
-      - name: Build production bundle
+
+      - name: Build production site
         run: npm run build
+
+      - name: Upload production bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: verdant-reach-v0.8.5-dist
+          path: V8/verdant-reach-v0.8.5/verdant-reach/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: verify
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/chatgpt-v0.8.5-modular-fleet') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/chatgpt-v0.8.5-modular-fleet')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download tested production bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: verdant-reach-v0.8.5-dist
+          path: ./dist
+
+      - name: Publish v0.8.5 to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          commit_message: 'Publish Verdant Reach v0.8.5'
