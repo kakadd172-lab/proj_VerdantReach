@@ -780,23 +780,77 @@ export class WorldIntelligence {
   _roadCellCost(x, z, cache) {
     const key = `${x}:${z}`;
     if (cache.has(key)) return cache.get(key);
-    const height = this.generator.heightAt(x, z);
-    if (height <= 1.1) {
+    const sample = this.generator.sample(x, z);
+    const height = sample.height;
+    if (!Number.isFinite(height) || height <= 1.1 || sample.biome === 'ocean') {
       cache.set(key, Infinity);
       return Infinity;
     }
-    const step = 42;
+    const step = 28;
     const gx = this.generator.heightAt(x + step, z) - this.generator.heightAt(x - step, z);
     const gz = this.generator.heightAt(x, z + step) - this.generator.heightAt(x, z - step);
     const slope = Math.hypot(gx, gz) / (step * 2);
-    const cost = 1 + slope * 5.5 + Math.max(0, height - 48) * 0.018 + (height > 85 ? 2.5 : 0);
+    if (slope > 0.78 || (sample.cliffIntensity ?? 0) > 0.94) {
+      cache.set(key, Infinity);
+      return Infinity;
+    }
+    const reliefPenalty = Math.max(0, slope - 0.09);
+    const cost = 1 + slope * 7.5 + reliefPenalty * reliefPenalty * 52
+      + Math.max(0, height - 48) * 0.024 + (height > 85 ? 2.8 : 0)
+      + (sample.cliffIntensity ?? 0) * 6.5 + (sample.ravineIntensity ?? 0) * 4.2
+      + (sample.mountainIntensity ?? 0) * (sample.ridgeSpine ?? 0) * 2.4
+      + (sample.biome === 'marsh' ? 3.2 : 0) + (sample.biome === 'swamp' ? 4.5 : 0)
+      + (sample.floodplain ?? 0) * 1.8;
     cache.set(key, cost);
     return cost;
   }
 
+  _roadSegmentIsBuildable(a, b, maxGrade = 0.30) {
+    const length = distance(a, b);
+    if (length < 0.01) return true;
+    const count = Math.max(1, Math.ceil(length / 12));
+    let previousHeight = this.generator.heightAt(a.x, a.z);
+    for (let i = 1; i <= count; i += 1) {
+      const t = i / count;
+      const x = a.x + (b.x - a.x) * t;
+      const z = a.z + (b.z - a.z) * t;
+      const height = this.generator.heightAt(x, z);
+      const grade = Math.abs(height - previousHeight) / (length / count);
+      if (!Number.isFinite(height) || height <= 1.1 || grade > maxGrade) return false;
+      const sample = this.generator.sample(x, z);
+      if ((sample.cliffIntensity ?? 0) > 0.94) return false;
+      previousHeight = height;
+    }
+    return true;
+  }
+
+  _smoothRoadPath(path, iterations = 2) {
+    if (path.length < 3) return path;
+    let candidate = path.map((point) => ({ x: point.x, z: point.z }));
+    for (let iteration = 0; iteration < iterations; iteration += 1) {
+      const next = [candidate[0]];
+      for (let i = 0; i < candidate.length - 1; i += 1) {
+        const a = candidate[i];
+        const b = candidate[i + 1];
+        next.push(
+          { x: a.x * 0.75 + b.x * 0.25, z: a.z * 0.75 + b.z * 0.25 },
+          { x: a.x * 0.25 + b.x * 0.75, z: a.z * 0.25 + b.z * 0.75 },
+        );
+      }
+      next.push(candidate.at(-1));
+      candidate = next;
+    }
+    for (let i = 1; i < candidate.length; i += 1) {
+      if (!this._roadSegmentIsBuildable(candidate[i - 1], candidate[i])) return path;
+    }
+    candidate[0] = { x: path[0].x, z: path[0].z };
+    candidate[candidate.length - 1] = { x: path.at(-1).x, z: path.at(-1).z };
+    return candidate;
+  }
+
   routePathFor(a, b, options = {}) {
-    const resolution = options.resolution ?? 84;
-    const cacheKey = `${a.id}|${b.id}|${resolution}`;
+    const resolution = options.resolution ?? 42;
+    const cacheKey = `road-v2|${a.id}|${b.id}|${resolution}`;
     if (!this.roadPathCache) this.roadPathCache = new Map();
     if (this.roadPathCache.has(cacheKey)) return this.roadPathCache.get(cacheKey).map((point) => ({ ...point }));
 
@@ -817,6 +871,11 @@ export class WorldIntelligence {
     const bestCost = new Map([[keyOf(sx, sz), 0]]);
     const cellCostCache = new Map();
     const directions = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+    const blockedDiagonal = (x, z, dx, dz) => {
+      if (!dx || !dz) return false;
+      return !Number.isFinite(this._roadCellCost((x + dx) * resolution, z * resolution, cellCostCache))
+        || !Number.isFinite(this._roadCellCost(x * resolution, (z + dz) * resolution, cellCostCache));
+    };
     let visited = 0;
     let found = false;
 
@@ -867,9 +926,14 @@ export class WorldIntelligence {
         const wx = nx * resolution;
         const wz = nz * resolution;
         const terrainCost = this._roadCellCost(wx, wz, cellCostCache);
-        if (!Number.isFinite(terrainCost)) continue;
+        if (!Number.isFinite(terrainCost) || blockedDiagonal(current.x, current.z, dx, dz)) continue;
         const stepLength = dx && dz ? Math.SQRT2 : 1;
-        const nextG = current.g + terrainCost * stepLength;
+        const currentHeight = this.generator.heightAt(current.x * resolution, current.z * resolution);
+        const nextHeight = this.generator.heightAt(wx, wz);
+        const grade = Math.abs(nextHeight - currentHeight) / (resolution * stepLength);
+        if (!Number.isFinite(grade) || grade > 0.34) continue;
+        const gradePenalty = grade * 12 + Math.max(0, grade - 0.08) ** 2 * 88;
+        const nextG = current.g + (terrainCost + gradePenalty) * stepLength;
         const nextKey = keyOf(nx, nz);
         if (nextG >= (bestCost.get(nextKey) ?? Infinity)) continue;
         bestCost.set(nextKey, nextG);
@@ -890,12 +954,10 @@ export class WorldIntelligence {
       }
       cells.reverse();
     } else {
-      // Rare steep/ocean barriers get a deterministic direct corridor rather than no road.
-      const count = Math.max(2, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / resolution));
-      cells = Array.from({ length: count + 1 }, (_, i) => ({
-        x: Math.round((a.x + (b.x - a.x) * i / count) / resolution),
-        z: Math.round((a.z + (b.z - a.z) * i / count) / resolution),
-      }));
+      // Do not invent a straight road through cliffs, ravines or open water.
+      const emptyPath = [];
+      this.roadPathCache.set(cacheKey, emptyPath);
+      return emptyPath;
     }
 
     // Remove collinear grid points; the rendered road then follows the route cleanly.
@@ -915,7 +977,7 @@ export class WorldIntelligence {
       simplified[simplified.length - 1] = { x: b.x, z: b.z };
     }
 
-    const path = simplified;
+    const path = this._smoothRoadPath(simplified);
     this.roadPathCache.set(cacheKey, path.map((point) => ({ ...point })));
     if (this.roadPathCache.size > 160) this.roadPathCache.delete(this.roadPathCache.keys().next().value);
     return path;
@@ -969,6 +1031,7 @@ export class WorldIntelligence {
     })).sort((a, b) => a.averageDistance - b.averageDistance || a.node.id.localeCompare(b.node.id))[0].node;
     const connected = new Set([root.id]);
     const links = [];
+    const blockedPairs = new Set();
     const remaining = new Map(nodes.filter((node) => node.id !== root.id).map((node) => [node.id, node]));
 
     // A deterministic Prim-style network joins each reachable settlement to the
@@ -981,6 +1044,7 @@ export class WorldIntelligence {
           const d = distance(from, to);
           if (d > maxDistance) continue;
           const tie = `${from.id}|${to.id}`;
+          if (blockedPairs.has(tie)) continue;
           if (!best || d < best.distance || (d === best.distance && tie < best.tie)) best = { a: from, b: to, distance: d, tie };
         }
       }
@@ -988,6 +1052,10 @@ export class WorldIntelligence {
       const endpointA = this._roadEndpointFor(best.a, best.b);
       const endpointB = this._roadEndpointFor(best.b, best.a);
       const path = this.routePathFor(endpointA.routeNode, endpointB.routeNode);
+      if (path.length < 2) {
+        blockedPairs.add(best.tie);
+        continue;
+      }
       if (endpointA.gate) path.unshift({ x: endpointA.gate.x, z: endpointA.gate.z });
       if (endpointB.gate) path.push({ x: endpointB.gate.x, z: endpointB.gate.z });
       const minX = Math.min(...path.map((point) => point.x)) - 80;
