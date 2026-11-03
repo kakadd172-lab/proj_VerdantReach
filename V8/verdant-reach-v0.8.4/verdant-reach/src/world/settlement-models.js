@@ -164,6 +164,51 @@ function addHouse(batches, building, generator) {
   }
 }
 
+function addMarketStall(batches, x, z, ground, yaw, index) {
+  const c = Math.cos(yaw);
+  const s = Math.sin(yaw);
+  const point = (lx, lz, ly = 0) => ({
+    x: x + c * lx + s * lz,
+    y: ground + ly,
+    z: z - s * lx + c * lz,
+  });
+
+  // A timber counter, a low stone footing and a raised display shelf.
+  batches.add('box', 'dark', point(0, 0, 0.12), { x: 6.55, y: 0.18, z: 2.85 }, yaw);
+  batches.add('box', 'timber', point(0, 0, 1.18), { x: 6.15, y: 1.05, z: 2.45 }, yaw);
+  batches.add('box', 'timber', point(0, 0.98, 1.18), { x: 6.35, y: 0.16, z: 2.65 }, yaw);
+
+  // Four sturdy posts support a striped canvas awning.
+  for (const side of [-1, 1]) {
+    for (const end of [-1, 1]) {
+      batches.add('box', 'timber', point(side * 3.05, end * 2.05, 1.72),
+        { x: 0.2, y: 3.4, z: 0.2 }, yaw);
+    }
+  }
+  for (let stripe = 0; stripe < 4; stripe += 1) {
+    const localX = (stripe - 1.5) * 1.58;
+    batches.add('box', 'awning', point(localX, 0, 3.48),
+      { x: 1.61, y: 0.18, z: 4.45 }, yaw, (index + stripe) % M.awning.length);
+  }
+  batches.add('box', 'timber', point(0, 0, 3.42), { x: 6.65, y: 0.16, z: 0.2 }, yaw);
+  batches.add('box', 'timber', point(0, -2.32, 3.42), { x: 6.65, y: 0.16, z: 0.2 }, yaw);
+
+  // A painted shop board, baskets and varied goods make each stall readable.
+  batches.add('box', 'timber', point(0, 2.12, 4.12), { x: 2.55, y: 0.72, z: 0.16 }, yaw);
+  batches.add('box', 'awning', point(0, 2.12, 4.22), { x: 2.05, y: 0.42, z: 0.08 }, yaw, index % M.awning.length);
+  for (let goods = 0; goods < 4; goods += 1) {
+    const localX = -2.05 + goods * 1.36;
+    batches.add('box', 'produce', point(localX, 0.28, 2.05),
+      { x: 0.88, y: 0.42, z: 0.72 }, yaw, (index + goods) % M.produce.length);
+    batches.add('sphere', 'produce', point(localX, -0.12, 2.45),
+      { x: 0.42, y: 0.38, z: 0.42 }, yaw, (index + goods + 1) % M.produce.length);
+  }
+  for (const side of [-1, 1]) {
+    batches.add('cylinder', 'timber', point(side * 3.65, 0.8, 0.72),
+      { x: 0.72, y: 1.35, z: 0.72 }, yaw);
+  }
+}
+
 function addLargeHall(batches, feature, generator, style = 0) {
   const localPoint = (localX, localZ) => {
     const c = Math.cos(feature.yaw ?? 0);
@@ -200,6 +245,46 @@ function addLargeHall(batches, feature, generator, style = 0) {
     }, feature.yaw);
   }
   const height = feature.kind === 'cathedral' ? 28 : feature.kind === 'bell-tower' ? 34 : feature.kind === 'council-hall' ? 18 : 15;
+
+  if (feature.kind === 'market-hall') {
+    const marketStallCount = 12;
+    group.userData.marketStallCount = marketStallCount;
+    batches.add('box', 'paleStone', { x: feature.x, y: ground + 0.16, z: feature.z },
+      { x: feature.width + 1.5, y: 0.24, z: feature.depth + 1.5 }, feature.yaw);
+
+    // The market is an open timber pavilion, not a solid hall that hides its stalls.
+    const eaveY = ground + 10.5;
+    for (const localX of [-20, 20]) {
+      for (const localZ of [-15, 0, 15]) {
+        const pillar = localPoint(localX, localZ);
+        batches.add('box', 'stone', { x: pillar.x, y: ground + 5.25, z: pillar.z },
+          { x: 1.9, y: 10.5, z: 1.9 }, feature.yaw);
+      }
+    }
+    for (const localZ of [-15, 0, 15]) {
+      const beamPoint = localPoint(0, localZ);
+      batches.add('box', 'timber', { x: beamPoint.x, y: eaveY, z: beamPoint.z },
+        { x: 42.5, y: 0.72, z: 0.82 }, feature.yaw);
+    }
+    for (const localX of [-20, 20]) {
+      const beamPoint = localPoint(localX, 0);
+      batches.add('box', 'timber', { x: beamPoint.x, y: eaveY, z: beamPoint.z },
+        { x: 0.82, y: 0.72, z: 32.5 }, feature.yaw);
+    }
+    batches.add('gable', 'roof', { x: feature.x, y: ground + 15.2, z: feature.z },
+      { x: feature.width + 5, y: 9.6, z: feature.depth + 5 }, feature.yaw, style);
+
+    // Twelve individual stalls form three rows around a clear central aisle.
+    for (let stallIndex = 0; stallIndex < marketStallCount; stallIndex += 1) {
+      const column = stallIndex % 4;
+      const row = Math.floor(stallIndex / 4);
+      const localX = -15 + column * 10;
+      const localZ = -10 + row * 10;
+      const stall = localPoint(localX, localZ);
+      addMarketStall(batches, stall.x, stall.z, ground + 0.24, feature.yaw, stallIndex);
+    }
+    return;
+  }
   if (feature.kind === 'bell-tower') {
     batches.add('box', 'paleStone', { x: feature.x, y: ground + height * 0.5, z: feature.z }, { x: 18, y: height, z: 18 }, feature.yaw);
     batches.add('cone', 'slate', { x: feature.x, y: ground + height + 5.2, z: feature.z }, { x: 13, y: 15, z: 13 }, feature.yaw);
@@ -325,14 +410,7 @@ export function createFreeCityModel(settlement, generator) {
   cityRoadMesh.receiveShadow = true;
   cityRoadMesh.userData.ownedGeometry = true;
   group.add(cityRoadMesh);
-  batches.add('box', 'paleStone', { x: cx, y: generator.heightAt(cx, cz) + 0.16, z: cz }, { x: 36, y: 0.28, z: 31 }, 0);
-  for (let i = 0; i < 9; i += 1) {
-    const x = cx - 12 + (i % 3) * 12;
-    const z = cz + 16 + Math.floor(i / 3) * 4;
-    const ground = generator.heightAt(x, z);
-    batches.add('box', 'timber', { x, y: ground + 1.4, z }, { x: 3.8, y: 0.75, z: 2.4 }, 0);
-    batches.add('box', 'roof', { x, y: ground + 3.0, z }, { x: 4.8, y: 2.6, z: 3.4 }, 0, i % 4);
-  }
+  // The covered civic market and its twelve visible stalls are built by addLargeHall().
 
   // Outlying strip fields, fallow plots and low stone boundary markers.
   for (const field of plan.fields) {
