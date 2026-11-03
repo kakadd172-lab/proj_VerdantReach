@@ -25,7 +25,11 @@ jobs:
           node-version: 22
       - name: Install candidate dependencies
         run: npm install --no-audit --no-fund
+      - name: Install Chromium for the browser smoke test
+        run: npx playwright install --with-deps chromium
       - name: Run candidate geometry and integration tests
         run: npm test
       - name: Build the standalone 3D preview
         run: npm run build
+      - name: Verify the editor loads ships in Chromium
+        run: npm run smoke
