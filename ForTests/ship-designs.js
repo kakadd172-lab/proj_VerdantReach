@@ -18,7 +18,7 @@ const basePartNames = Object.freeze([
   'hull', 'hull-strakes', 'deck', 'deck-planks', 'keel', 'stem', 'sternworks',
   'stern-gallery', 'stern-windows', 'bowworks', 'bowsprit', 'rudder', 'helm', 'helm-wheel',
   'anchors', 'anchor-port', 'anchor-starboard', 'anchor-chain-port', 'anchor-chain-starboard',
-  'railings', 'railings-port', 'railings-starboard', 'head-sails', 'deck-fittings',
+  'railings', 'railings-port', 'railings-starboard', 'head-sails', 'deck-fittings', 'raised-decks',
 ]);
 
 function freezeDesign(data) {

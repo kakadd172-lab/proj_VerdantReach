@@ -162,7 +162,9 @@ export function getKeelLineHeight(design, profile, station) {
   const sternWidth = clamp(design?.hull?.sternWidth ?? 0.3, 0.02, 0.65);
   const deckHeight = Math.max(0.1, Number(design?.deckHeightUnits) || 0.1);
   const junk = design?.id === 'junk';
-  const rockerGain = junk ? 2.15 : 1;
+  // A modest family-specific boost keeps the junk rocker distinctive without
+  // producing an excessively hooked bottom.
+  const rockerGain = junk ? 1.2 : 1;
 
   const bowZone = clamp(0.14 + (1 - entry) * 0.1, 0.12, 0.26);
   const sternZone = clamp(0.14 + (1 - sternWidth) * 0.05, 0.13, 0.22);
@@ -230,14 +232,18 @@ export function getOpenHullPoint(design, profile, station, section, side, deckHe
     const stern = getSternProfile(design, profile, s, top);
     z = lerp(z, stern.z, sternBlend);
   }
-  let x = sgn * halfBeam * breadth;
-  if (stemBlend > 0) x *= lerp(1, 0.04 + (profile?.foreTip ?? 0), stemBlend * (1 - s * 0.15));
+  // The longitudinal planform already applies foreTip; do not narrow the bow twice.
+  const x = sgn * halfBeam * breadth;
   return { x, y, z };
 }
 
 export function getParametricHullPoint(design, profile, station, angle, deckHeight) {
-  const tau = ((Number(angle) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-  const side = tau > Math.PI ? -1 : 1;
+  const rawAngle = Number(angle);
+  const safeAngle = Number.isFinite(rawAngle) ? rawAngle : 0;
+  const tau = ((safeAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+  // At exactly 2π the normalized angle is zero, but that endpoint must remain
+  // on port so the loft closes across both sheer edges rather than duplicating starboard.
+  const side = tau > Math.PI || (tau === 0 && safeAngle > 0) ? -1 : 1;
   const folded = tau > Math.PI ? Math.PI * 2 - tau : tau;
   const section = 1 - folded / Math.PI;
   return getOpenHullPoint(design, profile, station, section, side, deckHeight);

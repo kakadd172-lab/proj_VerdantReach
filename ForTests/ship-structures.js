@@ -169,10 +169,10 @@ export function getDeckSheer(design, station) {
   const edge = Math.pow(Math.abs(t - .5) * 2, 1.28);
   const bowRise = t < .5 ? design.hull.bowRise : design.hull.sternRise;
   const profile = getShipStructureBlueprint(design.id);
-  const sheerAmp = (design.hull.sheer ?? 0) * (profile?.sheer ?? 1);
+  const profileSheer = profile?.sheer ?? 1;
   return design.deckHeightUnits
-    + sheerAmp * design.deckHeightUnits * edge
-    + bowRise * design.deckHeightUnits * Math.pow(edge, 1.18);
+    + (design.hull.sheer ?? 0) * design.deckHeightUnits * edge
+    + bowRise * design.deckHeightUnits * Math.pow(edge, 1.18) * profileSheer;
 }
 
 export function getHullFrameCount(design) {

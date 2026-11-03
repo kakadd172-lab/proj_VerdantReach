@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { SHIP_DESIGNS, getShipDesign } from './ship-designs.js?v=0.8.5';
-import { getHullHalfBeam, getHullSectionWidth, getHullKeelY, getDeckSheer, getHullFrameCount, getShipStructureBlueprint } from './ship-structures.js?v=0.8.5';
-import { getParametricHullPoint } from './ship-hull-parameterization.js?v=0.8.5';
+import { getHullHalfBeam, getHullSectionWidth, getHullKeelY, getDeckSheer, getHullFrameCount, getShipStructureBlueprint, getSheerPoint } from './ship-structures.js?v=0.8.5';
+import { getParametricHullPoint, getOpenHullPoint, getStemProfile, getSternProfile } from './ship-hull-parameterization.js?v=0.8.5';
 
 const COLORS = Object.freeze({
   hull: 0x684632, lower: 0x3e342d, plank: 0x8d6b4b, deck: 0xb1946a,
@@ -79,6 +79,16 @@ function hullPoint(design, t, angle) {
   return V(point.x, point.y, point.z);
 }
 
+function hullSectionPoint(design, station, section, side = 1) {
+  const profile = getShipStructureBlueprint(design.id);
+  const point = getOpenHullPoint(design, profile, station, section, side, getDeckSheer(design, station));
+  return V(point.x, point.y, point.z);
+}
+
+function mastWorldPoint(mastGroup, point) {
+  return point.clone().sub(mastGroup.position).applyQuaternion(mastGroup.quaternion).add(mastGroup.position);
+}
+
 function hullGeometry(design) {
   const stations = 96;
   const ringSegments = 40;
@@ -106,8 +116,10 @@ function hullGeometry(design) {
     const t = stationIndex / stations;
     const deckY = getDeckSheer(design, t);
     const keelY = getHullKeelY(design, t);
+    const midSection = getOpenHullPoint(design, getShipStructureBlueprint(design.id), t, .5, 1, deckY);
     const centreIndex = positions.length / 3;
-    positions.push(0, (deckY + keelY) * .5, (t - .5) * design.hullLengthUnits);
+    // End caps use the same curved stem/transom station as the hull perimeter.
+    positions.push(0, (deckY + keelY) * .5, midSection.z);
     for (let j = 0; j < ringSegments; j += 1) {
       const a = stationIndex * row + j;
       const b = a + 1;
@@ -130,13 +142,11 @@ function deckGeometry(design) {
   const indices = [];
   for (let i = 0; i <= stations; i += 1) {
     const t = i / stations;
-    const z = (t - .5) * design.hullLengthUnits;
-    const half = getHullHalfBeam(design, t) * getHullSectionWidth(design, 1);
-    const deckY = getDeckSheer(design, t);
+    const edge = getSheerPoint(design, t, 1);
     for (let j = 0; j <= across; j += 1) {
       const u = (j / across) * 2 - 1;
       const camber = design.hull.deckCamber * design.deckHeightUnits * (1 - u * u);
-      positions.push(u * half, deckY + camber, z);
+      positions.push(u * edge.x, edge.y + camber, edge.z);
     }
   }
   const row = across + 1;
@@ -160,25 +170,86 @@ function addHullAndDeck(design, root, registry, mats) {
   addMesh(deck, deckGeometry(design), mats.deck, 'cambered-weather-deck');
 
   const keel = registerPart(registry, 'keel', root);
+  const profile = getShipStructureBlueprint(design.id);
   const keelPoints = [];
-  for (let i = 0; i <= 18; i += 1) {
-    const t = i / 18;
+  for (let i = 0; i <= 28; i += 1) {
+    const t = i / 28;
     const keelY = getHullKeelY(design, t);
-    keelPoints.push(V(0, getHullKeelY(design, t) - (design.id === 'junk' ? .02 : .06), (t - .5) * design.hullLengthUnits));
+    const keelEdge = getOpenHullPoint(design, profile, t, 0, 1, getDeckSheer(design, t));
+    keelPoints.push(V(0, keelY - (design.id === 'junk' ? .02 : .06), keelEdge.z));
   }
   const keelRadius = design.id === 'junk'
     ? Math.max(.04, design.beamUnits * .006)
     : Math.max(.08, design.beamUnits * .018);
-  addTube(keel, keelPoints, keelRadius, mats.trim, design.id === 'junk' ? 'shallow-centre-keelson' : 'keelson-and-keel', 72);
+  addTube(keel, keelPoints, keelRadius, mats.trim, design.id === 'junk' ? 'shallow-centre-keelson' : 'keelson-and-keel', 84);
 
   const stem = registerPart(registry, 'stem', root);
   if (design.id !== 'junk') {
-    const bow = V(0, getHullKeelY(design, .015), -design.hullLengthUnits * .5);
-    const bowTop = V(0, getDeckSheer(design, .015) + .18, -design.hullLengthUnits * .5);
-    addBeam(stem, mats.trim, bow, bowTop, Math.max(.1, design.beamUnits * .025), 'stem-post');
-    const sternPoint = V(0, getHullKeelY(design, .985), design.hullLengthUnits * .5);
-    const sternTop = V(0, getDeckSheer(design, .985) + .12, design.hullLengthUnits * .5);
-    addBeam(stem, mats.trim, sternPoint, sternTop, Math.max(.09, design.beamUnits * .022), 'stern-post');
+    const stemPoints = [];
+    const sternPostPoints = [];
+    const bowDeck = getDeckSheer(design, 0);
+    const sternDeck = getDeckSheer(design, 1);
+    for (let i = 0; i <= 20; i += 1) {
+      const fraction = i / 20;
+      const bow = getStemProfile(design, profile, fraction, bowDeck);
+      const stern = getSternProfile(design, profile, fraction, sternDeck);
+      stemPoints.push(V(0, bow.y, bow.z));
+      sternPostPoints.push(V(0, stern.y, stern.z));
+    }
+    addTube(stem, stemPoints, Math.max(.1, design.beamUnits * .025), mats.trim, 'curved-stem-post', 48);
+    addTube(stem, sternPostPoints, Math.max(.09, design.beamUnits * .022), mats.trim, 'curved-stern-post', 48);
+  }
+}
+
+
+function raisedDeckPatchGeometry(design, startStation, endStation, lift) {
+  const stations = Math.max(8, Math.ceil((endStation - startStation) * 120));
+  const across = 16;
+  const positions = [];
+  const indices = [];
+  for (let i = 0; i <= stations; i += 1) {
+    const t = startStation + (endStation - startStation) * (i / stations);
+    const edge = getSheerPoint(design, t, 1);
+    const half = edge.x * .88;
+    for (let j = 0; j <= across; j += 1) {
+      const u = (j / across) * 2 - 1;
+      const camber = design.hull.deckCamber * design.deckHeightUnits * .7 * (1 - u * u);
+      positions.push(u * half, edge.y + lift + camber, edge.z);
+    }
+  }
+  const row = across + 1;
+  for (let i = 0; i < stations; i += 1) {
+    for (let j = 0; j < across; j += 1) {
+      const a = i * row + j;
+      indices.push(a, a + 1, a + row, a + 1, a + row + 1, a + row);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function addRaisedDecks(design, root, registry, mats) {
+  const group = registerPart(registry, 'raised-decks', root);
+  const structure = getShipStructureBlueprint(design.id);
+  const visibleDecks = Math.max(1, Math.floor(structure?.visibleDecks ?? 1));
+  const forecastleLength = clamp(structure?.forecastleLength ?? 0, 0, .32);
+  const quarterdeckLength = clamp(structure?.quarterdeckLength ?? 0, 0, .38);
+  const baseLift = design.deckHeightUnits * .16;
+  if (visibleDecks >= 2 && forecastleLength > .035) {
+    const start = .045;
+    const end = Math.min(.46, start + forecastleLength);
+    addMesh(group, raisedDeckPatchGeometry(design, start, end, baseLift), mats.deck, 'forecastle-raised-deck');
+  }
+  if (visibleDecks >= 2 && quarterdeckLength > .035) {
+    const end = .955;
+    const start = Math.max(.58, end - quarterdeckLength);
+    addMesh(group, raisedDeckPatchGeometry(design, start, end, baseLift), mats.deck, 'quarterdeck-raised-deck');
+  }
+  if (visibleDecks >= 3 && quarterdeckLength > .08) {
+    addMesh(group, raisedDeckPatchGeometry(design, .86, .955, baseLift * 1.75), mats.deck, 'upper-afterdeck');
   }
 }
 
@@ -203,24 +274,38 @@ function addStrakesAndPlanking(design, root, registry, mats) {
       const points = [];
       for (let i = 0; i <= 64; i += 1) {
         const t = .025 + (.95 * i) / 64;
-        const angle = Math.acos(2 * vertical - 1);
-        const p = hullPoint(design, t, side < 0 ? -angle : angle);
-        p.x = Math.abs(p.x) * side;
+        const p = hullSectionPoint(design, t, vertical, side);
         p.y += .018;
         points.push(p);
       }
       addTube(strakes, points, Math.max(.018, design.beamUnits * .0035), row === 0 ? mats.lower : mats.plank, 'strake-' + side + '-' + row, 72);
     }
   }
+
+  const structure = getShipStructureBlueprint(design.id);
+  for (let index = 0; index < (structure?.waleHeights ?? []).length; index += 1) {
+    const height = structure.waleHeights[index];
+    for (const side of [-1, 1]) {
+      const points = [];
+      for (let i = 0; i <= 64; i += 1) {
+        const t = .025 + (.95 * i) / 64;
+        const point = hullSectionPoint(design, t, height, side);
+        point.y += .035;
+        points.push(point);
+      }
+      addTube(strakes, points, Math.max(.035, design.beamUnits * .0075), mats.lower, 'wale-' + side + '-' + index, 80);
+    }
+  }
+
   const deckPlanks = registerPart(registry, 'deck-planks', root);
   for (let plank = -8; plank <= 8; plank += 1) {
     const u = plank / 9;
     const points = [];
     for (let i = 0; i <= 48; i += 1) {
       const t = .035 + (.93 * i) / 48;
-      const half = getHullHalfBeam(design, t) * getHullSectionWidth(design, .98) * .97;
-      const y = getDeckSheer(design, t) + design.hull.deckCamber * design.deckHeightUnits * (1 - u * u) + .024;
-      points.push(V(u * half, y, (t - .5) * design.hullLengthUnits));
+      const edge = getSheerPoint(design, t, 1);
+      const y = edge.y + design.hull.deckCamber * design.deckHeightUnits * (1 - u * u) + .024;
+      points.push(V(u * edge.x * .97, y, edge.z));
     }
     addTube(deckPlanks, points, .012, mats.plank, 'deck-seam-' + plank, 50);
   }
@@ -291,7 +376,7 @@ function addSternworks(design, root, registry, mats) {
   };
   const tiers = configs[design.sternwork] ?? configs['low-cabin'];
   const deckY = getDeckSheer(design, .94);
-  const baseZ = design.hullLengthUnits * .355;
+  const sternDeckEdge = getSheerPoint(design, .94, 1);
 
   tiers.forEach((tier, index) => {
     const tierName = 'stern-tier-' + (index + 1);
@@ -299,6 +384,7 @@ function addSternworks(design, root, registry, mats) {
     const width = design.beamUnits * tier.w;
     const depth = design.hullLengthUnits * tier.d;
     const tierHeight = tier.h * (4 / 3);
+    const baseZ = sternDeckEdge.z - depth * .72;
     const body = addMesh(group, sternHouseGeometry(width, tierHeight, depth), mats.hull, 'curved-sternhouse-tier-' + (index + 1));
     body.position.set(0, deckY + tiers.slice(0, index).reduce((sum, item) => sum + item.h * (4 / 3) + .08, 0), baseZ + index * depth * .17);
     const cap = addMesh(group, new THREE.BoxGeometry(width * 1.035, .1, depth * 1.025), mats.trim, 'tier-cap-rail');
@@ -342,19 +428,23 @@ function addSternworks(design, root, registry, mats) {
 function addBowworks(design, root, registry, mats) {
   const bowworks = registerPart(registry, 'bowworks', root);
   const bowsprit = registerPart(registry, 'bowsprit', root);
+  const profile = getShipStructureBlueprint(design.id);
   if (!['open-bow', 'none'].includes(design.bowwork)) {
-    const baseY = getDeckSheer(design, .06) + .45;
-    const start = V(0, baseY, -design.hullLengthUnits * .43);
-    const end = V(0, baseY + design.deckHeightUnits * .25, -design.hullLengthUnits * .5 - design.beamUnits * (design.bowwork === 'long-bowsprit' ? 1.2 : .72));
+    const startEdge = getSheerPoint(design, .13, 1);
+    const bowTip = getStemProfile(design, profile, 1, getDeckSheer(design, 0));
+    const baseY = startEdge.y + .45;
+    const start = V(0, baseY, startEdge.z);
+    const isLongProjection = ['long-bowsprit', 'long-beak'].includes(design.bowwork);
+    const end = V(0, bowTip.y + design.deckHeightUnits * .25,
+      bowTip.z - design.beamUnits * (isLongProjection ? 1.2 : .72));
     addBeam(bowsprit, mats.trim, start, end, Math.max(.08, design.beamUnits * .022), 'bowsprit-spar');
-    addBeam(bowworks, mats.rope, V(0, baseY + .15, -design.hullLengthUnits * .44), end, .028, 'bowsprit-gammoning');
+    addBeam(bowworks, mats.rope, V(0, baseY + .15, startEdge.z + .02), end, .028, 'bowsprit-gammoning');
     for (const side of [-1, 1]) {
-      addBeam(bowworks, mats.trim, V(side * .12, baseY, -design.hullLengthUnits * .43), V(side * design.beamUnits * .18, baseY - .2, -design.hullLengthUnits * .5), .045, 'headrail-' + side);
+      addBeam(bowworks, mats.trim, V(side * .12, baseY, startEdge.z),
+        V(side * design.beamUnits * .18, baseY - .2, bowTip.z), .045, 'headrail-' + side);
     }
-  }
-  if (!['open-bow', 'none'].includes(design.bowwork)) {
     const figurehead = addMesh(bowworks, new THREE.ConeGeometry(.22, .78, 7), mats.trim, 'abstract-bow-ornament');
-    figurehead.position.set(0, getDeckSheer(design, .015) + .35, -design.hullLengthUnits * .5);
+    figurehead.position.set(0, bowTip.y + .35, bowTip.z);
     figurehead.rotation.x = Math.PI / 2;
   }
 }
@@ -367,10 +457,10 @@ function addRailings(design, root, registry, mats) {
     const railPoints = [];
     for (let i = 0; i <= 36; i += 1) {
       const t = .1 + (.8 * i) / 36;
-      const half = getHullHalfBeam(design, t) * getHullSectionWidth(design, .96) * .94;
+      const edge = hullSectionPoint(design, t, .96, side);
+      const x = edge.x;
       const y = getDeckSheer(design, t) + .62;
-      const z = (t - .5) * design.hullLengthUnits;
-      const x = half * side;
+      const z = edge.z;
       railPoints.push(V(x, y, z));
       if (i % 3 === 0) addBeam(group, mats.trim, V(x, y - .58, z), V(x, y + .05, z), .045, 'rail-post-' + i);
     }
@@ -380,9 +470,9 @@ function addRailings(design, root, registry, mats) {
 
 function addRudderAndHelm(design, root, registry, mats) {
   const rudder = registerPart(registry, 'rudder', root);
-  const sternZ = design.hullLengthUnits * .48;
+  const sternDatum = getSternProfile(design, getShipStructureBlueprint(design.id), .42, getDeckSheer(design, 1));
   const pivotOffset = design.id === 'junk' ? .12 : .22;
-  rudder.position.set(0, 0, sternZ + pivotOffset);
+  rudder.position.set(0, 0, sternDatum.z + pivotOffset);
   const rudderY = -design.draftUnits * (design.id === 'junk' ? .3 : .38);
   const rudderBreadth = design.beamUnits * (design.id === 'junk' ? .2 : .12);
   const rudderDepth = design.draftUnits * (design.id === 'junk' ? 1.12 : .8);
@@ -409,9 +499,10 @@ function addAnchors(design, root, registry, mats) {
   for (const side of [-1, 1]) {
     const suffix = side < 0 ? 'port' : 'starboard';
     const anchor = registerPart(registry, 'anchor-' + suffix, anchors);
-    const x = side * design.beamUnits * .46;
-    const y = getDeckSheer(design, .1) - .35;
-    const z = -design.hullLengthUnits * .38;
+    const foreEdge = getSheerPoint(design, .1, 1);
+    const x = side * foreEdge.x * .94;
+    const y = foreEdge.y - .35;
+    const z = foreEdge.z;
     addBeam(anchor, mats.iron, V(x, y, z), V(x, y - 1.15, z), .055, 'anchor-shank');
     addBeam(anchor, mats.iron, V(x - .42, y - .95, z), V(x + .42, y - .95, z), .06, 'anchor-stock');
     addBeam(anchor, mats.iron, V(x - .42, y - .95, z), V(x - .18, y - 1.38, z), .05, 'anchor-fluke-a');
@@ -468,7 +559,11 @@ function addSquareRig(registry, root, mats, design, mast, mastGroup, mastBase, m
   const origin = mastGroup.position;
   const y0 = mastBase + (mastTop - mastBase) * (.22 + levelIndex * .2);
   const y1 = Math.min(mastTop - .5, y0 + (mastTop - mastBase) * .22);
-  const width = design.beamUnits * (.58 + levelIndex * .075) * (structure?.yardSpread ?? 1);
+  const courseRatio = structure?.courseYardToBeam ?? 1.45;
+  const levelRatio = levelIndex === 0 ? 1
+    : levelIndex === 1 ? (structure?.topsailYardRatio ?? .72)
+      : (structure?.topgallantYardRatio ?? .5);
+  const width = design.beamUnits * courseRatio * levelRatio * (structure?.yardSpread ?? 1);
   const yard = registerPart(registry, 'yard-' + mast.id + '-' + levelName, mastGroup);
   addBeam(yard, mats.trim,
     mastLocalPoint(mastGroup, V(-width / 2, y1, mastZ)),
@@ -571,7 +666,11 @@ function addMastsAndRigging(design, root, registry, mats) {
     const mastTop = baseY + mast.height * (4 / 3);
     const mastGroup = registerPart(registry, 'mast-' + mast.id, root);
     mastGroup.position.set(0, baseY, mastZ);
-    mastGroup.userData.mastControl = { mastId: mast.id };
+    const mastRake = Number.isFinite(mast.rake)
+      ? mast.rake
+      : (structure?.mastRakeDeg ?? 0) * Math.PI / 180;
+    mastGroup.rotation.x = mastRake;
+    mastGroup.userData.mastControl = { mastId: mast.id, baseRake: mastRake };
     const lowerTop = baseY + (mastTop - baseY) * (mast.rig === 'junk' ? .76 : (structure?.lowerMastRatio ?? .64));
     const lower = registerPart(registry, 'mast-lower-' + mast.id, mastGroup);
     const topmast = registerPart(registry, 'mast-topmast-' + mast.id, mastGroup);
@@ -600,7 +699,7 @@ function addMastsAndRigging(design, root, registry, mats) {
     const stays = registerPart(registry, 'mast-stays-' + mast.id, standing);
     const running = registerPart(registry, 'running-rigging-' + mast.id, root);
     const braces = registerPart(registry, 'running-braces-' + mast.id, running);
-    const topY = mastTop * .9;
+    const topY = baseY + (mastTop - baseY) * .9;
     const railX = getHullHalfBeam(design, .46 + mast.z * .2) * .82;
     const pairCount = structure?.shroudPairs ?? 2;
     for (const side of [-1, 1]) {
@@ -609,19 +708,19 @@ function addMastsAndRigging(design, root, registry, mats) {
         const attachmentZ = mastZ + spread * design.beamUnits * .28;
         const topAttachmentY = mastTop - pair * (mastTop - lowerTop) * .12;
         const shroudPoints = [
-          V(side * .08, topAttachmentY, mastZ),
-          V(side * .2, lowerTop + .5, mastZ + spread * design.beamUnits * .1),
+          mastWorldPoint(mastGroup, V(side * .08, topAttachmentY, mastZ)),
+          mastWorldPoint(mastGroup, V(side * .2, lowerTop + .5, mastZ + spread * design.beamUnits * .1)),
           V(side * railX, baseY + .35, attachmentZ),
         ];
         addTube(shrouds, shroudPoints, .023, mats.rope, 'standing-shroud-' + side + '-' + pair, 24);
       }
 
       addTube(running, [
-        V(side * .05, lowerTop, mastZ),
+        mastWorldPoint(mastGroup, V(side * .05, lowerTop, mastZ)),
         V(side * railX, baseY + .25, mastZ + side * .25),
       ], .014, mats.rope, 'running-line', 20);
       addTube(braces, [
-        V(0, topY, mastZ),
+        mastWorldPoint(mastGroup, V(0, topY, mastZ)),
         V(side * design.beamUnits * .44, topY - .2, mastZ + design.hullLengthUnits * .07),
       ], .014, mats.rope, 'yard-brace', 20);
     }
@@ -633,8 +732,8 @@ function addMastsAndRigging(design, root, registry, mats) {
       addBeam(ratlines, mats.rope, V(-railX, y, mastZ), V(railX, y, mastZ), .012, 'ratline-' + r);
     }
     addTube(stays, [
-      V(0, mastTop, mastZ),
-      V(0, baseY + .2, -design.hullLengthUnits * .43),
+      mastWorldPoint(mastGroup, V(0, mastTop, mastZ)),
+      V(0, baseY + .2, getSheerPoint(design, .07, 1).z),
     ], .018, mats.rope, 'forestay', 28);
 
     if (mast.rig === 'square') {
@@ -656,11 +755,11 @@ function addMastsAndRigging(design, root, registry, mats) {
   if (design.headsails > 0) {
     const foreMast = design.masts[0];
     const foreTop = getDeckSheer(design, .35) + foreMast.height * (4 / 3);
-    const bowZ = -design.hullLengthUnits * .5 - design.beamUnits * .72;
+    const bowZ = getStemProfile(design, getShipStructureBlueprint(design.id), 1, getDeckSheer(design, 0)).z - design.beamUnits * .65;
     for (let i = 0; i < design.headsails; i += 1) {
       const f = (i + 1) / (design.headsails + 1);
       const sail = registerPart(registry, 'sail-head-' + (i + 1), head);
-      const aftZ = -design.hullLengthUnits * (.43 - f * .12);
+      const aftZ = getSheerPoint(design, .12 + f * .08, 1).z;
       const lowY = getDeckSheer(design, .04) + .3 + i * .12;
       const pivot = V(0, lowY, bowZ + f * design.beamUnits * .1);
       sail.position.copy(pivot);
@@ -786,7 +885,8 @@ function setupPartApi(root, registry, design) {
       const target = mastControls.find((part) => part.userData.mastControl.mastId === mastId);
       if (!target) return false;
       state.mastLean[mastId] = clamp(radians, -.16, .16);
-      target.rotation.x = state.mastLean[mastId] + (state.partTransforms[target.name]?.rx ?? 0);
+      target.rotation.x = (target.userData.mastControl.baseRake ?? 0)
+        + state.mastLean[mastId] + (state.partTransforms[target.name]?.rx ?? 0);
       return true;
     },
     setSailDeployment(mastId, deployment = 'full', duration = .85) {
@@ -874,6 +974,7 @@ export function createShipModel(type) {
   root.userData.vehicle = { mode: 'boat', vesselType: design.id, deckHeight: design.deckHeightUnits, label: 'Board ' + design.label };
 
   addHullAndDeck(design, root, registry, mats);
+  addRaisedDecks(design, root, registry, mats);
   addFrames(design, root, registry, mats);
   addStrakesAndPlanking(design, root, registry, mats);
   addSternworks(design, root, registry, mats);
