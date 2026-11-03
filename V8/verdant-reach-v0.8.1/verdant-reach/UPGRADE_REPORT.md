@@ -1,6 +1,19 @@
-# Verdant Reach v0.8.0 — Upgrade Report
+# Verdant Reach v0.8.1 — Upgrade Report
 
 ## Summary
+
+Version 0.8.1 is a focused shipyard reliability and release-engineering follow-up to v0.8.0. It retains the current ship catalogue, historical research, world generation and save structure.
+
+## v0.8.1 follow-up changes
+
+- Preserve the selected vessel, component and mast across Creative panel redraws.
+- Restore saved component position and rotation values to the editor in metres and degrees, together with the saved rudder, sail-trim and mast-lean controls.
+- Add session copy/paste for the six local transform values. Pasting stages values; the existing Apply action commits them to the ship record.
+- Snap translation values to 0.1 m before converting them to world units.
+- Show selected-vessel length, beam, draft, principal mast count, era and rig within the shipyard.
+- Restore detached-part hierarchy before applying saved local component offsets.
+- Add release cache-busting and a CI workflow for regression tests, production build and a downloadable source archive.
+
 
 Version 0.8.0 replaces the earlier generic ship models with an original, historically informed, component-based Atlantic/Caribbean Age-of-Sail fleet. It upgrades the existing v0.7.0 audited project in place. It does not create a new game or reset existing saves.
 
