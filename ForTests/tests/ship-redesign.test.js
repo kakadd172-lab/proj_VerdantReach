@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SHIP_DESIGNS } from '../ship-designs.js?v=0.8.5';
-import { getHullHalfBeam,getKeelLineHeight,getSheerPoint,getShipStructureBlueprint } from '../ship-structures.js?v=0.8.5';
-import { cubicBezierScalar,getCrossSectionHalfBreadthRatio,getOpenHullPoint,getParametricHullPoint } from '../ship-hull-parameterization.js?v=0.8.5';
+import { getHullHalfBeam,getSheerPoint,getShipStructureBlueprint } from '../ship-structures.js?v=0.8.5';
+import { cubicBezierScalar,getCrossSectionHalfBreadthRatio,getKeelLineHeight,getOpenHullPoint,getParametricHullPoint } from '../ship-hull-parameterization.js?v=0.8.5';
 import { createShipModel,disposeShipModel } from '../ship-models.js?v=0.8.5';
 const ids=Object.keys(SHIP_DESIGNS);
 function meshNamed(root,name){let found=null;root.traverse(o=>{if(o.isMesh&&o.name===name)found=o;});return found;}
