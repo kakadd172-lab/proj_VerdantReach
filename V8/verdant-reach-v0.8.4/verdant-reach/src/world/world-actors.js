@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { buildDrapedRoadData } from './road-geometry.js';
 import { createShipModel, disposeShipModel } from './ship-models.js';
-import { createFreeCityModel, createRuinedCastleModel } from './settlement-models.js?v=0.8.2';
+import { createFreeCityModel, createRuinedCastleModel } from './settlement-models.js?v=0.8.4';
 
 function material(color, roughness = 0.9, extra = {}) {
   return new THREE.MeshStandardMaterial({ color, roughness, ...extra });
@@ -172,14 +172,7 @@ export class WorldActorManager {
       well.position.set(settlement.x, settlement.elevation + 0.45, settlement.z);
       well.castShadow = true;
       root.add(well);
-      const stall = new THREE.Mesh(this.geometry.stall, this.materials.wood);
-      stall.position.set(settlement.x + 7, settlement.elevation + 2.1, settlement.z + 5);
-      stall.castShadow = true;
-      root.add(stall);
-      const canopy = new THREE.Mesh(this.geometry.sail, this.materials.roof[1]);
-      canopy.rotation.x = -Math.PI / 2;
-      canopy.position.set(settlement.x + 7, settlement.elevation + 4.0, settlement.z + 5);
-      root.add(canopy);
+      // The detailed, stocked stalls are added below; do not draw a duplicate empty counter.
       for (let i = 0; i < 5; i += 1) {
         const crop = new THREE.Mesh(this.geometry.crop, this.materials.crop);
         crop.position.set(settlement.x - 19 + i * 2, settlement.elevation + 0.12, settlement.z + 32 + (i % 2) * 1.3);
