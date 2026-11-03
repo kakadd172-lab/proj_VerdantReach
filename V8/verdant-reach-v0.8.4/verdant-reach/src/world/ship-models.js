@@ -444,7 +444,7 @@ function addSternworks(design, root, parts, mats) {
       z: L * 0.365, level: y + lowerLevel, windowCount: 5,
       sideWindowCount: 3, gallery: true, sternWalk: false,
     });
-    addGalleonDeckhouse(root, parts, mats, {
+    addGalleonDeckhouse(root, parts, group, mats, {
       tier: 'middle', width: B * 0.58, height: middleHeight, depth: L * 0.13,
       z: L * 0.43, level: y + middleLevel, windowCount: 4,
       sideWindowCount: 2, gallery: true, sternWalk: true,
@@ -452,7 +452,7 @@ function addSternworks(design, root, parts, mats) {
     const upperGalleryPlatform = makePart(root, parts, 'galleon-upper-gallery-platform', group);
     box(upperGalleryPlatform, mats.deck, [B * 0.64, 0.16, L * 0.13],
       [0, y + middleLevel + middleHeight + 0.12, L * 0.43], 'upper-gallery-walkway');
-    const upper = addGalleonDeckhouse(root, parts, mats, {
+    const upper = addGalleonDeckhouse(root, parts, group, mats, {
       tier: 'upper', width: B * 0.39, height: upperHeight, depth: L * 0.085,
       z: L * 0.46, level: y + upperLevel, windowCount: 3,
       sideWindowCount: 1, gallery: false, sternWalk: false,
