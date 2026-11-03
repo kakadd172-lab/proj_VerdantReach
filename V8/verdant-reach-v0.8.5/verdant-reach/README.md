@@ -14,6 +14,7 @@ Run the automated checks with `npm test` and create a production build with `npm
 ## v0.8.5 ship-system rebuild
 
 - Replaces the earlier ship geometry builder with a new station-loft hull pipeline, 96 longitudinal stations and 40 points around each hull section.
+- Uses an original five-zone hull parameterisation: longitudinal forebody/parallel-midbody/aftbody, midship cross-section, bow and stern keel rocker, and deck sheer. Cubic Bézier controls provide smooth shoulder transitions, and end-cap faces close the bow and transom.
 - Keeps real-world length, beam, draft and freeboard in metres. The game conversion remains 1 metre = 4/3 world units.
 - Gives each catalogue family its own longitudinal hull profile, cross-section, frame count, sheer and mast arrangement.
 - Builds the hull, deck, deck seams, keel, stem, each transverse frame, strakes, stern structure, bow structure, rails, rudder, helm, anchors, mast sections, sails, yards, battens and rigging as separately addressable groups.
@@ -31,6 +32,12 @@ The catalogue contains 16 original vessel families: sloop, schooner, brigantine,
 The Chinese junk is a historically informed original model. Public release notes for the reference game mention a Chinese Junk named “Executor”; the Verdant Reach model is not a recreation of that game's mesh. The first-rate uses HMS Victory as a dimensional reference: its hull length is anchored to the 186 ft (56.73 m) gun-deck length, while the 227 ft (68.88 m) overall length is treated separately as a whole-vessel check.
 
 The public Home Net Games page describes unlockable ships but does not provide a complete model roster or a dimensional catalogue. For that reason, this release does not claim that the 16 families are a verified one-to-one list of every in-game vessel. It is a new original fleet foundation with room to add further named variants when reliable references are available.
+
+## Procedural implementation references
+
+The hull generator is an original JavaScript/Three.js implementation. Its parameter vocabulary and engineering decomposition were informed by public work including [C_ShipGen](https://github.com/noahbagz/C_ShipGen) (MIT-licensed research repository) and [ship-hull-generator](https://github.com/janibert1/ship-hull-generator) (GPL-3.0 reference repository). No source code from either project was copied into Verdant Reach. The browser game does not depend on Python, SciPy, or machine-learning runtimes.
+
+See [HULL_GENERATOR_NOTES.md](HULL_GENERATOR_NOTES.md) for the adapted design approach and validation scope.
 
 ## Reference and accuracy policy
 

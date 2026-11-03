@@ -74,7 +74,7 @@ Reference notes:
 
 ## v0.8.5 construction method
 
-- Hull shell: 96 longitudinal stations and 40 cross-section points, with class-specific beam taper, floor flatness, bilge fullness, flare, tumblehome, sheer and end rise. The sheer edges reach the full deck breadth; the cross-section closes along the deck line rather than tapering to the centreline.
+- Hull shell: 96 longitudinal stations and 40 cross-section points, using a five-zone, piecewise-cubic parameterisation for forebody, midbody, aftbody, section shape, bow/stern keel rocker and deck sheer. The deck edge is bounded by the specified maximum beam, and explicit forward/aft cap faces close the shell.
 - Deck: a separate cambered loft, with independent deck-seam groups.
 - Structure: an independent transverse frame group per station, a keel group and a shaped stem/stern post.
 - Stern: each raised tier is its own curved loft group; transom and side windows, gallery rails and posts are separate groups.

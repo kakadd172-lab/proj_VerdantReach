@@ -1,3 +1,4 @@
+import { getCrossSectionHalfBreadthRatio, getKeelLineHeight, getLongitudinalHalfBeamRatio } from './ship-hull-parameterization.js?v=0.8.5';
 /**
  * Ship-specific hull-line and framing profiles for the v0.8.5 modular fleet.
  * Profiles are dimensionless reconstruction controls. Real-world length,
@@ -26,11 +27,6 @@ for (const profile of Object.values(profiles)) Object.freeze(profile);
 export const SHIP_STRUCTURE_BLUEPRINTS = Object.freeze(profiles);
 
 const clamp01 = (value) => Math.max(0, Math.min(1, Number(value) || 0));
-const smoothstep = (a, b, value) => {
-  const t = clamp01((value - a) / (b - a));
-  return t * t * (3 - 2 * t);
-};
-
 export function getShipStructureBlueprint(id) {
   return SHIP_STRUCTURE_BLUEPRINTS[String(id ?? '').replace(/^ship-/, '')] ?? null;
 }
@@ -38,24 +34,19 @@ export function getShipStructureBlueprint(id) {
 export function getHullHalfBeam(design, station) {
   const profile = getShipStructureBlueprint(design?.id);
   if (!profile) return (design?.beamUnits ?? 0) * .5;
-  const t = clamp01(station);
-  const centre = profile.beamStation;
-  const fore = Math.pow(clamp01(t / centre), profile.forebody);
-  const aftT = clamp01((1 - t) / (1 - centre));
-  const aft = profile.aftTip + (1 - profile.aftTip) * Math.pow(aftT, profile.aftbody);
-  const longitudinal = t <= centre ? fore : aft;
-  return design.beamUnits * .5 * longitudinal;
+  return design.beamUnits * .5 * getLongitudinalHalfBeamRatio(design, profile, station);
 }
 
 export function getHullSectionWidth(design, vertical) {
   const profile = getShipStructureBlueprint(design?.id);
   if (!profile) return 1;
-  const v = clamp01(vertical);
-  const floor = 1 - profile.bottomFlat * (1 - smoothstep(.015, .36, v));
-  const bilge = 1 + profile.bilge * Math.exp(-Math.pow((v - .29) / .2, 2));
-  const flare = 1 + profile.flare * Math.pow(v, 2.15);
-  const tumble = 1 - profile.tumble * Math.pow(clamp01((v - .62) / .38), 1.32);
-  return floor * bilge * flare * tumble;
+  return getCrossSectionHalfBreadthRatio(design, profile, vertical);
+}
+
+export function getHullKeelY(design, station) {
+  const profile = getShipStructureBlueprint(design?.id);
+  if (!profile) return -(design?.draftUnits ?? 0);
+  return getKeelLineHeight(design, profile, station);
 }
 
 export function getDeckSheer(design, station) {

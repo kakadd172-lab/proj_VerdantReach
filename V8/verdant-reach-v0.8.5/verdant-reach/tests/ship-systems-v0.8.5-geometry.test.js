@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { createShipModel, disposeShipModel } from '../src/world/ship-models.js?v=0.8.5';
-import { getShipDesign } from '../src/world/ship-designs.js';
+import { SHIP_DESIGNS, getShipDesign } from '../src/world/ship-designs.js';
+import { getHullHalfBeam, getHullSectionWidth, getHullKeelY, getShipStructureBlueprint } from '../src/world/ship-structures.js?v=0.8.5';
+import { cubicBezierScalar, getParametricHullPoint } from '../src/world/ship-hull-parameterization.js?v=0.8.5';
 
 function boundsOfPart(ship, name) {
   const part = ship.userData.getPart(name);
@@ -166,6 +168,104 @@ test('sail cloth is parented to its mast pivot so mast lean carries yards and ca
     } finally {
       disposeShipModel(junk);
     }
+  } finally {
+    disposeShipModel(ship);
+  }
+});
+
+
+test('piecewise Bezier hull plans preserve bow, shoulder and stern control widths', () => {
+  assert.equal(cubicBezierScalar(2, 4, 6, 8, 0), 2);
+  assert.equal(cubicBezierScalar(2, 4, 6, 8, 1), 8);
+  for (const design of Object.values(SHIP_DESIGNS)) {
+    const profile = getShipStructureBlueprint(design.id);
+    assert.ok(profile, design.id + ' needs a structural profile');
+    const shoulder = profile.beamStation;
+    const halfBeam = design.beamUnits * .5;
+    assert.ok(Math.abs(getHullHalfBeam(design, shoulder) - halfBeam) < 1e-6, design.id + ' shoulder is maximum beam');
+    assert.ok(Math.abs(getHullHalfBeam(design, 0) - halfBeam * profile.foreTip) < 1e-6, design.id + ' bow tip width');
+    assert.ok(Math.abs(getHullHalfBeam(design, 1) - halfBeam * profile.aftTip) < 1e-6, design.id + ' stern/transom width');
+
+    let previous = getHullHalfBeam(design, 0);
+    for (let index = 1; index <= 100; index += 1) {
+      const station = index / 100;
+      const current = getHullHalfBeam(design, station);
+      assert.ok(Number.isFinite(current) && current > 0, design.id + ' station ' + station);
+      if (station <= shoulder) assert.ok(current + 1e-6 >= previous, design.id + ' forebody taper is monotonic');
+      else assert.ok(current <= previous + 1e-6, design.id + ' aftbody taper is monotonic');
+      previous = current;
+    }
+  }
+});
+
+test('midship sections keep a finite keel-to-bilge-to-deck contour for every hull family', () => {
+  for (const design of Object.values(SHIP_DESIGNS)) {
+    const widths = Array.from({ length: 41 }, (_, index) => getHullSectionWidth(design, index / 40));
+    assert.ok(widths.every((width) => Number.isFinite(width) && width > 0), design.id);
+    assert.ok(widths[20] > widths[0], design.id + ' bilge should be wider than keel flat');
+    assert.ok(widths[40] > 0.7 && widths[40] < 1.1, design.id + ' deck breadth remains bounded');
+  }
+  assert.ok(getHullSectionWidth(SHIP_DESIGNS.fluyt, 1) < .9, 'fluyt tumblehome narrows the deck breadth');
+  assert.ok(getHullSectionWidth(SHIP_DESIGNS.junk, 0) > .18, 'junk keeps a broad flat bottom');
+});
+
+test('bow and stern keel rocker rise away from the deepest midbody', () => {
+  for (const design of Object.values(SHIP_DESIGNS)) {
+    const keelMid = getHullKeelY(design, .5);
+    const keelBow = getHullKeelY(design, 0);
+    const keelStern = getHullKeelY(design, 1);
+    assert.ok(Math.abs(keelMid + design.draftUnits) < 1e-6, design.id + ' midbody keel datum');
+    assert.ok(keelBow > keelMid, design.id + ' bow rocker');
+    assert.ok(keelStern > keelMid, design.id + ' stern rocker');
+  }
+});
+
+test('parametric hull points are mirrored port-to-starboard and remain finite across all designs', () => {
+  for (const design of Object.values(SHIP_DESIGNS)) {
+    const profile = getShipStructureBlueprint(design.id);
+    for (const station of [.03, .2, profile.beamStation, .78, .97]) {
+      const deckY = design.deckHeightUnits;
+      for (const angle of [.2, .7, 1.25, 2.1]) {
+        const starboard = getParametricHullPoint(design, profile, station, angle, deckY);
+        const port = getParametricHullPoint(design, profile, station, Math.PI * 2 - angle, deckY);
+        assert.ok(Object.values(starboard).every(Number.isFinite), design.id + ' starboard point');
+        assert.ok(Object.values(port).every(Number.isFinite), design.id + ' port point');
+        assert.ok(Math.abs(starboard.x + port.x) < 1e-6, design.id + ' mirrored breadth');
+        assert.ok(Math.abs(starboard.y - port.y) < 1e-6, design.id + ' mirrored height');
+        assert.ok(Math.abs(starboard.z - port.z) < 1e-6, design.id + ' mirrored station');
+      }
+    }
+  }
+});
+
+
+test('specified beam remains the maximum hull breadth after bow, bilge and flare shaping', () => {
+  for (const design of Object.values(SHIP_DESIGNS)) {
+    const profile = getShipStructureBlueprint(design.id);
+    let maximum = 0;
+    for (let stationIndex = 0; stationIndex <= 100; stationIndex += 1) {
+      const station = stationIndex / 100;
+      const halfBeam = getHullHalfBeam(design, station);
+      for (let sectionIndex = 0; sectionIndex <= 40; sectionIndex += 1) {
+        const breadth = getHullSectionWidth(design, sectionIndex / 40);
+        maximum = Math.max(maximum, halfBeam * breadth);
+      }
+    }
+    assert.ok(maximum <= design.beamUnits * .5 + 1e-6, design.id + ' exceeds its specified maximum beam');
+  }
+});
+
+test('bow and stern hull end faces are explicitly capped', () => {
+  const ship = createShipModel('galleon');
+  try {
+    const hull = ship.userData.getPart('hull').getObjectByName('lofted-hull-shell');
+    const position = hull.geometry.getAttribute('position');
+    const stations = 96;
+    const ringSegments = 40;
+    const ringRows = (stations + 1) * (ringSegments + 1);
+    assert.equal(position.count, ringRows + 2, 'one triangulation centre is added at each end');
+    const index = hull.geometry.getIndex();
+    assert.ok(index.count > stations * ringSegments * 6, 'the shell includes additional end-cap triangles');
   } finally {
     disposeShipModel(ship);
   }

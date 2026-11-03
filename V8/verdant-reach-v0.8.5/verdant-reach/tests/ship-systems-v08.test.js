@@ -120,6 +120,7 @@ test('v0.8.5 cache-busts the ship modules and browser entry', () => {
   const designs = read('src/world/ship-designs.js');
   const models = read('src/world/ship-models.js');
   const structures = read('src/world/ship-structures.js');
+  const hullMath = read('src/world/ship-hull-parameterization.js');
   assert.ok(html.includes('styles.css?v=0.8.5'));
   assert.ok(html.includes('main.js?v=0.8.5'));
   assert.ok(main.includes('creative-entities.js?v=0.8.5'));
@@ -127,6 +128,11 @@ test('v0.8.5 cache-busts the ship modules and browser entry', () => {
   assert.ok(ui.includes('ship-designs.js?v=0.8.5'));
   assert.ok(entities.includes('ship-models.js?v=0.8.5'));
   assert.ok(designs.includes('ship-structures.js?v=0.8.5'));
+  assert.ok(structures.includes('ship-hull-parameterization.js?v=0.8.5'));
+  assert.ok(models.includes('ship-hull-parameterization.js?v=0.8.5'));
+  assert.ok(hullMath.includes('getLongitudinalHalfBeamRatio'));
+  assert.ok(hullMath.includes('getCrossSectionHalfBreadthRatio'));
+  assert.ok(hullMath.includes('getKeelLineHeight'));
   assert.ok(models.includes('ship-designs.js?v=0.8.5'));
   assert.ok(models.includes('ship-structures.js?v=0.8.5'));
   assert.ok(structures.includes('getHullHalfBeam'));

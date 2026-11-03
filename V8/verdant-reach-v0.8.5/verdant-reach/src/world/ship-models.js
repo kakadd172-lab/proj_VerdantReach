@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { SHIP_DESIGNS, getShipDesign } from './ship-designs.js?v=0.8.5';
-import { getHullHalfBeam, getHullSectionWidth, getDeckSheer, getHullFrameCount, getShipStructureBlueprint } from './ship-structures.js?v=0.8.5';
+import { getHullHalfBeam, getHullSectionWidth, getHullKeelY, getDeckSheer, getHullFrameCount, getShipStructureBlueprint } from './ship-structures.js?v=0.8.5';
+import { getParametricHullPoint } from './ship-hull-parameterization.js?v=0.8.5';
 
 const COLORS = Object.freeze({
   hull: 0x684632, lower: 0x3e342d, plank: 0x8d6b4b, deck: 0xb1946a,
@@ -72,19 +73,10 @@ function addTube(parent, points, radius, material, name, tubularSegments = 48) {
 }
 
 function hullPoint(design, t, angle) {
-  // The cross-section runs down the starboard side, across the keel, and up
-  // port. Its final edge closes across the deck line, not at the centreline.
-  const vertical = (Math.cos(angle) + 1) * .5;
-  const side = angle < 0 || angle > Math.PI ? -1 : 1;
   const profile = getShipStructureBlueprint(design.id);
-  const bottomWidth = .12 + (profile?.bottomFlat ?? .2) * .85;
-  const chine = bottomWidth + (1 - bottomWidth) * THREE.MathUtils.smoothstep(vertical, 0, .62);
-  const halfBeam = getHullHalfBeam(design, t);
-  const section = getHullSectionWidth(design, vertical);
-  const x = side * halfBeam * section * chine;
-  const y = -design.draftUnits + vertical * (design.draftUnits + getDeckSheer(design, t));
-  const z = (t - .5) * design.hullLengthUnits;
-  return V(x, y, z);
+  const deckY = getDeckSheer(design, t);
+  const point = getParametricHullPoint(design, profile, t, angle, deckY);
+  return V(point.x, point.y, point.z);
 }
 
 function hullGeometry(design) {
@@ -106,6 +98,24 @@ function hullGeometry(design) {
       indices.push(a, a + row, a + 1, a + 1, a + row, a + row + 1);
     }
   }
+
+  // Close the forward and aft cross-section boundaries. The end faces are
+  // separate triangles so nonzero transom widths do not leave open holes.
+  const endCapIndices = [];
+  for (const stationIndex of [0, stations]) {
+    const t = stationIndex / stations;
+    const deckY = getDeckSheer(design, t);
+    const keelY = getHullKeelY(design, t);
+    const centreIndex = positions.length / 3;
+    positions.push(0, (deckY + keelY) * .5, (t - .5) * design.hullLengthUnits);
+    for (let j = 0; j < ringSegments; j += 1) {
+      const a = stationIndex * row + j;
+      const b = a + 1;
+      endCapIndices.push(centreIndex, a, b);
+    }
+  }
+  indices.push(...endCapIndices);
+
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setIndex(indices);
@@ -121,7 +131,7 @@ function deckGeometry(design) {
   for (let i = 0; i <= stations; i += 1) {
     const t = i / stations;
     const z = (t - .5) * design.hullLengthUnits;
-    const half = getHullHalfBeam(design, t) * getHullSectionWidth(design, .97) * .98;
+    const half = getHullHalfBeam(design, t) * getHullSectionWidth(design, 1);
     const deckY = getDeckSheer(design, t);
     for (let j = 0; j <= across; j += 1) {
       const u = (j / across) * 2 - 1;
@@ -153,8 +163,8 @@ function addHullAndDeck(design, root, registry, mats) {
   const keelPoints = [];
   for (let i = 0; i <= 18; i += 1) {
     const t = i / 18;
-    const keelY = design.id === 'junk' ? -design.draftUnits * .78 : -design.draftUnits * .94;
-    keelPoints.push(V(0, keelY, (t - .5) * design.hullLengthUnits));
+    const keelY = getHullKeelY(design, t);
+    keelPoints.push(V(0, getHullKeelY(design, t) - (design.id === 'junk' ? .02 : .06), (t - .5) * design.hullLengthUnits));
   }
   const keelRadius = design.id === 'junk'
     ? Math.max(.04, design.beamUnits * .006)
@@ -163,10 +173,10 @@ function addHullAndDeck(design, root, registry, mats) {
 
   const stem = registerPart(registry, 'stem', root);
   if (design.id !== 'junk') {
-    const bow = V(0, -design.draftUnits, -design.hullLengthUnits * .5);
+    const bow = V(0, getHullKeelY(design, .015), -design.hullLengthUnits * .5);
     const bowTop = V(0, getDeckSheer(design, .015) + .18, -design.hullLengthUnits * .5);
     addBeam(stem, mats.trim, bow, bowTop, Math.max(.1, design.beamUnits * .025), 'stem-post');
-    const sternPoint = V(0, -design.draftUnits, design.hullLengthUnits * .5);
+    const sternPoint = V(0, getHullKeelY(design, .985), design.hullLengthUnits * .5);
     const sternTop = V(0, getDeckSheer(design, .985) + .12, design.hullLengthUnits * .5);
     addBeam(stem, mats.trim, sternPoint, sternTop, Math.max(.09, design.beamUnits * .022), 'stern-post');
   }
