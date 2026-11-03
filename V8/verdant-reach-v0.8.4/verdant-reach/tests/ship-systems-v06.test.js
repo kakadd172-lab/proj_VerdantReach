@@ -6,6 +6,7 @@ import { SHIP_DESIGNS, HISTORICAL_SHIP_KINDS, getShipDesign, getShipTypeFromCrea
 import { TransportSystem } from '../src/systems/transport.js';
 import { WorldEditSystem, CREATIVE_ENTITY_TYPES } from '../src/systems/world-editing.js';
 import { MaritimeSystem, selectShipType } from '../src/systems/maritime.js';
+import { createShipModel, disposeShipModel } from '../src/world/ship-models.js?v=0.8.4-completion';
 import { WorldGenerator } from '../src/world/terrain.js';
 import { WorldIntelligence } from '../src/world/world-intelligence.js';
 
@@ -36,6 +37,28 @@ test('historical ship catalogue has distinct hull proportions, mast counts and r
   assert.equal(SHIP_DESIGNS.snow.totalMastSpars, 3);
   assert.equal(getShipTypeFromCreativeKind('large-ship'), 'galleon');
   assert.equal(getShipTypeFromCreativeKind('sailing-ship'), 'sloop');
+});
+
+test('galleon runtime model exposes the detailed sterncastle component hierarchy', () => {
+  const ship = createShipModel('galleon');
+  try {
+    const getPart = ship.userData.getPart;
+    assert.ok(getPart('galleon-stern-lower-deckhouse'));
+    assert.ok(getPart('galleon-stern-middle-deckhouse'));
+    assert.ok(getPart('galleon-stern-upper-deckhouse'));
+    assert.ok(getPart('galleon-upper-gallery-platform'));
+    const names = [];
+    ship.traverse((object) => { if (object.name) names.push(object.name); });
+    assert.ok(names.some((name) => name.includes('lower-stern-window')));
+    assert.ok(names.some((name) => name.includes('middle-side-window')));
+    assert.ok(names.includes('galleon-stern-lantern-frame'));
+    const lower = getPart('galleon-stern-lower-deckhouse');
+    const body = lower.getObjectByName('tapered-lower-sterncastle-body');
+    assert.ok(body?.geometry?.getAttribute('position')?.count >= 32);
+    assert.ok(body.geometry.index?.count >= 144);
+  } finally {
+    disposeShipModel(ship);
+  }
 });
 
 test('maritime routes select appropriate vessel classes by voyage distance', () => {
@@ -138,13 +161,13 @@ test('creative editor exposes historical ships and object transform/history cont
   assert.ok(main.includes('creativePlacement'));
 });
 
-test('version metadata and title menu show v0.8.2', () => {
+test('version metadata, title menu and runtime cache identify the v0.8.4 completion build', () => {
   const pkg = JSON.parse(read('package.json'));
   const html = read('index.html');
-  assert.equal(pkg.version, '0.8.3');
-  assert.match(html, /THE AGE OF SAIL · 0.8.3/);
-  assert.match(html, /main\.js\?v=0.8.3/);
-  assert.match(read('src/ui/interface.js'), /v0.8.3/);
+  assert.equal(pkg.version, '0.8.4');
+  assert.match(html, /THE AGE OF SAIL · 0.8.4/);
+  assert.match(html, /main\.js\?v=0.8.4-completion/);
+  assert.match(read('src/ui/interface.js'), /v0.8.4/);
 });
 
 

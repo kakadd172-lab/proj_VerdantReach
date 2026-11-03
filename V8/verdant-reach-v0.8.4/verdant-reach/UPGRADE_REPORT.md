@@ -26,3 +26,10 @@ This release responds to the first in-browser review of v0.8.3. It improves the 
 - Updates browser module cache keys and save metadata to 0.8.4.
 - Adds regression tests for resident counts, migration-safe save top-up, market life, galleon sail geometry and castle detailing.
 - The v0.8.4 CI workflow runs automated tests and a production build; results must be checked before release.
+
+
+## Completion branch update
+
+The separate `chatgpt-v0.8.4-completion` branch adds a visible twelve-stall open city market, larger resident rosters, distributed trader schedules, additional port/town/village stalls and further ruined-castle masonry details. These changes retain the `0.8.4` save-data version for compatibility.
+
+The supplied in-game screenshot showed the galleon sterncastle as a stack of plain rectangular volumes with little visible gallery or window detail. The completion pass replaces that block assembly with custom tapered chamfered deckhouse geometry, framed transom and side windows, projecting gallery decks, side balustrades, a small glazed stern lantern and brass ornament. The new parts remain in the `sternworks` component tree and are covered by a runtime model-construction regression test.

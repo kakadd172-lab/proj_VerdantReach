@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { SHIP_DESIGNS, WORLD_UNITS_PER_METRE, getShipDesign } from './ship-designs.js?v=0.8.4';
-import { getHullHalfBeam, getHullSectionWidth } from './ship-structures.js?v=0.8.4';
+import { SHIP_DESIGNS, WORLD_UNITS_PER_METRE, getShipDesign } from './ship-designs.js?v=0.8.4-completion';
+import { getHullHalfBeam, getHullSectionWidth } from './ship-structures.js?v=0.8.4-completion';
 
 const PALETTE = Object.freeze({
   hull: 0x684632, lowerHull: 0x3f342b, plank: 0x8b6748, deck: 0xa88a61,
@@ -217,6 +217,202 @@ function addHull(design, root, parts, mats) {
   return { hull, deck, keel, fittings };
 }
 
+function makeTaperedDeckhouseGeometry(width, height, depth) {
+  const cuts = Math.min(width, depth) * 0.095;
+  const rings = [
+    { y: 0, width: 1.0, depth: 1.0, offsetZ: 0 },
+    { y: height * 0.12, width: 1.015, depth: 1.01, offsetZ: 0 },
+    { y: height * 0.82, width: 0.93, depth: 0.94, offsetZ: -depth * 0.018 },
+    { y: height, width: 0.88, depth: 0.90, offsetZ: -depth * 0.04 },
+  ];
+  const positions = [];
+  const indices = [];
+  const cornerCut = Math.min(cuts, width * 0.12, depth * 0.12);
+  for (const ring of rings) {
+    const halfW = width * ring.width * 0.5;
+    const halfD = depth * ring.depth * 0.5;
+    const clip = Math.min(cornerCut, halfW * 0.3, halfD * 0.3);
+    const corners = [
+      [-halfW + clip, -halfD],
+      [ halfW - clip, -halfD],
+      [ halfW, -halfD + clip],
+      [ halfW, halfD - clip],
+      [ halfW - clip, halfD],
+      [-halfW + clip, halfD],
+      [-halfW, halfD - clip],
+      [-halfW, -halfD + clip],
+    ];
+    for (const [x, z] of corners) positions.push(x, ring.y, z + ring.offsetZ);
+  }
+  const ringSize = 8;
+  for (let ring = 0; ring < rings.length - 1; ring += 1) {
+    const lower = ring * ringSize;
+    const upper = (ring + 1) * ringSize;
+    for (let i = 0; i < ringSize; i += 1) {
+      const next = (i + 1) % ringSize;
+      indices.push(lower + i, upper + i, lower + next);
+      indices.push(lower + next, upper + i, upper + next);
+    }
+  }
+  const bottomCenter = positions.length / 3;
+  positions.push(0, 0, 0);
+  const topCenter = positions.length / 3;
+  positions.push(0, height, -depth * 0.04);
+  for (let i = 0; i < ringSize; i += 1) {
+    const next = (i + 1) % ringSize;
+    indices.push(bottomCenter, i, next);
+    const top = (rings.length - 1) * ringSize;
+    indices.push(topCenter, top + next, top + i);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+function addTransomWindow(parent, mats, x, y, width, height, z, name) {
+  const frameWidth = width * 1.28;
+  const frameHeight = height * 1.25;
+  box(parent, mats.trim, [frameWidth, frameHeight, 0.14],
+    [x, y, z + 0.055], name + '-recess');
+  box(parent, mats.glass, [width * 0.86, height * 0.82, 0.045],
+    [x, y, z + 0.14], name + '-glass');
+  for (const side of [-1, 1]) {
+    box(parent, mats.plank, [0.075, frameHeight * 1.08, 0.12],
+      [x + side * frameWidth * 0.43, y, z + 0.17], name + '-jamb-' + side);
+  }
+  box(parent, mats.plank, [frameWidth * 1.12, 0.09, 0.13],
+    [x, y - frameHeight * 0.47, z + 0.17], name + '-sill');
+  box(parent, mats.plank, [frameWidth * 1.12, 0.09, 0.13],
+    [x, y + frameHeight * 0.48, z + 0.17], name + '-lintel');
+  box(parent, mats.brass, [0.045, height * 0.82, 0.035],
+    [x, y, z + 0.18], name + '-mullion');
+  box(parent, mats.brass, [width * 0.86, 0.045, 0.035],
+    [x, y - height * 0.03, z + 0.18], name + '-crossbar');
+  // Slanted shoulders give the square window a shallow arched crown.
+  beam(parent, mats.plank,
+    [x - frameWidth * 0.42, y + frameHeight * 0.46, z + 0.19],
+    [x, y + frameHeight * 0.61, z + 0.19], 0.035, name + '-arch-left');
+  beam(parent, mats.plank,
+    [x, y + frameHeight * 0.61, z + 0.19],
+    [x + frameWidth * 0.42, y + frameHeight * 0.46, z + 0.19], 0.035, name + '-arch-right');
+}
+
+function addSideCabinWindow(parent, mats, side, x, y, width, height, z, name) {
+  const frameWidth = width * 1.24;
+  const frameHeight = height * 1.24;
+  box(parent, mats.trim, [0.14, frameHeight, frameWidth],
+    [x + side * 0.055, y, z], name + '-recess');
+  box(parent, mats.glass, [0.045, height * 0.82, width * 0.84],
+    [x + side * 0.14, y, z], name + '-glass');
+  for (const sideZ of [-1, 1]) {
+    box(parent, mats.plank, [0.12, frameHeight * 1.06, 0.075],
+      [x + side * 0.17, y, z + sideZ * frameWidth * 0.43], name + '-jamb-' + sideZ);
+  }
+  box(parent, mats.plank, [0.13, 0.09, frameWidth * 1.1],
+    [x + side * 0.17, y - frameHeight * 0.47, z], name + '-sill');
+  box(parent, mats.plank, [0.13, 0.09, frameWidth * 1.1],
+    [x + side * 0.17, y + frameHeight * 0.47, z], name + '-lintel');
+}
+
+function addGalleonBalcony(parent, mats, width, depth, height, level, z, name, includeSternWalk = true) {
+  const deckY = level + height * 0.22;
+  const railY = deckY + 0.78;
+  for (const side of [-1, 1]) {
+    const edgeX = side * (width * 0.5 + 0.37);
+    box(parent, mats.deck, [0.76, 0.13, depth * 0.68],
+      [side * (width * 0.5 + 0.28), deckY, z], name + '-side-walk-' + side);
+    beam(parent, mats.trim,
+      [edgeX, railY, z - depth * 0.34], [edgeX, railY, z + depth * 0.34],
+      0.055, name + '-side-handrail-' + side);
+    beam(parent, mats.trim,
+      [edgeX, deckY + 0.18, z - depth * 0.34], [edgeX, deckY + 0.18, z + depth * 0.34],
+      0.035, name + '-side-lower-rail-' + side);
+    for (let post = 0; post <= 4; post += 1) {
+      const postZ = z - depth * 0.34 + post * depth * 0.17;
+      beam(parent, mats.trim, [edgeX, deckY + 0.16, postZ], [edgeX, railY, postZ],
+        0.045, name + '-side-baluster-' + side + '-' + post);
+    }
+  }
+  if (includeSternWalk) {
+    const aftZ = z + depth * 0.5 + 0.38;
+    box(parent, mats.deck, [width * 0.82, 0.13, 0.72],
+      [0, deckY, aftZ], name + '-transom-walk');
+    beam(parent, mats.trim,
+      [-width * 0.42, railY, aftZ + 0.22], [width * 0.42, railY, aftZ + 0.22],
+      0.055, name + '-transom-handrail');
+    for (let post = 0; post <= 6; post += 1) {
+      const x = -width * 0.42 + post * width * 0.14;
+      beam(parent, mats.trim, [x, deckY + 0.16, aftZ + 0.22],
+        [x, railY, aftZ + 0.22], 0.045, name + '-transom-baluster-' + post);
+    }
+  }
+}
+
+function addGalleonDeckhouse(root, parts, parent, mats, {
+  tier, width, height, depth, z, level, windowCount, sideWindowCount = 2,
+  gallery = false, sternWalk = false,
+}) {
+  const cabin = makePart(root, parts, 'galleon-stern-' + tier + '-deckhouse', parent);
+  cabin.position.set(0, 0, 0);
+  const body = ownMesh(cabin, makeTaperedDeckhouseGeometry(width, height, depth),
+    mats.hull, 'tapered-' + tier + '-sterncastle-body');
+  body.position.set(0, level, z);
+
+  // A projecting cap rail and a real timber deck make each step read as a gallery level.
+  box(cabin, mats.deck, [width * 1.045, 0.16, depth * 1.045],
+    [0, level + height + 0.04, z], tier + '-poop-deck');
+  box(cabin, mats.trim, [width * 1.02, 0.18, 0.18],
+    [0, level + height * 0.86, z + depth * 0.445], tier + '-transom-cornice');
+
+  const transomZ = z + depth * 0.515;
+  const windowY = level + height * 0.49;
+  const windowHeight = Math.max(0.42, height * 0.34);
+  const windowWidth = Math.min(width * 0.145, depth * 0.16);
+  for (let index = 0; index < windowCount; index += 1) {
+    const fraction = windowCount === 1 ? 0 : index / (windowCount - 1) - 0.5;
+    addTransomWindow(cabin, mats, fraction * width * 0.68, windowY,
+      windowWidth, windowHeight, transomZ, tier + '-stern-window-' + index);
+  }
+
+  const sideX = width * 0.475;
+  for (const side of [-1, 1]) {
+    for (let index = 0; index < sideWindowCount; index += 1) {
+      const fraction = sideWindowCount === 1 ? 0 : index / (sideWindowCount - 1) - 0.5;
+      addSideCabinWindow(cabin, mats, side, side * sideX,
+        windowY, windowWidth * 0.82, windowHeight * 0.88,
+        z + fraction * depth * 0.48, tier + '-side-window-' + side + '-' + index);
+    }
+    // Timber pilasters and corner braces break up the broad cabin planes.
+    for (const frontOrAft of [-1, 1]) {
+      const px = side * width * (frontOrAft < 0 ? 0.475 : 0.43);
+      const pz = z + frontOrAft * depth * 0.39;
+      box(cabin, mats.plank, [0.16, height * 0.88, 0.18],
+        [px, level + height * 0.49, pz], tier + '-pilaster-' + side + '-' + frontOrAft);
+    }
+  }
+
+  if (gallery) addGalleonBalcony(cabin, mats, width, depth, height, level, z, tier, sternWalk);
+
+  // A restrained timber crown rail keeps the poop deck open and walkable.
+  const topRailY = level + height + 0.93;
+  for (const side of [-1, 1]) {
+    const x = side * width * 0.47;
+    beam(cabin, mats.trim, [x, topRailY, z - depth * 0.43],
+      [x, topRailY, z + depth * 0.43], 0.05, tier + '-poop-rail-' + side);
+    for (let index = 0; index <= 3; index += 1) {
+      const pz = z - depth * 0.43 + index * depth * 0.86 / 3;
+      beam(cabin, mats.trim, [x, level + height + 0.16, pz],
+        [x, topRailY, pz], 0.04, tier + '-poop-baluster-' + side + '-' + index);
+    }
+  }
+  beam(cabin, mats.trim, [-width * 0.46, topRailY, z + depth * 0.45],
+    [width * 0.46, topRailY, z + depth * 0.45], 0.05, tier + '-poop-transom-rail');
+  return cabin;
+}
+
 function addSternworks(design, root, parts, mats) {
   const group = makePart(root, parts, 'sternworks');
   const gallery = makePart(root, parts, 'stern-gallery', group);
@@ -224,61 +420,109 @@ function addSternworks(design, root, parts, mats) {
   const L = design.hullLengthUnits;
   const y = design.deckHeightUnits;
   const addDeckhouse = (width, height, depth, z, level = 0) => {
-    box(group, mats.hull, [B * width, height, L * depth], [0, y + level + height * 0.5, z], `stern-house-${z}`);
-    box(group, mats.deck, [B * (width + 0.045), 0.12, L * (depth + 0.02)], [0, y + level + height + 0.06, z], `stern-house-roof-${z}`);
+    box(group, mats.hull, [B * width, height, L * depth],
+      [0, y + level + height * 0.5, z], `stern-house-${z}`);
+    box(group, mats.deck, [B * (width + 0.045), 0.12, L * (depth + 0.02)],
+      [0, y + level + height + 0.06, z], `stern-house-roof-${z}`);
   };
-  if (design.sternwork === 'high-aftercastle' || design.sternwork === 'galleon-castle') {
-    const galleon = design.sternwork === 'galleon-castle';
-    if (galleon) {
-      const lowerHeight = y * 1.02;
-      addDeckhouse(0.52, lowerHeight, 0.15, L * 0.345, 0.04);
-      box(group, mats.deck, [B * 0.68, 0.16, L * 0.18], [0, y + 0.12, L * 0.36], 'galleon-quarterdeck-platform');
-      const middleHeight = y * 0.62;
-      addDeckhouse(0.40, middleHeight, 0.115, L * 0.405, lowerHeight);
-      box(group, mats.deck, [B * 0.55, 0.14, L * 0.135], [0, y + lowerHeight + middleHeight + 0.06, L * 0.408], 'galleon-upper-gallery-platform');
-      addDeckhouse(0.29, y * 0.36, 0.075, L * 0.448, lowerHeight + middleHeight);
-    } else {
-      const lowerHeight = y * 1.75;
-      addDeckhouse(0.64, lowerHeight, 0.2, L * 0.34, 0.05);
-      addDeckhouse(0.72, y * 1.1, 0.16, L * 0.405, lowerHeight);
-    }
+  if (design.sternwork === 'galleon-castle') {
+    // A galleon's sterncastle is a connected stack of open gallery decks,
+    // not three featureless blocks. Each tier has a chamfered, tapered timber
+    // body, recessed windows, moulded string courses and walkable balconies.
+    const lowerHeight = y * 1.18;
+    const middleHeight = y * 0.78;
+    const upperHeight = y * 0.62;
+    const lowerLevel = 0.05;
+    const middleLevel = lowerLevel + lowerHeight + 0.18;
+    const upperLevel = middleLevel + middleHeight + 0.24;
+
+    box(group, mats.deck, [B * 0.84, 0.18, L * 0.19],
+      [0, y + 0.12, L * 0.355], 'galleon-quarterdeck-platform');
+
+    addGalleonDeckhouse(root, parts, group, mats, {
+      tier: 'lower', width: B * 0.76, height: lowerHeight, depth: L * 0.18,
+      z: L * 0.365, level: y + lowerLevel, windowCount: 5,
+      sideWindowCount: 3, gallery: true, sternWalk: false,
+    });
+    addGalleonDeckhouse(root, parts, group, mats, {
+      tier: 'middle', width: B * 0.58, height: middleHeight, depth: L * 0.13,
+      z: L * 0.43, level: y + middleLevel, windowCount: 4,
+      sideWindowCount: 2, gallery: true, sternWalk: true,
+    });
+    const upperGalleryPlatform = makePart(root, parts, 'galleon-upper-gallery-platform', group);
+    box(upperGalleryPlatform, mats.deck, [B * 0.64, 0.16, L * 0.13],
+      [0, y + middleLevel + middleHeight + 0.12, L * 0.43], 'upper-gallery-walkway');
+    const upper = addGalleonDeckhouse(root, parts, group, mats, {
+      tier: 'upper', width: B * 0.39, height: upperHeight, depth: L * 0.085,
+      z: L * 0.46, level: y + upperLevel, windowCount: 3,
+      sideWindowCount: 1, gallery: false, sternWalk: false,
+    });
+
+    // A small glazed stern lantern and ensign staff finish the poop deck.
+    const lanternY = y + upperLevel + upperHeight;
+    box(upper, mats.trim, [1.05, 0.86, 1.0],
+      [0, lanternY + 0.49, L * 0.46], 'galleon-stern-lantern-frame');
     for (const side of [-1, 1]) {
-      for (let row = 0; row < (galleon ? 3 : 4); row += 1) {
+      box(upper, mats.glass, [0.055, 0.56, 0.58],
+        [side * 0.53, lanternY + 0.49, L * 0.46], 'galleon-stern-lantern-glass-' + side);
+    }
+    box(upper, mats.deck, [1.22, 0.16, 1.16],
+      [0, lanternY + 0.98, L * 0.46], 'galleon-stern-lantern-cap');
+    beam(upper, mats.trim, [0, lanternY + 1.04, L * 0.46],
+      [0, lanternY + 2.0, L * 0.46], 0.055, 'galleon-stern-ensign-staff');
+
+    // The transom carries a visible brass cartouche between the lower windows.
+    cylinder(group, mats.brass, 0.42, 0.42, 0.09,
+      [0, y + lowerLevel + lowerHeight * 0.24, L * 0.365 + L * 0.18 * 0.49 + 0.18],
+      { axis: 'z', radialSegments: 12, name: 'galleon-transom-cartouche' });
+  } else if (design.sternwork === 'high-aftercastle') {
+    const lowerHeight = y * 1.75;
+    addDeckhouse(0.64, lowerHeight, 0.2, L * 0.34, 0.05);
+    addDeckhouse(0.72, y * 1.1, 0.16, L * 0.405, lowerHeight);
+    for (const side of [-1, 1]) {
+      for (let row = 0; row < 4; row += 1) {
         const z = L * (0.34 + row * 0.025);
         const post = makePart(root, parts, `stern-gallery-post-${side}-${row}`, gallery);
-        const postWidth = galleon ? 0.12 : 0.16;
-        const postHeight = galleon ? 0.42 : 0.55;
-        const tierRise = galleon ? y * 0.56 : y * 0.44;
-        box(post, mats.trim, [postWidth, postHeight, postWidth],
-          [side * B * (galleon ? 0.29 : 0.22), y + row * tierRise + postHeight * 0.5, z],
+        box(post, mats.trim, [0.16, 0.55, 0.16],
+          [side * B * 0.22, y + row * y * 0.44 + 0.275, z],
           `gallery-post-${side}-${row}`);
       }
       const wing = makePart(root, parts, `stern-gallery-wing-${side}`, gallery);
-      box(wing, mats.plank, [B * 0.16, 0.14, L * 0.13], [side * B * 0.34, y * 1.18, L * 0.35], `gallery-wing-${side}`);
+      box(wing, mats.plank, [B * 0.16, 0.14, L * 0.13],
+        [side * B * 0.34, y * 1.18, L * 0.35], `gallery-wing-${side}`);
       const balcony = makePart(root, parts, `stern-gallery-balcony-${side}`, gallery);
-      box(balcony, mats.deck, [B * 0.2, 0.12, L * 0.13], [side * B * 0.34, y * 1.22, L * 0.35], `gallery-balcony-${side}`);
+      box(balcony, mats.deck, [B * 0.2, 0.12, L * 0.13],
+        [side * B * 0.34, y * 1.22, L * 0.35], `gallery-balcony-${side}`);
     }
-    // Decorative transom windows and gallery railings are separated from the stern structure.
     const transom = makePart(root, parts, 'stern-transom-trim', gallery);
     for (let i = -2; i <= 2; i += 1) {
       const x = i * B * 0.095;
-      box(transom, mats.glass, [B * 0.055, y * 0.24, 0.055], [x, y * 1.62, L * 0.445], `transom-window-${i}`);
+      box(transom, mats.glass, [B * 0.055, y * 0.24, 0.055],
+        [x, y * 1.62, L * 0.445], `transom-window-${i}`);
     }
     for (const side of [-1, 1]) {
-      beam(gallery, mats.trim, [side * B * 0.22, y * 1.52, L * 0.35], [side * B * 0.36, y * 1.52, L * 0.35], 0.045, `gallery-balustrade-${side}`);
+      beam(gallery, mats.trim, [side * B * 0.22, y * 1.52, L * 0.35],
+        [side * B * 0.36, y * 1.52, L * 0.35], 0.045, `gallery-balustrade-${side}`);
     }
   } else if (design.sternwork === 'quarterdeck') {
     addDeckhouse(0.38, y * 0.55, 0.16, L * 0.34, 0.03);
-    box(group, mats.deck, [B * 0.82, 0.16, L * 0.2], [0, y + y * 0.58, L * 0.34], 'quarterdeck-platform');
+    box(group, mats.deck, [B * 0.82, 0.16, L * 0.2],
+      [0, y + y * 0.58, L * 0.34], 'quarterdeck-platform');
   } else if (design.sternwork === 'low-cabin') {
     addDeckhouse(0.34, Math.max(0.75, y * 0.54), 0.13, L * 0.34, 0.02);
   } else if (design.sternwork === 'fluyt-roundhouse') {
-    cylinder(group, mats.hull, B * 0.15, B * 0.18, L * 0.12, [0, y + y * 0.48, L * 0.38], { name: 'roundhouse', radialSegments: 12 });
-    cylinder(group, mats.deck, B * 0.17, B * 0.19, 0.16, [0, y + y * 0.95, L * 0.38], { name: 'roundhouse-cap', radialSegments: 12 });
+    cylinder(group, mats.hull, B * 0.15, B * 0.18, L * 0.12,
+      [0, y + y * 0.48, L * 0.38], { name: 'roundhouse', radialSegments: 12 });
+    cylinder(group, mats.deck, B * 0.17, B * 0.19, 0.16,
+      [0, y + y * 0.95, L * 0.38], { name: 'roundhouse-cap', radialSegments: 12 });
   } else if (design.sternwork === 'xebec-platform') {
-    box(group, mats.deck, [B * 0.58, 0.16, L * 0.16], [0, y + 0.08, L * 0.46], 'projecting-stern-platform');
+    box(group, mats.deck, [B * 0.58, 0.16, L * 0.16],
+      [0, y + 0.08, L * 0.46], 'projecting-stern-platform');
   } else if (design.sternwork === 'open-boat') {
-    for (let i = -2; i <= 2; i += 1) box(group, mats.deck, [B * 0.72, 0.12, 0.12], [0, y * 0.3, i * L * 0.15], `thwart-${i}`);
+    for (let i = -2; i <= 2; i += 1) {
+      box(group, mats.deck, [B * 0.72, 0.12, 0.12],
+        [0, y * 0.3, i * L * 0.15], `thwart-${i}`);
+    }
   }
   return group;
 }
