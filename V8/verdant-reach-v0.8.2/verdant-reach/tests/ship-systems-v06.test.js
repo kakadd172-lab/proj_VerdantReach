@@ -138,10 +138,10 @@ test('creative editor exposes historical ships and object transform/history cont
   assert.ok(main.includes('creativePlacement'));
 });
 
-test('version metadata and title menu show v0.8.1', () => {
+test('version metadata and title menu show v0.8.2', () => {
   const pkg = JSON.parse(read('package.json'));
   const html = read('index.html');
-  assert.equal(pkg.version, '0.8.1');
+  assert.equal(pkg.version, '0.8.2');
   assert.match(html, /THE AGE OF SAIL · 0\.8\.1/);
   assert.match(html, /main\.js\?v=0\.8\.1/);
   assert.match(read('src/ui/interface.js'), /v0\.8\.1/);
