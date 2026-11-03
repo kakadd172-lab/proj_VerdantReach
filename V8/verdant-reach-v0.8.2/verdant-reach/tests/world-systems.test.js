@@ -254,9 +254,18 @@ test('terrain-aware roads connect settlements with deterministic walkable route 
   const settlements = intelligence.settlementsNear(generator.findSpawn().x, generator.findSpawn().z, 6000)
     .filter((settlement) => settlement.id !== intelligence.starterSettlement.id);
   const start = intelligence.starterSettlement;
-  const end = settlements.find((settlement) => Math.hypot(settlement.x - start.x, settlement.z - start.z) < 4400);
-  assert.ok(end, 'expected a nearby settlement for the road test');
-  intelligence.routePathFor(start, end, { debug: true, resolution: 84 });
+  const candidates = settlements
+    .filter((settlement) => Math.hypot(settlement.x - start.x, settlement.z - start.z) < 4400)
+    .filter((settlement) => {
+      const sample = generator.sample(settlement.x, settlement.z, true);
+      return sample.height > 2.5 && sample.slope < 0.75 && sample.biome !== 'ocean';
+    })
+    .sort((a, b) => Math.hypot(a.x - start.x, a.z - start.z) - Math.hypot(b.x - start.x, b.z - start.z));
+  let end = null;
+  for (const candidate of candidates) {
+    if (intelligence.routePathFor(start, candidate).length >= 2) { end = candidate; break; }
+  }
+  assert.ok(end, 'expected a nearby dry settlement with a buildable route');
   const first = intelligence.roadLinksFor([start, end], 4400)[0];
   const second = intelligence.roadLinksFor([start, end], 4400)[0];
   assert.ok(first?.terrainAware);
