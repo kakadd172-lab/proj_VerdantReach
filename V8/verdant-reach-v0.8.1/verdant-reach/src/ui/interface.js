@@ -631,7 +631,7 @@ export class GameInterface {
       <p class="panel-lede">Fine-tune the view of the Reach.</p>
       <div class="setting-row"><div><b>Camera sensitivity</b><span>How quickly the view responds to orbit controls.</span></div><input id="camera-sensitivity" type="range" min="0.25" max="1.8" step="0.05" value="1" /></div>
       <div class="setting-row"><div><b>Render distance</b><span>Terrain regions currently stream around you.</span></div><strong>7 × 7 regions</strong></div>
-      <div class="setting-row"><div><b>World generation</b><span>Seeded terrain, major landforms and streamed settlements with stable coordinates.</span></div><strong>v0.8.0</strong></div>
+      <div class="setting-row"><div><b>World generation</b><span>Seeded terrain, major landforms and streamed settlements with stable coordinates.</span></div><strong>v0.8.1</strong></div>
       <div class="panel-note"><span>◷</span> Graphics quality controls and accessibility options are planned for a later build.</div>
     `;
   }
