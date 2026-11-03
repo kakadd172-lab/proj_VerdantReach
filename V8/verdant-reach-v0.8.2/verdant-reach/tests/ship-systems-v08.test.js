@@ -188,15 +188,16 @@ test('v0.8.1 ship restore reapplies saved hierarchy before component offsets', (
   assert.ok(detach >= 0 && transform > detach && rudder > transform);
 });
 
-test('v0.8.1 cache-busts the browser entry, stylesheet and ship module graph', () => {
+test('v0.8.2 cache-busts the browser entry and road module graph', () => {
   const html = read('index.html');
   const main = read('src/main.js');
   const ui = read('src/ui/interface.js');
   const entities = read('src/world/creative-entities.js');
   const models = read('src/world/ship-models.js');
-  assert.ok(html.includes('styles.css?v=0.8.1'));
-  assert.ok(html.includes('main.js?v=0.8.1'));
-  assert.ok(main.includes('ship-designs.js?v=0.8.1'));
+  assert.ok(html.includes('styles.css?v=0.8.2'));
+  assert.ok(html.includes('main.js?v=0.8.2'));
+  assert.ok(main.includes('world-intelligence.js?v=0.8.2'));
+  assert.ok(main.includes('world-actors.js?v=0.8.2'));
   assert.ok(ui.includes('ship-designs.js?v=0.8.1'));
   assert.ok(entities.includes('ship-models.js?v=0.8.1'));
   assert.ok(models.includes('ship-designs.js?v=0.8.1'));
