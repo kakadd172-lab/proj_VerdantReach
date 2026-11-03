@@ -4,13 +4,17 @@
 
 This audit covers the isolated v0.8.5 snapshot under `V8/verdant-reach-v0.8.5/verdant-reach`. The v0.8.4 folder remains unchanged.
 
-The ship-design catalogue, ship geometry builder and ship-specific structural profile module have been replaced. The rest of the game is carried forward from the v0.8.4 project snapshot to preserve the existing world and editor systems.
+The ship-design catalogue, ship geometry builder and ship-specific structural profile module have been replaced. The new `ship-hull-parameterization.js` supplies a separate, reusable hull-mathematics layer, connected to the existing Three.js model generator. The rest of the game is carried forward from the v0.8.4 project snapshot to preserve the existing world and editor systems.
 
 ## Ship-system architecture reviewed
 
 - The hull generator uses 96 longitudinal stations and 40 points per cross-section.
 - Each of the 16 vessel families has its own structural blueprint for beam station, forebody/aftbody taper, bottom form, bilge fullness, flare, tumblehome, sheer, frame count and rigging layout.
-- The hull and deck are separate surfaces. The hull section reaches both port and starboard deck edges and closes across the upper sheer line.
+- The hull math now uses piecewise cubic Bézier curves for longitudinal forebody and aftbody taper, with a smooth maximum-beam shoulder.
+- Midship breadth uses a bounded keel/chine/bilge/upper-section profile. The moulded maximum breadth does not exceed the catalogue beam.
+- Separate keel-rocker functions raise the bow and stern from the deepest midbody datum.
+- The shell has explicit forward and aft end-cap triangles, including vessels with nonzero transom width.
+- The hull and cambered deck are separate surfaces, and the port/starboard sheer edges meet the deck at matching coordinates.
 - Keel, stem structure, transverse frames, hull strakes, deck seams, stern tiers, window frames, gallery rails, bow structure, rails, rudder, helm, anchors, masts, sails, yards, spars and rigging are named, editable groups.
 - Stern tiers are individual curved loft structures rather than one shared solid block.
 - Mast groups pivot at their mast steps. Square, gaff, lateen and junk sail groups are parented to their corresponding mast pivots. The rudder rotates around its stern stock.
@@ -18,6 +22,12 @@ The ship-design catalogue, ship geometry builder and ship-specific structural pr
 - Chinese junk geometry uses a separate battened-lug rig and avoids the generic European stem-post/figurehead treatment.
 - Creative Shipyard visibility, detach/relink, six-axis local transforms, sail deployment, sail trim, rudder angle, mast lean and ship-state restoration remain available.
 - Legacy `sailing-ship` and `large-ship` records continue to map to the sloop and galleon designs.
+
+## External research and code provenance
+
+The generator's mathematical decomposition was informed by studying public parametric-hull projects, especially C_ShipGen and the Janibert ship-hull generator. The new JavaScript implementation is original and tailored to the Three.js mesh pipeline. No code, translated code blocks or generated assets were copied from those repositories. No Python, SciPy, machine-learning or other hull-generation runtime was added.
+
+See `HULL_GENERATOR_NOTES.md` for the study notes, design decisions and reference links.
 
 ## Historical evidence and accuracy limits
 
@@ -31,9 +41,10 @@ The public reference-game material does not provide a complete technical roster 
 
 <badge color="success">Passed</badge>
 
-- GitHub Actions run: [#41645795257](https://github.com/kakadd172-lab/proj_VerdantReach/actions/runs/41645795257)
-- Validated commit: `b9747aceaee3f4c8c602ae1e6c3fe5d9aefdadc8`
-- Node test suite: **107 passed, 0 failed**
+- GitHub Actions run: [#41649403870](https://github.com/kakadd172-lab/proj_VerdantReach/actions/runs/41649403870)
+- Validated code commit: `442d60f04af0c47ea22a6ea179143f8d4f2500ab`
+- Latest test-only assertion commit: `13d1581b9fd61f4fbf775c36faffbbef06ffbaad`
+- Node test suite: **113 passed, 0 failed**
 - Vite production build: **passed**
 - The workflow uses current Node 24-compatible GitHub Actions releases.
 
