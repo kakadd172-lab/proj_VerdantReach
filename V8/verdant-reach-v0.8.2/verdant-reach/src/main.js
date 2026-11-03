@@ -1399,7 +1399,7 @@ function createPulseEffect(x, y, z, color = 0x9fe0c4) {
 async function saveCurrentWorld() {
   if (!gameActive || !worldSeed || !player || !rpg) return;
   const payload = {
-    version: '0.8.0',
+    version: '0.8.2',
     gameMode,
     generationVersion: generator.version,
     worldName: isFieldTestWorld ? TEST_WORLD_NAME : worldSeed,
