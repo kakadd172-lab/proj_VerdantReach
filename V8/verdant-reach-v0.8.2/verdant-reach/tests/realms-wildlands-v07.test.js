@@ -380,7 +380,8 @@ test('teleport destination search returns a waterfall and a lake independently',
 
 test('large city roads, farms, castle walls and moat are built from terrain-conforming panels', () => {
   const models = read('src/world/settlement-models.js');
-  assert.match(models, /Math\.ceil\(length \/ 13\)/);
+  assert.match(models, /buildDrapedRoadData/);
+  assert.match(models, /maxSpacing: 4/);
   assert.match(models, /Math\.ceil\(field\.length \/ 10\)/);
   assert.match(models, /addTerrainWall/);
   assert.match(models, /keepWalls\.forEach/);
