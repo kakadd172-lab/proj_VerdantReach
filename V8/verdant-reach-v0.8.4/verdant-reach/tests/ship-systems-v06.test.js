@@ -143,7 +143,7 @@ test('version metadata, title menu and runtime cache identify the v0.8.4 complet
   const html = read('index.html');
   assert.equal(pkg.version, '0.8.4');
   assert.match(html, /THE AGE OF SAIL · 0.8.4/);
-  assert.match(html, /main\.js\?v=0.8.3/);
+  assert.match(html, /main\\.js\\?v=0.8.4-completion/);
   assert.match(read('src/ui/interface.js'), /v0.8.4/);
 });
 
