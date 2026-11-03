@@ -30,6 +30,16 @@ test('the hull loft joins port and starboard sheer lines across the full deck br
     assert.ok(starboardX > design.beamUnits * .35, 'starboard sheer must reach the deck edge');
     assert.ok(portX < -design.beamUnits * .35, 'port sheer must reach the deck edge');
     assert.ok(Math.abs(starboardY - portY) < 1e-5, 'both sheer edges should share deck height');
+
+    const deck = ship.userData.getPart('deck').getObjectByName('cambered-weather-deck');
+    const deckPositions = deck.geometry.getAttribute('position');
+    const deckMidshipRow = 36 * 21;
+    const deckPort = deckPositions.getX(deckMidshipRow);
+    const deckStarboard = deckPositions.getX(deckMidshipRow + 20);
+    assert.ok(Math.abs(starboardX - deckStarboard) < 1e-5, 'starboard hull edge meets deck edge');
+    assert.ok(Math.abs(portX - deckPort) < 1e-5, 'port hull edge meets deck edge');
+    assert.ok(Math.abs(starboardY - deckPositions.getY(deckMidshipRow + 20)) < 1e-5, 'deck and hull share starboard sheer height');
+    assert.ok(Math.abs(portY - deckPositions.getY(deckMidshipRow)) < 1e-5, 'deck and hull share port sheer height');
   } finally {
     disposeShipModel(ship);
   }
