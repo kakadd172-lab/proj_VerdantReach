@@ -790,10 +790,8 @@ export class WorldIntelligence {
     const gx = this.generator.heightAt(x + step, z) - this.generator.heightAt(x - step, z);
     const gz = this.generator.heightAt(x, z + step) - this.generator.heightAt(x, z - step);
     const slope = Math.hypot(gx, gz) / (step * 2);
-    if (slope > 1.45 || (sample.cliffIntensity ?? 0) > 0.999) {
-      cache.set(key, Infinity);
-      return Infinity;
-    }
+    // Very steep cells are expensive, not automatically forbidden: the A* search
+    // may still need a short hillside approach when the settlement itself is steep.
     const reliefPenalty = Math.max(0, slope - 0.09);
     const cost = 1 + slope * 7.5 + reliefPenalty * reliefPenalty * 52
       + Math.max(0, height - 48) * 0.024 + (height > 85 ? 2.8 : 0)
@@ -959,7 +957,7 @@ export class WorldIntelligence {
         const currentHeight = this.generator.heightAt(current.x * resolution, current.z * resolution);
         const nextHeight = this.generator.heightAt(wx, wz);
         const grade = Math.abs(nextHeight - currentHeight) / (resolution * stepLength);
-        if (!Number.isFinite(grade) || grade > 1.6) continue;
+        if (!Number.isFinite(grade) || grade > 2.2) continue;
         const gradePenalty = grade * 16 + Math.max(0, grade - 0.08) ** 2 * 120;
         const nextG = current.g + (terrainCost + gradePenalty) * stepLength;
         const nextKey = keyOf(nx, nz);
@@ -1004,8 +1002,8 @@ export class WorldIntelligence {
     if (simplified.length) {
       const snappedStart = { x: sx * resolution, z: sz * resolution };
       const snappedEnd = { x: tx * resolution, z: tz * resolution };
-      if (!this._roadSegmentIsBuildable(a, snappedStart, 1.6)
-        || !this._roadSegmentIsBuildable(snappedEnd, b, 1.6)) {
+      if (!this._roadSegmentIsBuildable(a, snappedStart, 2.8)
+        || !this._roadSegmentIsBuildable(snappedEnd, b, 2.8)) {
         if (options.debug) console.log('ROAD_DEBUG_CONNECTOR', a, snappedStart, snappedEnd, b);
         this.roadPathCache.set(cacheKey, []);
         return [];
