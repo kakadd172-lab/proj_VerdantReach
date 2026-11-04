@@ -166,9 +166,18 @@ function syncCurrentShipState(){
   if(!ship||!activeShipId)return;
   const config=getConfig(activeShipId);
   const state=ship.userData.getShipState();
-  config.partState=clone(state);
+  const hasState=Object.keys(state.partTransforms||{}).length>0
+    ||Object.keys(state.hiddenParts||{}).length>0
+    ||(state.unlinkedParts||[]).length>0
+    ||Math.abs(state.rudderAngle||0)>1e-8
+    ||Object.keys(state.sailTrim||{}).length>0
+    ||Object.keys(state.sailDeployment||{}).length>0
+    ||Object.keys(state.mastLean||{}).length>0;
+  if(hasState)config.partState=clone(state);
+  else delete config.partState;
   if(state.partTransforms&&Object.keys(state.partTransforms).length)config.componentTransforms=clone(state.partTransforms);
   else delete config.componentTransforms;
+  if(Object.keys(config).length===0)delete overrideConfig[activeShipId];
 }
 function captureDocumentSnapshot(){
   syncCurrentShipState();
