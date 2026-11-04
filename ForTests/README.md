@@ -31,8 +31,8 @@ From the repository root:
 
 ```powershell
 cd D:\Projects\VerdantReach
-git switch chatgpt-v0.8.6-modular-ship-generators
-git pull origin chatgpt-v0.8.6-modular-ship-generators
+git fetch origin
+git switch --track origin/chatgpt-v0.8.6-modular-ship-generators
 cd ForTests
 npm install
 npm run check:modules
