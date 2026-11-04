@@ -69,6 +69,65 @@ try{
   await page.locator('[data-mode="scale"]').click();
   await page.locator('[data-mode="translate"]').click();
 
+  // Component transform -> undo -> redo -> reset -> undo -> redo.
+  await page.locator('#part-select').selectOption('mast-single');
+  const xField=page.locator('[data-transform="x"]');
+  await xField.fill('1.25');
+  await xField.dispatchEvent('change');
+  assert.ok(await page.locator('#undo').isEnabled(),'Undo did not enable after numeric transform.');
+  assert.equal(await xField.inputValue(),'1.250');
+  await page.locator('#undo').click();
+  assert.equal(await xField.inputValue(),'0.000','Undo failed to restore original mast position.');
+  await page.locator('#redo').click();
+  assert.equal(await xField.inputValue(),'1.250','Redo failed to restore mast position.');
+  await page.locator('#reset-part').click();
+  assert.equal(await xField.inputValue(),'0.000','Reset component failed to restore mast position.');
+  await page.locator('#undo').click();
+  assert.equal(await xField.inputValue(),'1.250','Undo after reset failed.');
+  await page.locator('#redo').click();
+  assert.equal(await xField.inputValue(),'0.000','Redo after reset failed.');
+
+  // Design parameters are part of the same history timeline.
+  const sloopBeam=Number((await page.locator('#beam').innerText()).replace(' m',''));
+  const beamField=page.locator('[data-design-path="design.beam"]');
+  await beamField.fill('5.3');
+  await beamField.dispatchEvent('change');
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-5.3)<1e-6,'Beam parameter did not rebuild the ship.');
+  await page.locator('#undo').click();
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-sloopBeam)<1e-6,'Undo did not revert the design parameter.');
+
+  // A single history timeline must survive vessel changes.
+  await page.locator('[data-design-path="design.beam"]').fill('5.3');
+  await page.locator('[data-design-path="design.beam"]').dispatchEvent('change');
+  await page.locator('#ship-select').selectOption('galleon');
+  const originalGalleonBeam=Number((await page.locator('#beam').innerText()).replace(' m',''));
+  await page.locator('[data-design-path="design.beam"]').fill('16.5');
+  await page.locator('[data-design-path="design.beam"]').dispatchEvent('change');
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-16.5)<1e-6);
+  await page.locator('#undo').click();
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-originalGalleonBeam)<1e-6,'Undo on second vessel did not restore its previous design.');
+  await page.locator('#undo').click();
+  assert.equal(await page.locator('#ship-select').inputValue(),'sloop','Global undo should return to the vessel associated with the earlier edit.');
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-5.3)<1e-6,'Global undo failed to restore the earlier vessel edit.');
+  await page.locator('#redo').click();
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-originalGalleonBeam)<1e-6,'Global redo failed to restore the next vessel state.');
+
+  // Advanced selection and viewport tools remain operational.
+  await page.locator('#part-search').fill('mast');
+  assert.ok(await page.locator('#part-select option').count()>0,'Component search returned no results.');
+  await page.locator('#part-search').fill('');
+  await page.locator('#snap-toggle').click();
+  assert.equal(await page.locator('#snap-toggle').innerText(),'Snapping on');
+  await page.locator('#space-toggle').click();
+  assert.equal(await page.locator('#space-toggle').innerText(),'World space');
+  await page.locator('[data-camera="top"]').click();
+  await page.locator('#frame-selected').click();
+  await page.locator('#reset-all-parts').click();
+  await page.locator('#toggle-visibility').click();
+  assert.equal(await page.locator('#toggle-visibility').innerText(),'Show selected','Hide selected did not update visibility controls.');
+  await page.locator('#show-all-parts').click();
+  assert.equal(await page.locator('#toggle-visibility').innerText(),'Hide selected','Show all did not restore component visibility.');
+
   assert.deepEqual(pageErrors,[],'Browser runtime errors: '+pageErrors.join(' | '));
   console.log('Browser smoke test passed.');
   console.log('Vessels in dropdown: '+optionCount);
