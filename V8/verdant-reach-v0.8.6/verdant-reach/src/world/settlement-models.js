@@ -528,8 +528,13 @@ export function createRuinedCastleCollisionBodies(site, generator) {
     }
   };
 
+  const outerGateSegment = plan.outerWall.reduce((best, a, index) => {
+    const b = plan.outerWall[(index + 1) % plan.outerWall.length];
+    const distance = Math.hypot((a.x + b.x) * 0.5 - plan.gate.x, (a.z + b.z) * 0.5 - plan.gate.z);
+    return !best || distance < best.distance ? { index, distance } : best;
+  }, null)?.index;
   for (let edge = 0; edge < plan.outerWall.length; edge += 1) {
-    if (plan.breaches.includes(edge)) continue;
+    if (plan.breaches.includes(edge) || edge === outerGateSegment) continue;
     addWall(plan.outerWall[edge], plan.outerWall[(edge + 1) % plan.outerWall.length], 4.8, 8, 'outer-wall-' + edge);
   }
   for (let edge = 0; edge < plan.innerWall.length; edge += 1) {
@@ -640,8 +645,13 @@ export function createRuinedCastleModel(site, generator) {
     }
   };
 
+  const outerGateSegment = plan.outerWall.reduce((best, a, index) => {
+    const b = plan.outerWall[(index + 1) % plan.outerWall.length];
+    const distance = Math.hypot((a.x + b.x) * 0.5 - plan.gate.x, (a.z + b.z) * 0.5 - plan.gate.z);
+    return !best || distance < best.distance ? { index, distance } : best;
+  }, null)?.index;
   for (let i = 0; i < plan.outerWall.length; i += 1) {
-    if (plan.breaches.includes(i)) continue;
+    if (plan.breaches.includes(i) || i === outerGateSegment) continue;
     const a = plan.outerWall[i];
     const b = plan.outerWall[(i + 1) % plan.outerWall.length];
     const height = 9.5 + ((site.seed + i * 31) % 9);
