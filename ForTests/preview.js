@@ -82,9 +82,11 @@ scene.add(grid);
 let overrideConfig=JSON.parse(JSON.stringify(DESIGN_OVERRIDES||{}));
 function getConfig(id){if(!overrideConfig[id])overrideConfig[id]={};return overrideConfig[id];}
 function applyOverrides(){
-  for(const [id,cfg] of Object.entries(overrideConfig)){
-    setShipDesignOverrides(id,cfg.design||{});
-    setShipStructureOverrides(id,cfg.structure||{});
+  // Explicitly clear runtime overrides for untouched/reset vessels as well.
+  for(const id of Object.keys(SHIP_DESIGNS)){
+    const config=overrideConfig[id]||{};
+    setShipDesignOverrides(id,config.design||{});
+    setShipStructureOverrides(id,config.structure||{});
   }
 }
 applyOverrides();
@@ -194,7 +196,7 @@ function restoreDocumentSnapshot(snapshot){
   applyOverrides();
   const nextId=Object.hasOwn(SHIP_DESIGNS,snapshot.activeShip)?snapshot.activeShip:Object.keys(SHIP_DESIGNS)[0];
   selector.value=nextId;
-  loadShip(nextId,selectedName,false);
+  loadShip(nextId,selectedName,false,true);
   refreshHistory();
 }
 function historyAction(action){
@@ -245,13 +247,114 @@ function selectPart(name){
   document.querySelector('#part-name').textContent=name;
   gizmo.attach(part);
   refreshTransformFields();
+  refreshSelectionTools();
 }
 function populatePartList(){
+  const filter=(document.querySelector('#part-search')?.value||'').trim().toLowerCase();
   partSelector.replaceChildren();
   for(const name of ship.userData.partNames){
+    if(filter&&!name.toLowerCase().includes(filter))continue;
     const option=document.createElement('option');
     option.value=name;option.textContent=name;partSelector.appendChild(option);
   }
+  if(selectedName&&Array.from(partSelector.options).some(option=>option.value===selectedName))partSelector.value=selectedName;
+}
+function refreshSelectionTools(){
+  const part=ship&&selectedName?ship.userData.getPart(selectedName):null;
+  const toggle=document.querySelector('#toggle-visibility');
+  if(toggle)toggle.textContent=part&&!part.visible?'Show selected':'Hide selected';
+}
+function frameObject(object){
+  if(!object)return;
+  object.updateWorldMatrix(true,true);
+  const bounds=new THREE.Box3().setFromObject(object);
+  if(bounds.isEmpty())return;
+  const size=bounds.getSize(new THREE.Vector3());
+  const center=bounds.getCenter(new THREE.Vector3());
+  const distance=Math.max(size.length()*1.7,2);
+  const direction=camera.position.clone().sub(orbit.target);
+  if(direction.lengthSq()<1e-6)direction.set(1,.65,1);
+  direction.normalize();
+  orbit.target.copy(center);
+  camera.position.copy(center).addScaledVector(direction,distance);
+  camera.near=Math.max(.05,distance/1000);
+  camera.far=Math.max(2000,distance*30);
+  camera.updateProjectionMatrix();
+  orbit.update();
+}
+function setCameraPreset(name){
+  if(!ship)return;
+  ship.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(ship);
+  const size=bounds.getSize(new THREE.Vector3());
+  const center=bounds.getCenter(new THREE.Vector3());
+  const distance=Math.max(size.length()*1.35,5);
+  const vectors={
+    top:new THREE.Vector3(0,1,0),
+    side:new THREE.Vector3(1,.24,0),
+    bow:new THREE.Vector3(.12,.42,-1),
+    stern:new THREE.Vector3(.12,.42,1)
+  };
+  const direction=(vectors[name]||vectors.bow).normalize();
+  camera.up.set(0,1,0);
+  camera.position.copy(center).addScaledVector(direction,distance);
+  camera.lookAt(center);
+  orbit.target.copy(center);
+  orbit.update();
+}
+function setPartVisibility(name,visible){
+  if(!ship||!ship.userData.getPart(name))return;
+  const before=captureDocumentSnapshot();
+  ship.userData.setPartVisible(name,visible);
+  syncCurrentShipState();
+  commitHistory(before,(visible?'Show ':'Hide ')+name);
+  refreshSelectionTools();
+}
+function resetAllComponents(){
+  if(!ship)return;
+  const before=captureDocumentSnapshot();
+  for(const name of ship.userData.partNames)ship.userData.resetPartTransform(name);
+  syncCurrentShipState();
+  commitHistory(before,'Reset all components');
+  refreshTransformFields();
+  refreshSelectionTools();
+}
+function isolateSelected(){
+  if(!ship||!selectedName)return;
+  const before=captureDocumentSnapshot();
+  for(const name of ship.userData.partNames)ship.userData.setPartVisible(name,name===selectedName);
+  syncCurrentShipState();
+  commitHistory(before,'Isolate '+selectedName);
+  refreshSelectionTools();
+}
+function showAllComponents(){
+  if(!ship)return;
+  const before=captureDocumentSnapshot();
+  for(const name of ship.userData.partNames)ship.userData.setPartVisible(name,true);
+  syncCurrentShipState();
+  commitHistory(before,'Show all components');
+  refreshSelectionTools();
+}
+function resetVesselDesign(){
+  if(!activeShipId)return;
+  const before=captureDocumentSnapshot();
+  const label=getShipDesign(activeShipId)?.label||activeShipId;
+  delete overrideConfig[activeShipId];
+  applyOverrides();
+  loadShip(activeShipId,selectedName,false,true);
+  commitHistory(before,'Reset vessel '+label+' to original design');
+}
+function toggleSnap(){
+  snapEnabled=!snapEnabled;
+  gizmo.setTranslationSnap(snapEnabled?.25:null);
+  gizmo.setRotationSnap(snapEnabled?THREE.MathUtils.degToRad(15):null);
+  gizmo.setScaleSnap(snapEnabled?.1:null);
+  document.querySelector('#snap-toggle').textContent=snapEnabled?'Snapping on':'Snapping off';
+}
+function toggleSpace(){
+  const world=gizmo.space!=='world';
+  gizmo.setSpace(world?'world':'local');
+  document.querySelector('#space-toggle').textContent=world?'World space':'Local space';
 }
 function renderTransformInputs(){
   for(const [id,label,kind] of TRANSFORM_FIELDS){
@@ -304,8 +407,8 @@ function updateInfo(design){
   document.querySelector('#parts').textContent=ship.userData.partNames.length;
   document.querySelector('#description').textContent=design.hullProfile+' '+(design.reference||'');
 }
-function loadShip(type,preferredPart='',reframe=true){
-  if(ship){syncCurrentShipState();gizmo.detach();disposeShipModel(ship);ship=null;}
+function loadShip(type,preferredPart='',reframe=true,skipSync=false){
+  if(ship){if(!skipSync)syncCurrentShipState();gizmo.detach();disposeShipModel(ship);ship=null;}
   activeShipId=type;
   const design=getShipDesign(type);
   if(!design){setStatus('Unknown vessel design.',true);return;}
@@ -331,8 +434,8 @@ function changeMode(mode){
   document.querySelectorAll('[data-mode]').forEach(button=>button.classList.toggle('active',button.dataset.mode===mode));
 }
 function buildExport(){
-  syncTransforms();
-  return {format:'verdant-reach-ship-editor',version:1,savedAt:new Date().toISOString(),ships:overrideConfig};
+  syncCurrentShipState();
+  return {format:'verdant-reach-ship-editor',version:2,savedAt:new Date().toISOString(),ships:overrideConfig};
 }
 async function saveDesign(){
   try{
@@ -368,7 +471,24 @@ document.querySelector('#reset-part').addEventListener('click',()=>{
   syncCurrentShipState();
   commitHistory(before,'Reset component '+selectedName);
   refreshTransformFields();
+  refreshSelectionTools();
 });
+document.querySelector('#reset-all-parts').addEventListener('click',resetAllComponents);
+document.querySelector('#reset-vessel').addEventListener('click',resetVesselDesign);
+document.querySelector('#frame-selected').addEventListener('click',()=>{
+  if(ship&&selectedName)frameObject(ship.userData.getPart(selectedName));
+});
+document.querySelector('#toggle-visibility').addEventListener('click',()=>{
+  if(!ship||!selectedName)return;
+  const part=ship.userData.getPart(selectedName);
+  setPartVisibility(selectedName,!part.visible);
+});
+document.querySelector('#isolate-selected').addEventListener('click',isolateSelected);
+document.querySelector('#show-all-parts').addEventListener('click',showAllComponents);
+document.querySelector('#part-search').addEventListener('input',populatePartList);
+document.querySelector('#space-toggle').addEventListener('click',toggleSpace);
+document.querySelector('#snap-toggle').addEventListener('click',toggleSnap);
+document.querySelectorAll('[data-camera]').forEach(button=>button.addEventListener('click',()=>setCameraPreset(button.dataset.camera)));
 document.querySelector('#save-design').addEventListener('click',saveDesign);
 document.querySelector('#export-design').addEventListener('click',exportDesign);
 renderer.domElement.addEventListener('click',event=>{
@@ -394,8 +514,25 @@ gizmo.addEventListener('mouseUp',()=>{
   refreshTransformFields();
 });
 window.addEventListener('keydown',event=>{
-  if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'){event.preventDefault();historyAction(event.shiftKey?'redo':'undo');}
-  else if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='y'){event.preventDefault();historyAction('redo');}
+  const target=event.target;
+  const typing=target instanceof HTMLElement&&(
+    target.isContentEditable||
+    (target.tagName==='INPUT'&&['text','search','email','password'].includes(target.type))
+  );
+  if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'){
+    if(typing)return;
+    event.preventDefault();historyAction(event.shiftKey?'redo':'undo');return;
+  }
+  if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='y'){
+    if(typing)return;
+    event.preventDefault();historyAction('redo');return;
+  }
+  if(typing||event.ctrlKey||event.metaKey||event.altKey)return;
+  const key=event.key.toLowerCase();
+  if(key==='w')changeMode('translate');
+  else if(key==='e')changeMode('rotate');
+  else if(key==='r')changeMode('scale');
+  else if(key==='f'&&ship&&selectedName)frameObject(ship.userData.getPart(selectedName));
 });
 function resize(){
   const width=Math.max(1,viewport.clientWidth),height=Math.max(1,viewport.clientHeight);
