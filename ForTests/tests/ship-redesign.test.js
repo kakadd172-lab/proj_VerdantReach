@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SHIP_DESIGNS, getShipDesign, setShipDesignOverrides } from '../ship-designs.js?v=0.8.5';
-import { getHullHalfBeam,getSheerPoint,getShipStructureBlueprint,setShipStructureOverrides } from '../ship-structures.js?v=0.8.5';
-import { cubicBezierScalar,getCrossSectionHalfBreadthRatio,getKeelLineHeight,getOpenHullPoint,getParametricHullPoint } from '../ship-hull-parameterization.js?v=0.8.5';
-import { createShipModel,disposeShipModel } from '../ship-models.js?v=0.8.5';
+import { SHIP_DESIGNS, getShipDesign, setShipDesignOverrides, SHIP_DESIGN_MODULE_VERSION } from '../ship-designs.js?v=0.8.6';
+import { getHullHalfBeam,getSheerPoint,getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION } from '../ship-structures.js?v=0.8.6';
+import { cubicBezierScalar,getCrossSectionHalfBreadthRatio,getKeelLineHeight,getOpenHullPoint,getParametricHullPoint } from '../ship-hull-parameterization.js?v=0.8.6';
+import { createShipModel,disposeShipModel,SHIP_MODEL_MODULE_VERSION } from '../ship-models.js?v=0.8.6';
 const ids=Object.keys(SHIP_DESIGNS);
 function meshNamed(root,name){let found=null;root.traverse(o=>{if(o.isMesh&&o.name===name)found=o;});return found;}
 
@@ -191,4 +191,13 @@ test('getShipState captures live Object3D changes made by the transform gizmo',(
    assert.ok(Math.abs(value.x-.75)<1e-8&&Math.abs(value.ry-.12)<1e-8&&Math.abs(value.sz-1.15)<1e-8);
   }finally{disposeShipModel(restored);}
  }finally{disposeShipModel(ship);}
+});
+
+test('preview ship module graph uses one matching editor revision',()=>{
+ assert.equal(SHIP_DESIGN_MODULE_VERSION,'0.8.6');
+ assert.equal(SHIP_STRUCTURE_MODULE_VERSION,'0.8.6');
+ assert.equal(SHIP_MODEL_MODULE_VERSION,'0.8.6');
+ assert.equal(typeof setShipDesignOverrides,'function');
+ assert.equal(typeof setShipStructureOverrides,'function');
+ assert.equal(typeof createShipModel,'function');
 });
