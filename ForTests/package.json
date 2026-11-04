@@ -1,7 +1,7 @@
 {
   "name": "verdant-reach-ship-redesign-lab",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -10,7 +10,10 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "test": "node --test",
-    "smoke": "node browser-smoke.mjs"
+    "smoke": "node browser-smoke.mjs",
+    "postinstall": "npm install --no-package-lock --prefix ../V8/verdant-reach-v0.8.6/verdant-reach",
+    "test:ships": "node --test tests/ship-redesign.test.js",
+    "check:modules": "node verify-game-modules.mjs"
   },
   "dependencies": {
     "three": "0.187.0"
@@ -18,5 +21,6 @@
   "devDependencies": {
     "vite": "8.3.5",
     "playwright": "1.64.1"
-  }
+  },
+  "description": "Standalone editor and preview for the v0.8.6 modular Verdant Reach ship system"
 }
