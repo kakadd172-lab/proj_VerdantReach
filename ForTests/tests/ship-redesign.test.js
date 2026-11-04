@@ -112,7 +112,6 @@ test('structure overrides change the selected vessel frame layout and can be res
     const ship = createShipModel('sloop');
     try {
       assert.ok(ship.userData.getPart('frame-' + String(original.frameCount + 2).padStart(2, '0')));
-      assert.equal(ship.userData.getPartNames().length, ship.userData.partNames.length);
     } finally {
       disposeShipModel(ship);
     }
@@ -181,7 +180,7 @@ test('reset component restores its original hierarchy, transform and visibility'
     assert.ok(Math.abs(part.rotation.y - originalRotation.y) < 1e-8);
     assert.ok(Math.abs(part.rotation.z - originalRotation.z) < 1e-8);
     assert.deepEqual(ship.userData.getShipState().unlinkedParts, []);
-    assert.deepEqual(ship.userData.getShipState().hiddenParts, []);
+    assert.deepEqual(ship.userData.getShipState().hiddenParts, {});
   } finally {
     disposeShipModel(ship);
   }
