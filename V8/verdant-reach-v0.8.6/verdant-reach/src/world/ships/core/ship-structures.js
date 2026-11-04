@@ -11,11 +11,33 @@ const profiles = Object.fromEntries(
 
 for (const profile of Object.values(profiles)) Object.freeze(profile);
 export const SHIP_STRUCTURE_CATALOGUE_VERSION = '0.8.6';
+export const SHIP_STRUCTURE_MODULE_VERSION = SHIP_STRUCTURE_CATALOGUE_VERSION;
 export const SHIP_STRUCTURE_BLUEPRINTS = Object.freeze(profiles);
 
 const clamp01 = (value) => Math.max(0, Math.min(1, Number(value) || 0));
+const structureOverrides = new Map();
+
+export function setShipStructureOverrides(type, overrides = {}) {
+  const id = String(type ?? '').replace(/^ship-/, '');
+  if (!Object.hasOwn(SHIP_STRUCTURE_BLUEPRINTS, id)) return false;
+  if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides)) {
+    throw new TypeError('Ship structure overrides must be an object.');
+  }
+  if (Object.keys(overrides).length === 0) structureOverrides.delete(id);
+  else structureOverrides.set(id, structuredClone(overrides));
+  return true;
+}
+
+export function resetShipStructureOverrides(type) {
+  return setShipStructureOverrides(type, {});
+}
+
 export function getShipStructureBlueprint(id) {
-  return SHIP_STRUCTURE_BLUEPRINTS[String(id ?? '').replace(/^ship-/, '')] ?? null;
+  const key = String(id ?? '').replace(/^ship-/, '');
+  const base = SHIP_STRUCTURE_BLUEPRINTS[key];
+  if (!base) return null;
+  const overrides = structureOverrides.get(key);
+  return overrides ? Object.freeze({ ...base, ...overrides }) : base;
 }
 
 export function getHullHalfBeam(design, station) {
