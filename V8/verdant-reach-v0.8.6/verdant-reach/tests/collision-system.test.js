@@ -42,11 +42,11 @@ test('starting inside a collider is resolved deterministically', () => {
 test('overlapping blockers are iteratively separated', () => {
   const world = new CollisionWorld();
   world.setBodies('fort', [
-    boxCollider('north', 0, -2, 8, 1),
+    boxCollider('north', 0, 0, 8, 1),
     boxCollider('west', -2, 0, 1, 8),
-    circleCollider('tower', 2, 2, 2),
+    circleCollider('tower', -4, 0, 1.2),
   ]);
-  const resolved = world.resolveCircle(0, 0, 0.55, { maxIterations: 12 });
+  const resolved = world.resolveCircle(-2, 0, 0.55, { maxIterations: 12 });
   assert.equal(resolved.collided, true);
   assert.equal(world.isCircleFree(resolved.x, resolved.z, 0.55), true);
 });
