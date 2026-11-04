@@ -108,9 +108,13 @@ try{
   assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-originalGalleonBeam)<1e-6,'Undo on second vessel did not restore its previous design.');
   await page.locator('#undo').click();
   assert.equal(await page.locator('#ship-select').inputValue(),'sloop','Global undo should return to the vessel associated with the earlier edit.');
-  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-5.3)<1e-6,'Global undo failed to restore the earlier vessel edit.');
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-sloopBeam)<1e-6,'Global undo failed to restore the earlier vessel baseline.');
   await page.locator('#redo').click();
-  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-originalGalleonBeam)<1e-6,'Global redo failed to restore the next vessel state.');
+  assert.equal(await page.locator('#ship-select').inputValue(),'sloop','Redo should restore the next recorded vessel.');
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-5.3)<1e-6,'Global redo failed to restore the earlier vessel edit.');
+  await page.locator('#redo').click();
+  assert.equal(await page.locator('#ship-select').inputValue(),'galleon','Second redo should restore the following vessel.');
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-16.5)<1e-6,'Global redo failed to restore the next vessel state.');
 
   // Advanced selection and viewport tools remain operational.
   await page.locator('#part-search').fill('mast');
