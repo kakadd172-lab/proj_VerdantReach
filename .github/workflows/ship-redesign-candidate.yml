@@ -9,7 +9,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: experimental-ship-redesign-checks-current
+  group: v086-modular-editor-checks
   cancel-in-progress: true
 jobs:
   candidate:
