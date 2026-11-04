@@ -19,24 +19,35 @@ import {
   disposeShipModel,
   SHIP_GENERATORS,
   VESSEL_IDS,
+  VESSEL_MODULES,
   SHIP_MODEL_MODULE_VERSION,
 } from '../ship-models.js?v=0.8.6';
+import { getVesselModule } from '../ships/index.js';
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
-test('the preview uses the v0.8.6 game modules and shared revision', () => {
+test('the preview uses v0.8.6 game data through 16 dedicated ForTests ship modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.6');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.6');
   assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.6');
   assert.equal(ids.length, 16);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
-  for (const id of ids) assert.equal(typeof SHIP_GENERATORS[id], 'function', id + ' generator');
+  assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
+  for (const id of ids) {
+    const module = getVesselModule(id);
+    assert.ok(module, id + ' ForTests ship module');
+    assert.equal(module.id, id);
+    assert.equal(typeof module.generate, 'function', id + ' dedicated generator');
+    assert.equal(module.editorModulePath, 'ForTests/ships/vessels/' + id + '.js');
+    assert.equal(typeof SHIP_GENERATORS[id], 'function', id + ' registered generator');
+  }
 });
 
 test('each vessel has an independent design, structure profile and generator', () => {
   for (const id of ids) {
     const design = getShipDesign(id);
     const structure = getShipStructureBlueprint(id);
+    const module = getVesselModule(id);
     assert.ok(design, id + ' design');
     assert.ok(structure, id + ' structure');
     assert.equal(design.id, id);
@@ -44,12 +55,14 @@ test('each vessel has an independent design, structure profile and generator', (
     assert.ok(Array.isArray(design.masts) && design.masts.length > 0, id + ' rig');
     assert.ok(Array.isArray(design.partNames) && design.partNames.length > 10, id + ' parts');
     assert.ok(structure.frameCount >= 12, id + ' frames');
+    assert.equal(module.design.id, id, id + ' module design');
+    assert.equal(module.structure.frameCount, structure.frameCount, id + ' module structure');
     assert.ok(Object.isFrozen(design), id + ' design is immutable');
     assert.ok(Object.isFrozen(structure), id + ' structure is immutable');
   }
 });
 
-test('all 16 dedicated generators build the expected editable game models', () => {
+test('all 16 dedicated ForTests generators build their own editable game models', () => {
   for (const id of ids) {
     const ship = createShipModel(id);
     try {
@@ -58,8 +71,14 @@ test('all 16 dedicated generators build the expected editable game models', () =
       assert.equal(
         ship.userData.shipDefinitionPath,
         'src/world/ships/vessels/' + id + '.js',
-        id + ' definition path',
+        id + ' game definition path',
       );
+      assert.equal(
+        ship.userData.shipEditorModulePath,
+        'ForTests/ships/vessels/' + id + '.js',
+        id + ' dedicated ForTests model/generator path',
+      );
+      assert.equal(ship.userData.shipSourceVersion, '0.8.6');
       assert.ok(ship.userData.getPart('hull'), id + ' hull');
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
