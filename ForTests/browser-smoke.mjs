@@ -35,9 +35,11 @@ try{
   const page=await browser.newPage({viewport:{width:1440,height:1000}});
   const pageErrors=[];
   const consoleErrors=[];
+  const duplicateThreeWarnings=[];
   page.on('pageerror',error=>pageErrors.push(error.message));
   page.on('console',message=>{
     if(message.type()==='error')consoleErrors.push(message.text());
+    if(message.type()==='warning'&&/Multiple instances of Three\.js/i.test(message.text()))duplicateThreeWarnings.push(message.text());
   });
 
   await page.goto(baseUrl,{waitUntil:'domcontentloaded',timeout:30000});
@@ -165,6 +167,7 @@ try{
   assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-originalGalleonBeam)<1e-6,'Redo did not reapply the vessel reset.');
 
   assert.deepEqual(pageErrors,[],'Browser runtime errors: '+pageErrors.join(' | '));
+  assert.deepEqual(duplicateThreeWarnings,[],'Multiple Three.js instances detected: '+duplicateThreeWarnings.join(' | '));
   console.log('Browser smoke test passed.');
   console.log('Vessels in dropdown: '+optionCount);
   console.log('Initial vessel: '+initialStatus);
