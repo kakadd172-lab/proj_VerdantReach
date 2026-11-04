@@ -22,7 +22,7 @@ import { WorldNeedsSystem } from './systems/world-needs.js';
 import { WorldEditSystem } from './systems/world-editing.js';
 import { MaritimeSystem } from './systems/maritime.js';
 import { resolveGameMode } from './systems/game-mode.js';
-import { createCreativeEntity, disposeCreativeEntity } from './world/creative-entities.js?v=0.8.6';
+import { createCreativeEntity, disposeCreativeEntity, getCreativeEntityColliders } from './world/creative-entities.js?v=0.8.6';
 import { getShipTypeFromCreativeKind, getShipDesign, WORLD_UNITS_PER_METRE } from './world/ship-designs.js?v=0.8.6';
 
 const $ = (selector) => document.querySelector(selector);
@@ -240,7 +240,10 @@ function isCreativeWatercraftKind(kind) {
 
 function syncCreativeModels() {
   if (!creativeRoot || !worldEdits) return;
-  for (const model of creativeModels.values()) disposeCreativeEntity(model);
+  for (const [id, model] of creativeModels) {
+    worldManager?.removeCollisionBodies('creative:' + id);
+    disposeCreativeEntity(model);
+  }
   creativeModels.clear();
   for (const entity of worldEdits.entities) {
     if (entity.kind !== 'village' && entity.kind !== 'port') createCreativeVisual(entity);
@@ -250,6 +253,7 @@ function syncCreativeModels() {
 function createCreativeVisual(record) {
   if (!creativeRoot || !record || record.kind === 'village' || record.kind === 'port') return null;
   const previous = creativeModels.get(record.id);
+  worldManager?.removeCollisionBodies('creative:' + record.id);
   if (previous) disposeCreativeEntity(previous);
   const model = createCreativeEntity(record.kind);
   const ground = generator.heightAt(record.x, record.z);
@@ -271,6 +275,7 @@ function createCreativeVisual(record) {
   model.userData.creativeId = record.id;
   creativeRoot.add(model);
   creativeModels.set(record.id, model);
+  worldManager?.setCollisionBodies('creative:' + record.id, getCreativeEntityColliders(record));
   return model;
 }
 
@@ -287,6 +292,7 @@ function pruneCreativeModels() {
   const liveIds = new Set(worldEdits.entities.map((entity) => entity.id));
   for (const [id, model] of creativeModels) {
     if (liveIds.has(id)) continue;
+    worldManager?.removeCollisionBodies('creative:' + id);
     disposeCreativeEntity(model);
     creativeModels.delete(id);
   }
@@ -468,6 +474,7 @@ async function handleCreativeAction(payload = {}) {
       if (payload.objectId === mountedCreativeShipId) throw new Error('Disembark from this vessel before deleting it.');
       if (!worldEdits.removeEntity(payload.objectId)) throw new Error('Select an object that can be deleted.');
       const model = creativeModels.get(payload.objectId);
+      worldManager?.removeCollisionBodies('creative:' + payload.objectId);
       if (model) disposeCreativeEntity(model);
       creativeModels.delete(payload.objectId);
       message = 'Selected object removed from this world.';
@@ -554,6 +561,7 @@ async function handleCreativeAction(payload = {}) {
       const removed = worldEdits.removeNearby(player.position.x, player.position.z, 180);
       for (const id of removed.entityIds) {
         const model = creativeModels.get(id);
+        worldManager?.removeCollisionBodies('creative:' + id);
         if (model) disposeCreativeEntity(model);
         creativeModels.delete(id);
       }
@@ -942,6 +950,7 @@ async function startWorld(seedInput, shouldLoad = true, requestedMode = ui.getSe
   controls.update();
   discoverNearbySectors();
   worldActors = new WorldActorManager(scene, generator, intelligence, civilization, ecosystem, combat);
+  worldActors.setCollisionWorld(worldManager.collisionWorld);
   worldActors.update(0, player.position.x, player.position.z, getWorldClock().hour, getWorldClock().day, worldManager.renderOriginX, worldManager.renderOriginZ);
   if (creativeRoot) {
     for (const model of creativeModels.values()) disposeCreativeEntity(model);
@@ -955,6 +964,9 @@ async function startWorld(seedInput, shouldLoad = true, requestedMode = ui.getSe
     if (entity.kind === 'village' || entity.kind === 'port') continue;
     createCreativeVisual(entity);
   }
+  // Actor collision is connected after static chunks, settlements and saved
+  // creative objects are registered, so a restored spawn is depenetrated too.
+  player.setCollisionWorld(worldManager.collisionWorld);
   if (fieldTestLayout) {
     const localSettlements = [...worldActors.settlements.values()].map((record) => record.settlement);
     const localLinks = intelligence.roadLinksFor(localSettlements, 4400);
