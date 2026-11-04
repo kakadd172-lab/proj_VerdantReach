@@ -876,8 +876,29 @@ function setupPartApi(root, registry, design) {
       return true;
     },
     resetPartTransform(name) {
-      if (!registry.has(name)) return false;
-      return api.setPartTransform(name, {});
+      const part = registry.get(name);
+      const info = original.get(name);
+      if (!part || !info) return false;
+      // Reset means restore the component's original parent and exact local transform,
+      // not merely set its offset to zero from its most recent detach/relink baseline.
+      if (part.parent !== info.parent) {
+        part.parent?.remove(part);
+        info.parent.add(part);
+      }
+      part.position.copy(info.position);
+      part.rotation.copy(info.rotation);
+      part.scale.copy(info.scale);
+      part.updateMatrix();
+      transformBase.set(name, {
+        position: info.position.clone(),
+        rotation: info.rotation.clone(),
+        scale: info.scale.clone(),
+      });
+      delete state.partTransforms[name];
+      delete state.hiddenParts[name];
+      state.unlinkedParts = state.unlinkedParts.filter((item) => item !== name);
+      part.visible = true;
+      return true;
     },
     setRudderAngle(radians) {
       const part = registry.get('rudder');
@@ -969,7 +990,7 @@ function setupPartApi(root, registry, design) {
   return api;
 }
 
-export function createShipModel(type, componentTransforms = {}) {
+export function createShipModel(type, componentTransforms = {}, partOptions = {}) {
   const design = getShipDesign(type);
   if (!design) throw new Error('Unknown historical ship type: ' + type);
   const root = new THREE.Group();
@@ -998,7 +1019,11 @@ export function createShipModel(type, componentTransforms = {}) {
   addDeckDetails(design, root, registry, mats);
 
   const api = setupPartApi(root, registry, design);
+  // Restore detached hierarchy first so saved offsets are interpreted in the
+  // detached coordinate system; then apply transforms and visibility.
+  if (Array.isArray(partOptions.unlinkedParts)) api.applyShipState({ unlinkedParts: partOptions.unlinkedParts });
   if (componentTransforms && typeof componentTransforms === 'object') api.applyShipState({ partTransforms: componentTransforms });
+  if (partOptions.hiddenParts && typeof partOptions.hiddenParts === 'object') api.applyShipState({ hiddenParts: partOptions.hiddenParts });
   for (const key of ['getPart', 'getPartTransform', 'detachPart', 'relinkPart', 'setPartVisible', 'setPartTransform', 'resetPartTransform', 'setRudderAngle', 'setSailTrim', 'setMastLean', 'setSailDeployment', 'animateShip', 'getShipState', 'applyShipState']) {
     root.userData[key] = api[key].bind(api);
   }
