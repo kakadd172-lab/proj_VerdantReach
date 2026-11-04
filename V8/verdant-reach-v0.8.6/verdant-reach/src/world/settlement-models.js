@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { boxCollider, circleCollider } from './collision.js';
 import { buildFreeCityPlan, buildRuinedCastlePlan, isCityGateWallPanelGap } from './settlement-layouts.js';
 import { buildDrapedRoadData } from './road-geometry.js';
 
