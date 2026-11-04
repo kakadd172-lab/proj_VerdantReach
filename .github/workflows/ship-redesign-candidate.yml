@@ -4,6 +4,7 @@ on:
     branches: [chatgpt-v0.8.6-modular-ship-generators]
     paths:
       - 'ForTests/**'
+      - 'V8/verdant-reach-v0.8.6/verdant-reach/src/world/ships/**'
       - '.github/workflows/ship-redesign-candidate.yml'
 permissions:
   contents: read
