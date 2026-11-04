@@ -2,13 +2,19 @@
 
 This folder is isolated from the actual game. The main v0.8.5 app does not import these files.
 
-## Contents
-- Candidate modules for ship designs, hull parameterization, structure profiles and model generation.
-- A standalone Three.js Ship Design Studio for all 16 vessel types.
-- Component selection by list or by clicking the model.
-- Move / Rotate / Scale gizmos, numeric transforms, hull and structure parameter controls.
-- Undo / redo, component reset, local save to `design-overrides.json`, and JSON export.
-- `tests/ship-redesign.test.js`: geometry and integration checks.
+## Studio features
+- All 16 candidate vessel designs.
+- Component selection from the list or by clicking the 3D model.
+- Move, Rotate and Scale gizmos, with numeric transform fields.
+- Local / World transform space and optional translation, rotation and scale snapping.
+- Search components, hide / show, isolate, show all, detach and relink components.
+- Reset one component, reset all components, or restore the selected vessel to its catalogue design.
+- One document-wide Undo / Redo history across component edits, parameter edits and vessel switches.
+- Frame selected component, fit ship, and Top / Side / Bow / Stern camera presets.
+- Wireframe, grid and shadow display toggles for visual inspection.
+- Editable hull dimensions and parametric structure controls.
+- Save to local `design-overrides.json` through the Vite dev server or export a JSON backup.
+- Geometry tests and a Playwright Chromium smoke test for the interactive editor.
 
 ## Run locally (Node.js 22+)
 
@@ -17,18 +23,19 @@ cd D:\Projects\VerdantReach\ForTests
 npm install
 npm test
 npm run build
+npm run smoke
 npm run dev
 ```
 
-Open the local Vite address (normally `http://127.0.0.1:5174/`).
+Open `http://127.0.0.1:5174/`.
 
 ## Editing workflow
 
-1. Select a vessel.
-2. Select a component from the list or click it in the 3D viewport.
-3. Choose Move, Rotate or Scale and manipulate the gizmo.
-4. Adjust numeric component transforms or design parameters in the right panel.
-5. Use Undo / Redo to review changes.
-6. Press **Save to ForTests** to write `design-overrides.json` through the local Vite development server, or **Export JSON** to save a backup.
+1. Select a vessel and choose a component from the list or click it in the viewport.
+2. Use W / E / R for Move / Rotate / Scale; use F to frame the selected component.
+3. Adjust numeric transforms or parametric hull / structure values.
+4. Use Ctrl+Z / Ctrl+Y for document-wide Undo / Redo. The history follows edits across vessel switches.
+5. Use Reset component, Reset all components, or Reset vessel design as appropriate.
+6. Save to write `design-overrides.json`, or export a JSON backup.
 
-The current studio release edits whole registered components and parametric dimensions/profile values. Hull surface control-point sculpting is a planned next stage. Do not integrate these experimental files into the main game until visually reviewed.
+This release edits whole registered components and parametric design values. Direct hull surface control-point sculpting remains a planned next stage. Do not integrate these experimental files into the main game until visually reviewed.
