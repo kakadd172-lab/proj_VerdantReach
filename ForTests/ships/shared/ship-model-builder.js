@@ -30,7 +30,7 @@ function getHullFrameCount(design) {
   return design.structure?.frameCount ?? 18;
 }
 
-export const SHIP_MODEL_ENGINE_VERSION = '0.8.6';
+
 
 const COLORS = Object.freeze({
   hull: 0x684632, lower: 0x3e342d, plank: 0x8d6b4b, deck: 0xb1946a,

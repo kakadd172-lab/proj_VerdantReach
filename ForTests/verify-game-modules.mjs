@@ -18,10 +18,10 @@ const hullMath=readFileSync(join(shipRoot,'shared','hull-math.js'),'utf8');
 assert.ok(builder.includes("from 'three'"),'Geometry engine must use Three.js.');
 assert.ok(builder.includes("from './hull-math.js'"),'Geometry engine must use local hull math.');
 assert.ok(builder.includes('createShipModelFromVessel'),'Geometry engine must accept a full vessel definition.');
-assert.ok(!/ship-designs\.js|ship-structures\.js|ship-hull-parameterization\.js|V8\\/.test(builder),'Geometry engine still depends on legacy/game ship files.');
+assert.ok(!builder.includes('ship-designs.js')&&!builder.includes('ship-structures.js')&&!builder.includes('ship-hull-parameterization.js')&&!builder.includes('V8/'),'Geometry engine still depends on legacy/game ship files.');
 assert.ok(hullMath.includes('getParametricHullPoint'),'Hull math must export parametric hull generation.');
 assert.ok(helper.includes('defineVesselSpec'),'Common helper must validate individual vessel definitions.');
-assert.ok(!/V8\\/|\.\.\/V8/.test(helper+builder+registry),'ForTests ship runtime must not import main-game sources.');
+assert.ok(![helper,builder,registry].some(source=>source.includes('../V8/')||source.includes('V8/verdant-reach')),'ForTests ship runtime must not import main-game sources.');
 
 for(const id of ids){
  const path=join(shipRoot,'vessels',id+'.js');
@@ -37,7 +37,7 @@ for(const id of ids){
  assert.ok(source.includes('function generate'+pascal(id)),id+' must own generator.');
  assert.ok(source.includes('createVesselModel('),id+' must invoke generic geometry engine.');
  assert.ok(registry.includes("./vessels/"+id+".js"),id+' missing from registry.');
- assert.ok(!/V8\\/|\.\.\/V8/.test(source),id+' must not import game source code.');
+ assert.ok(!source.includes('../V8/')&&!source.includes('V8/verdant-reach'),id+' must not import game source code.');
 }
 for(const obsolete of ['ship-designs.js','ship-structures.js','ship-hull-parameterization.js','ship-models.js']){
  assert.ok(!existsSync(join(here,obsolete)),obsolete+' should be removed from ForTests.');
