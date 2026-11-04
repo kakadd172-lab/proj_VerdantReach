@@ -57,6 +57,9 @@ function shipEditorSavePlugin() {
 
 export default defineConfig({
   base: './',
+  // Share exactly one Three.js instance between the preview, controls and models.
+  resolve: { dedupe: ['three'] },
+  optimizeDeps: { include: ['three'], force: true },
   plugins: [shipEditorSavePlugin()],
   server: { host: '127.0.0.1', port: 5174, strictPort: true }
 });
