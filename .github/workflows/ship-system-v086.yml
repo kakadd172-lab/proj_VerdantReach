@@ -1,0 +1,32 @@
+name: Verdant Reach v0.8.6 modular ship system
+
+on:
+  push:
+    paths:
+      - 'V8/verdant-reach-v0.8.6/verdant-reach/**'
+      - '.github/workflows/ship-system-v086.yml'
+  pull_request:
+    paths:
+      - 'V8/verdant-reach-v0.8.6/verdant-reach/**'
+      - '.github/workflows/ship-system-v086.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: V8/verdant-reach-v0.8.6/verdant-reach
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Run game and ship tests
+        run: npm test
+      - name: Build game
+        run: npm run build
