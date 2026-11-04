@@ -1,7 +1,7 @@
 import { getCrossSectionHalfBreadthRatio, getKeelLineHeight, getLongitudinalHalfBeamRatio } from './ship-hull-parameterization.js?v=0.8.6';
 import { VESSEL_SPECS } from '../vessels/index.js?v=0.8.6';
 /**
- * Ship-specific hull-line and framing profiles for the v0.8.5 modular fleet.
+ * Ship-specific hull-line and framing profiles for the v0.8.6 modular fleet.
  * Profiles are dimensionless reconstruction controls. Real-world length,
  * beam, draft and freeboard remain in ship-designs.js.
  */
