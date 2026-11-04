@@ -204,10 +204,10 @@ test('version metadata and browser entry identify v0.8.6', () => {
   const pkg = JSON.parse(read('package.json'));
   const html = read('index.html');
   assert.equal(pkg.version, '0.8.6');
-  assert.match(html, /styles\.css\?v=0\.8\.5/);
-  assert.match(html, /main\.js\?v=0\.8\.5/);
-  assert.match(read('src/main.js'), /version: '0\.8\.5'/);
-  assert.match(read('src/ui/interface.js'), /v0\.8\.5/);
+  assert.match(html, /styles\.css\?v=0\.8\.6/);
+  assert.match(html, /main\.js\?v=0\.8\.6/);
+  assert.match(read('src/main.js'), /version: '0\.8\.6'/);
+  assert.match(read('src/ui/interface.js'), /v0\.8\.6/);
 });
 
 test('waterfall sites remain deterministic in the prior world systems', () => {
