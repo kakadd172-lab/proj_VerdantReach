@@ -2,31 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  SHIP_DESIGNS,
-  getShipDesign,
-  setShipDesignOverrides,
-  resetShipDesignOverrides,
-  SHIP_DESIGN_MODULE_VERSION,
-} from '../ship-designs.js?v=0.8.6';
-import {
-  getShipStructureBlueprint,
-  setShipStructureOverrides,
-  resetShipStructureOverrides,
-  SHIP_STRUCTURE_MODULE_VERSION,
-} from '../ship-structures.js?v=0.8.6';
-import {
-  createShipModel,
-  disposeShipModel,
-  SHIP_GENERATORS,
-  VESSEL_IDS,
-  VESSEL_MODULES,
-  SHIP_MODEL_MODULE_VERSION,
-} from '../ship-models.js?v=0.8.6';
-import { getVesselModule } from '../ships/index.js';
+  SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,resetShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
+  getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
+  createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
+  getVesselModule,
+} from '../ships/index.js?v=0.8.6';
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
-test('the preview uses v0.8.6 game data through 16 dedicated ForTests ship modules', () => {
+test('the editor uses 16 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.6');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.6');
   assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.6');
@@ -63,7 +47,7 @@ test('each vessel has an independent design, structure profile and generator', (
   }
 });
 
-test('all 16 dedicated ForTests generators build their own editable game models', () => {
+test('all 16 independent ForTests generators build separate editable models', () => {
   for (const id of ids) {
     const module = getVesselModule(id);
     const ship = module.createModel();
@@ -72,15 +56,16 @@ test('all 16 dedicated ForTests generators build their own editable game models'
       assert.equal(ship.userData.shipGeneratorId, id, id + ' generator routing');
       assert.equal(
         ship.userData.shipDefinitionPath,
-        'src/world/ships/vessels/' + id + '.js',
-        id + ' game definition path',
+        'ForTests/ships/vessels/' + id + '.js',
+        id + ' ForTests definition path',
       );
       assert.equal(
         ship.userData.shipEditorModulePath,
         'ForTests/ships/vessels/' + id + '.js',
         id + ' dedicated ForTests model/generator path',
       );
-      assert.equal(ship.userData.shipSourceVersion, '0.8.6');
+      assert.equal(ship.userData.shipGameDefinitionPath, 'src/world/ships/vessels/' + id + '.js');
+      assert.equal(ship.userData.shipSourceVersion, 'ForTests-native');
       assert.ok(ship.userData.getPart('hull'), id + ' hull');
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');

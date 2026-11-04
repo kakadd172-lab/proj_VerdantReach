@@ -1,24 +1,54 @@
 /**
- * Dedicated sloop model and generator module for the ForTests Ship Design Studio.
- *
- * This file provides this vessel's own design reference, model creation
- * function and named generator. Its historical data and detailed Three.js
- * construction recipe are owned by the matching v0.8.6 game vessel module.
+ * sloop — standalone ForTests ship definition and generator.
+ * Owns this vessel's historical dimensions, hull lines, structure, bow/stern
+ * geometry profile, keel and rudder configuration, rig plan and generator.
  */
-import SourceVessel from '../../../V8/verdant-reach-v0.8.6/verdant-reach/src/world/ships/vessels/sloop.js';
-import { defineTestVessel } from '../shared/define-vessel.js';
+import { defineVesselSpec, createVesselModel } from '../shared/vessel-definition.js';
 
-export const Sloop = defineTestVessel(
-  SourceVessel,
-  'ForTests/ships/vessels/sloop.js',
-);
+export const SloopDefinition = defineVesselSpec({
+  id: 'sloop',
+  design: {
+    id: 'sloop', label: 'Caribbean merchant sloop', era: 'Late 17th–18th century Caribbean',
+    hullLength: 17.22, beam: 4.34, draft: 1.9, freeboard: 1.35,
+    rig: 'Single gaff mainsail with headsails; local rigs varied by island and decade.',
+    hullProfile: 'Fine entry, moderately full working body, low quarter, shallow-to-moderate draft.',
+    reference: 'Reader’s Point, Jamaica: surviving hull length 17.22 m and maximum beam 4.34 m; original rig is not preserved, so the single-mast sail plan is a regional reconstruction.',
+    sources: [
+      { label: 'Texas A&M — Reader’s Point Jamaican merchant sloop', url: 'https://oaktrust.library.tamu.edu/items/bfbc382b-2aea-4705-bf65-67e97ec2b87b' },
+      { label: 'Cambridge — Caribbean sloops in Atlantic material culture', url: 'https://www.cambridge.org/core/books/an-archaeology-of-the-english-atlantic-world-1600-1700/atlantic-material-culture-boats-ships-and-navigation/6936CAA998793EDC9005054893D500F5' },
+    ],
+    hull: { fullness: 0.58, entry: 0.68, stern: 'counter', sternWidth: 0.3, tumblehome: 0.04, sheer: 0.12, bowRise: 0.3, sternRise: 0.26, keelDepth: 0.12, deckCamber: 0.12 },
+    sternwork: 'low-cabin',
+    sternTiers: [{"w":0.42,"d":0.12,"h":1.3}], bowwork: 'bowsprit',
+    keelDetails: {"pointOffset":0.06,"minimumRadius":0.08,"radiusFactor":0.018,"stemPosts":true,"label":"keelson-and-keel"},
+    rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, sailingSpeed: 9.0, handling: 1.35,
+    masts: [{ id: 'single', z: -0.035, height: 13.8, rig: 'gaff', span: 0.42, squares: 0 }],
+    headsails: 2, oars: false,
+  },
+  structure: { frameCount: 22, beamStation: .49, forebody: .76, aftbody: 1.02, foreTip: .008, aftTip: .055, bottomFlat: .21, bilge: .12, flare: .12, tumble: .035, sheer: 1.08, lowerMastRatio: .64, shroudPairs: 2, ratlines: 8, yardSpread: .94 },
+  generate(createShipModel) {
+    return createShipModel('sloop');
+  },
+});
 
+export function createSloopModel(componentTransforms = {}, savedState = {}) {
+  return createVesselModel(SloopDefinition, componentTransforms, savedState);
+}
+export function generateSloop(componentTransforms = {}, savedState = {}) {
+  return createSloopModel(componentTransforms, savedState);
+}
+export const Sloop = Object.freeze({
+  id: SloopDefinition.id,
+  definition: SloopDefinition,
+  design: SloopDefinition.design,
+  structure: SloopDefinition.structure,
+  editorModulePath: SloopDefinition.editorModulePath,
+  createModel: createSloopModel,
+  generate: generateSloop,
+});
 export const id = Sloop.id;
 export const design = Sloop.design;
 export const structure = Sloop.structure;
 export const createModel = Sloop.createModel;
 export const generate = Sloop.generate;
-export const createSloopModel = createModel;
-export const generateSloop = generate;
-
 export default Sloop;

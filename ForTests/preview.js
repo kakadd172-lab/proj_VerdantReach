@@ -14,12 +14,10 @@ async function bootShipStudio(){
     const overrideResponse=await fetch('./design-overrides.json',{cache:'no-store'});
     if(!overrideResponse.ok) throw new Error('Could not read design-overrides.json (HTTP '+overrideResponse.status+').');
     const DESIGN_OVERRIDES=await overrideResponse.json();
-    const designModule=await import('./ship-designs.js?v=0.8.6');
-    const structureModule=await import('./ship-structures.js?v=0.8.6');
-    const modelModule=await import('./ship-models.js?v=0.8.6');
-    const {SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION}=designModule;
-    const {getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION}=structureModule;
-    const {createShipModel,disposeShipModel,SHIP_MODEL_MODULE_VERSION}=modelModule;
+    const shipModule=await import('./ships/index.js?v=0.8.6');
+    const {SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
+      getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
+      createShipModel,disposeShipModel,SHIP_MODEL_MODULE_VERSION}=shipModule;
     const apiProblems=[];
     if(typeof setShipDesignOverrides!=='function')apiProblems.push('ship-designs.js: setShipDesignOverrides');
     if(typeof getShipDesign!=='function')apiProblems.push('ship-designs.js: getShipDesign');

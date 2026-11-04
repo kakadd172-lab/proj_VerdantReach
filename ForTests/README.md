@@ -1,70 +1,88 @@
-# Verdant Reach v0.8.6 — Modular Ship Design Studio
+# Verdant Reach — Standalone Modular Ship Design Studio
 
-The editor runs the **actual v0.8.6 game ship system** through a dedicated
-ForTests ship collection. The editor-side modules live in `ForTests/ships/`;
-each vessel has its own file under `ForTests/ships/vessels/`, with an
-individual generator entry point. The folder's registry and shared adapter
-route those generators to the matching game vessel definitions and the
-shared game model builder.
+The ForTests studio now owns a standalone fleet of 16 independently authored
+vessel modules under `ships/vessels/`. Every vessel file owns its complete
+ship-specific design specification, hull form, structural and framing
+parameters, stern and keel details, rudder profile, mast arrangement, rigging
+plan, and individual model/generator functions.
 
-## Ship module layout
+The four previous top-level adapter files are no longer required or present:
+`ship-designs.js`, `ship-structures.js`,
+`ship-hull-parameterization.js`, and `ship-models.js`.
+
+## Layout
 
 ```text
 ForTests/
-└── ships/
-    ├── index.js
-    ├── README.md
-    ├── shared/
-    │   └── define-vessel.js
-    └── vessels/
-        ├── sloop.js
-        ├── schooner.js
-        ├── brigantine.js
-        ├── brig.js
-        ├── snow.js
-        ├── cutter.js
-        ├── frigate.js
-        ├── barque.js
-        ├── caravel.js
-        ├── carrack.js
-        ├── galleon.js
-        ├── fluyt.js
-        ├── xebec.js
-        ├── junk.js
-        ├── first-rate.js
-        └── pinnace.js
+├── preview.js
+├── tests/
+├── ships/
+│   ├── index.js
+│   ├── README.md
+│   ├── shared/
+│   │   ├── vessel-definition.js
+│   │   ├── ship-model-builder.js
+│   │   └── hull-math.js
+│   └── vessels/
+│       ├── sloop.js
+│       ├── schooner.js
+│       ├── brigantine.js
+│       ├── brig.js
+│       ├── snow.js
+│       ├── cutter.js
+│       ├── frigate.js
+│       ├── barque.js
+│       ├── caravel.js
+│       ├── carrack.js
+│       ├── galleon.js
+│       ├── fluyt.js
+│       ├── xebec.js
+│       ├── junk.js
+│       ├── first-rate.js
+│       └── pinnace.js
+└── ...
 ```
 
-Every vessel module creates a distinct model instance with that ship's own
-hull, framing, deck, stern and bow work, masts, rigging, sails, fittings and
-editable component hierarchy. The historical design and structure data remain
-owned by the matching game source file, so the editor cannot silently drift
-away from what the game actually creates. Common Three.js geometry routines
-remain in the shared v0.8.6 model engine; this avoids 16 duplicated engines
-while preserving a dedicated generator for every vessel.
+## Per-vessel ownership
 
-## What the studio can do
+Each file in `ships/vessels/` contains its own immutable base definition.
+That includes historical reference notes and dimensions, hull fullness and
+entry, sheer and keel shape, beam stations and frame profile, stern tiers,
+keel/rudder proportions, mast positions and heights, rig types, sail counts,
+and ship-specific options. It exports a separately named `create<Name>Model()`
+and `generate<Name>()` entry point.
 
-- Preview all 16 game vessels through their dedicated per-vessel modules.
-- Inspect the same editable component hierarchy used by the game.
-- Move, rotate and scale components with Three.js TransformControls or numeric fields.
+The shared `ships/shared/ship-model-builder.js` is a generic geometry engine:
+it contains reusable routines for lofted hulls, decks, framing, planking,
+stern/bow structures, masts, yards, rigging, sails, deck fittings and the
+editable component API. It receives a complete vessel definition; it does not
+look up ship designs by ID and contains no central vessel catalogue. Geometry
+choices that differ by ship are data in that ship's own module.
+
+`ships/shared/hull-math.js` contains ship-agnostic parametric hull math.
+`ships/shared/vessel-definition.js` validates per-vessel definitions, derives
+common display metadata, and maintains editor-only parameter overrides.
+`ships/index.js` only registers the individual modules and exposes the editor
+API; it does not hold the fleet's design data.
+
+The ForTests runtime does not import the main game's per-vessel sources. The
+actual game remains unchanged; this is an independent editor/test collection.
+
+## Editor capabilities
+
+- Preview all 16 vessel modules.
+- Inspect the full editable component hierarchy.
+- Move, rotate and scale parts with TransformControls or numeric inputs.
 - Use Local/World transform space, snapping, camera presets and framing.
 - Search, hide/show, isolate, detach/relink and reset components.
-- Reset all components or restore a vessel's catalogue design.
-- Undo/Redo design parameter edits, component transforms and vessel switches in one history.
-- Adjust real game design and structural parameters through runtime overrides.
-- Save overrides locally to `design-overrides.json` or export a JSON backup.
-- Inspect wireframe, grid and shadow display modes.
+- Undo/Redo across vessel changes and parameter/component edits.
+- Adjust each vessel's own hull and structural parameters.
+- Save local overrides to `design-overrides.json` or export JSON.
+- Inspect wireframe, grid and shadow modes.
 
-## Requirements
+## Setup
 
-- Node.js 22 or newer.
-- npm.
-- A browser with WebGL support.
-
-## Install and run
-
-From the repository root:
+Requires Node.js 22+, npm, and a WebGL-capable browser.
 
 ```powershell
 cd D:\Projects\VerdantReach
@@ -80,34 +98,7 @@ npm run smoke
 npm run dev
 ```
 
-The ForTests `postinstall` installs the v0.8.6 game's Three.js dependency as
-well, because the preview imports those source files directly. The editor's
-Vite server is configured to read the v0.8.6 folder while keeping ForTests as
-its root and save destination.
-
 Open `http://127.0.0.1:5174/`.
 
-## Editing workflow
-
-1. Choose one of the 16 vessels.
-2. Select a component from the list or click it in the 3D viewport.
-3. Use W / E / R for Move / Rotate / Scale, or enter numeric transforms.
-4. Adjust hull and structure values in the design controls.
-5. Use Ctrl+Z / Ctrl+Y to undo/redo across vessels and edit types.
-6. Save to `design-overrides.json` or export a JSON backup.
-
-## Source ownership
-
-- `ForTests/ships/vessels/<id>.js` provides one editor-side module and named
-  generator for each ship.
-- `ForTests/ships/index.js` is the editor's vessel registry.
-- `ForTests/ships/shared/define-vessel.js` connects each module to the shared
-  v0.8.6 model builder.
-- The authoritative ship definition (design and structure) remains in
-  `V8/verdant-reach-v0.8.6/verdant-reach/src/world/ships/vessels/<id>.js`.
-- The reusable model-construction engine lives in
-  `V8/verdant-reach-v0.8.6/verdant-reach/src/world/ships/core/ship-model-builder.js`.
-
-To change a ship's permanent source design, edit that vessel's game file. To
-experiment safely, use the editor controls; those changes remain local to
-ForTests until deliberately promoted.
+Experiments are saved in `design-overrides.json`; they do not rewrite a
+vessel's base definition unless you deliberately edit and promote that file.
