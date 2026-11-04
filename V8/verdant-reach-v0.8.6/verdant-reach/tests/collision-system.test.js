@@ -43,11 +43,12 @@ test('overlapping blockers are iteratively separated', () => {
   const world = new CollisionWorld();
   world.setBodies('fort', [
     boxCollider('north', 0, 0, 8, 1),
-    boxCollider('west', -2, 0, 1, 8),
-    circleCollider('tower', -4, 0, 1.2),
+    boxCollider('west', 0, 0, 1, 8),
   ]);
-  const resolved = world.resolveCircle(-2, 0, 0.55, { maxIterations: 12 });
+  assert.equal(world.queryCircle(0, 0, 0.57).length, 2, 'both intersecting wall bodies are indexed near the actor');
+  const resolved = world.resolveCircle(0, 0, 0.55, { maxIterations: 12 });
   assert.equal(resolved.collided, true);
+  assert.equal(resolved.contacts.length, 2, 'both overlapping wall bodies should produce contacts');
   assert.equal(world.isCircleFree(resolved.x, resolved.z, 0.55), true);
 });
 
