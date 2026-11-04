@@ -174,6 +174,7 @@ test('Creative object duplication and save restoration preserve ship state', () 
 test('the replacement model builder uses high-resolution hull lofts and editable curved structures', () => {
   const source = read('src/world/ships/core/ship-model-builder.js');
   const structures = read('src/world/ships/core/ship-structures.js');
+  const firstRate = read('src/world/ships/vessels/first-rate.js');
   for (const token of ['hullGeometry', 'deckGeometry', 'sternHouseGeometry', 'addJunkRig', 'addFrames', 'addStrakesAndPlanking', 'setupPartApi', 'createShipModel', 'disposeShipModel']) {
     assert.ok(source.includes(token), 'missing model feature: ' + token);
   }
@@ -182,7 +183,8 @@ test('the replacement model builder uses high-resolution hull lofts and editable
   assert.ok(structures.includes('getHullHalfBeam'));
   assert.ok(structures.includes('getHullSectionWidth'));
   assert.ok(structures.includes('getDeckSheer'));
-  assert.ok(structures.includes("'first-rate'"));
+  assert.ok(firstRate.includes("id: 'first-rate'"));
+  assert.ok(firstRate.includes('frameCount: 42'));
   assert.ok(structures.includes('junk:'));
 });
 
