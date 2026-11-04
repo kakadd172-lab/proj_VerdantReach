@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { getShipTypeFromCreativeKind } from './ship-designs.js?v=0.8.6';
+import { boxCollider, circleCollider } from './collision.js';
+import { getShipTypeFromCreativeKind, getShipDesign } from './ship-designs.js?v=0.8.6';
 import { createShip, disposeShipModel } from './ships/index.js?v=0.8.6';
 
 const COLORS = {
@@ -143,6 +144,84 @@ export function createCreativeEntity(kind) {
   });
   group.userData.creativeKind = kind;
   return group;
+}
+
+
+/**
+ * Convert a placed creative model into solid world-space collision proxies.
+ * These are intentionally simpler than render meshes; they are stable,
+ * inexpensive and sized to the visible object's occupied footprint.
+ */
+export function getCreativeEntityColliders(record) {
+  if (!record?.id || !record.kind || !Number.isFinite(record.x) || !Number.isFinite(record.z)) return [];
+  const scale = Math.max(0.35, Math.min(4, Number(record.scale) || 1));
+  const yaw = Number(record.yaw) || 0;
+  const kind = record.kind;
+  const sourceId = record.id;
+  const meta = { sourceId, kind };
+  const circle = (id, x, z, radius, extra = {}) => circleCollider(id, x, z, radius * scale, { ...meta, ...extra });
+  const box = (id, x, z, width, depth, rotation = yaw, extra = {}) =>
+    boxCollider(id, x, z, width * scale, depth * scale, rotation, { ...meta, ...extra });
+  const bodies = [];
+  const shipType = getShipTypeFromCreativeKind(kind);
+  if (shipType) {
+    const design = getShipDesign(shipType);
+    if (design) {
+      // Creative ships are rotated by an extra half-turn in createCreativeVisual
+      // to make their bow follow the player's +Z-facing convention.
+      bodies.push(box('hull', record.x, record.z, design.beamUnits, design.hullLengthUnits, yaw + Math.PI, { kind: 'vessel' }));
+    }
+    return bodies;
+  }
+
+  if (kind === 'rock') bodies.push(circle('rock', record.x, record.z, 1.55));
+  else if (kind === 'boulder') bodies.push(circle('boulder', record.x, record.z, 3.0));
+  else if (kind === 'crystal') bodies.push(circle('crystal', record.x, record.z, 1.35));
+  else if (kind === 'tree' || kind === 'pine-tree') bodies.push(circle('trunk', record.x, record.z, 0.62));
+  else if (kind === 'ancient-tree') bodies.push(circle('trunk', record.x, record.z, 0.85));
+  else if (kind === 'tree-grove') {
+    for (let i = 0; i < 9; i += 1) {
+      const treeScale = (0.72 + (i % 3) * 0.12) * scale;
+      const x = record.x + Math.cos(i * 2.4) * 6 * scale;
+      const z = record.z + Math.sin(i * 2.4) * 6 * scale;
+      bodies.push(circleCollider('grove-trunk-' + i, x, z, 0.62 * treeScale, { ...meta, kind: 'tree' }));
+    }
+  } else if (['deer','hare','wolf','bear','boar','crane','horse'].includes(kind)) {
+    const radius = kind === 'bear' ? 1.0 : kind === 'horse' ? 0.95 : kind === 'deer' ? 0.72 : 0.62;
+    bodies.push(circle('animal', record.x, record.z, radius));
+  } else if (['villager','merchant','guard'].includes(kind)) {
+    bodies.push(circle('person', record.x, record.z, 0.52));
+  } else if (kind === 'hut' || kind === 'mine') {
+    bodies.push(box('building', record.x, record.z, 5.8, 5.8));
+  } else if (kind === 'watchtower') {
+    bodies.push(box('watchtower', record.x, record.z, 4.2, 4.2));
+  } else if (kind === 'ruin') {
+    // The ruined hut is intentionally open along its front and one side.
+    for (const side of [-1, 1]) {
+      const x = record.x + (Math.cos(yaw) * side * 2.2 + Math.sin(yaw) * 2.2) * scale;
+      const z = record.z + (-Math.sin(yaw) * side * 2.2 + Math.cos(yaw) * 2.2) * scale;
+      bodies.push(box('ruin-pillar-' + side, x, z, 0.85, 0.85));
+    }
+    const frontX = record.x + Math.sin(yaw) * 2.2 * scale;
+    const frontZ = record.z + Math.cos(yaw) * 2.2 * scale;
+    bodies.push(box('ruin-back-wall', frontX, frontZ, 5.4, 0.8));
+  } else if (kind === 'cart') {
+    bodies.push(box('cart', record.x, record.z, 3.5, 4.1));
+  } else if (kind === 'rowboat') {
+    bodies.push(box('rowboat', record.x, record.z, 2.9, 8.0));
+  } else if (kind === 'bridge') {
+    // The deck is walkable; only the two side rails prevent falls off the edge.
+    bodies.push(box('bridge-rail-left', record.x, record.z - 1.8 * scale, 15, 0.35));
+    bodies.push(box('bridge-rail-right', record.x, record.z + 1.8 * scale, 15, 0.35));
+  } else if (kind === 'campfire') {
+    bodies.push(circle('firewood', record.x, record.z, 1.0));
+  } else if (kind === 'treasure-chest') {
+    bodies.push(box('chest', record.x, record.z, 2.5, 1.9));
+  } else if (kind === 'well') {
+    bodies.push(circle('well', record.x, record.z, 1.9));
+  }
+  // Flowers, crops and decorative scenery deliberately remain non-blocking.
+  return bodies;
 }
 
 export function disposeCreativeEntity(group) {
