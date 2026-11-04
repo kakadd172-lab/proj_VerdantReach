@@ -19,15 +19,15 @@ async function bootShipStudio(){
       getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
       createShipModel,disposeShipModel,SHIP_MODEL_MODULE_VERSION}=shipModule;
     const apiProblems=[];
-    if(typeof setShipDesignOverrides!=='function')apiProblems.push('ship-designs.js: setShipDesignOverrides');
-    if(typeof getShipDesign!=='function')apiProblems.push('ship-designs.js: getShipDesign');
-    if(typeof setShipStructureOverrides!=='function')apiProblems.push('ship-structures.js: setShipStructureOverrides');
-    if(typeof getShipStructureBlueprint!=='function')apiProblems.push('ship-structures.js: getShipStructureBlueprint');
-    if(typeof createShipModel!=='function')apiProblems.push('ship-models.js: createShipModel');
-    if(typeof disposeShipModel!=='function')apiProblems.push('ship-models.js: disposeShipModel');
-    if(SHIP_DESIGN_MODULE_VERSION!=='0.8.6')apiProblems.push('ship-designs.js version '+String(SHIP_DESIGN_MODULE_VERSION));
-    if(SHIP_STRUCTURE_MODULE_VERSION!=='0.8.6')apiProblems.push('ship-structures.js version '+String(SHIP_STRUCTURE_MODULE_VERSION));
-    if(SHIP_MODEL_MODULE_VERSION!=='0.8.6')apiProblems.push('ship-models.js version '+String(SHIP_MODEL_MODULE_VERSION));
+    if(typeof setShipDesignOverrides!=='function')apiProblems.push('ships/index.js: setShipDesignOverrides');
+    if(typeof getShipDesign!=='function')apiProblems.push('ships/index.js: getShipDesign');
+    if(typeof setShipStructureOverrides!=='function')apiProblems.push('ships/index.js: setShipStructureOverrides');
+    if(typeof getShipStructureBlueprint!=='function')apiProblems.push('ships/index.js: getShipStructureBlueprint');
+    if(typeof createShipModel!=='function')apiProblems.push('ships/index.js: createShipModel');
+    if(typeof disposeShipModel!=='function')apiProblems.push('ships/shared/ship-model-builder.js: disposeShipModel');
+    if(SHIP_DESIGN_MODULE_VERSION!=='0.8.6')apiProblems.push('ships/index.js design API version '+String(SHIP_DESIGN_MODULE_VERSION));
+    if(SHIP_STRUCTURE_MODULE_VERSION!=='0.8.6')apiProblems.push('ships/index.js structure API version '+String(SHIP_STRUCTURE_MODULE_VERSION));
+    if(SHIP_MODEL_MODULE_VERSION!=='0.8.6')apiProblems.push('ships/shared/ship-model-builder.js version '+String(SHIP_MODEL_MODULE_VERSION));
     if(Object.keys(SHIP_DESIGNS||{}).length!==16)apiProblems.push('ship catalogue count '+Object.keys(SHIP_DESIGNS||{}).length);
     if(apiProblems.length){
       throw new Error('Ship module mismatch: '+apiProblems.join('; ')+'. Pull the latest ForTests files, restart Vite, then hard-refresh the preview.');
