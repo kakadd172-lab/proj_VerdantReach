@@ -965,7 +965,11 @@ function setupPartApi(root, registry, design) {
         unlinkedParts: [...state.unlinkedParts],
         // Read transforms from live Object3D values. TransformControls edits meshes
         // directly, so state.partTransforms alone can be stale until explicitly synced.
-        partTransforms: Object.fromEntries([...registry.keys()].map((name) => [name, api.getPartTransform(name)]).filter(([, value]) => Boolean(value))),
+        partTransforms: Object.fromEntries([...registry.keys()].map((name) => [name, api.getPartTransform(name)]).filter(([, value]) => value && (
+          Math.abs(value.x) > 1e-8 || Math.abs(value.y) > 1e-8 || Math.abs(value.z) > 1e-8 ||
+          Math.abs(value.rx) > 1e-8 || Math.abs(value.ry) > 1e-8 || Math.abs(value.rz) > 1e-8 ||
+          Math.abs(value.sx - 1) > 1e-8 || Math.abs(value.sy - 1) > 1e-8 || Math.abs(value.sz - 1) > 1e-8
+        ))),
       };
     },
     applyShipState(saved = {}) {
