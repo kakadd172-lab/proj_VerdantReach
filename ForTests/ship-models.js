@@ -1,7 +1,9 @@
 import * as THREE from 'three';
-import { SHIP_DESIGNS, getShipDesign } from './ship-designs.js?v=0.8.5';
-import { getHullHalfBeam, getHullSectionWidth, getHullKeelY, getDeckSheer, getHullFrameCount, getShipStructureBlueprint, getSheerPoint } from './ship-structures.js?v=0.8.5';
-import { getParametricHullPoint, getOpenHullPoint, getStemProfile, getSternProfile } from './ship-hull-parameterization.js?v=0.8.5';
+import { SHIP_DESIGNS, getShipDesign } from './ship-designs.js?v=0.8.6';
+import { getHullHalfBeam, getHullSectionWidth, getHullKeelY, getDeckSheer, getHullFrameCount, getShipStructureBlueprint, getSheerPoint } from './ship-structures.js?v=0.8.6';
+import { getParametricHullPoint, getOpenHullPoint, getStemProfile, getSternProfile } from './ship-hull-parameterization.js?v=0.8.6';
+
+export const SHIP_MODEL_MODULE_VERSION = '0.8.6';
 
 const COLORS = Object.freeze({
   hull: 0x684632, lower: 0x3e342d, plank: 0x8d6b4b, deck: 0xb1946a,
