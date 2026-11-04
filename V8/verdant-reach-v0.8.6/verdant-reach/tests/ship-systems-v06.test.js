@@ -175,6 +175,7 @@ test('the replacement model builder uses high-resolution hull lofts and editable
   const source = read('src/world/ships/core/ship-model-builder.js');
   const structures = read('src/world/ships/core/ship-structures.js');
   const firstRate = read('src/world/ships/vessels/first-rate.js');
+  const junk = read('src/world/ships/vessels/junk.js');
   for (const token of ['hullGeometry', 'deckGeometry', 'sternHouseGeometry', 'addJunkRig', 'addFrames', 'addStrakesAndPlanking', 'setupPartApi', 'createShipModel', 'disposeShipModel']) {
     assert.ok(source.includes(token), 'missing model feature: ' + token);
   }
@@ -185,7 +186,9 @@ test('the replacement model builder uses high-resolution hull lofts and editable
   assert.ok(structures.includes('getDeckSheer'));
   assert.ok(firstRate.includes("id: 'first-rate'"));
   assert.ok(firstRate.includes('frameCount: 42'));
-  assert.ok(structures.includes('junk:'));
+  assert.ok(junk.includes("id: 'junk'"));
+  assert.ok(junk.includes("rig: 'junk'"));
+  assert.ok(junk.includes('shroudPairs: 0'));
 });
 
 test('all historical vessels are available in the Creative editor', () => {
