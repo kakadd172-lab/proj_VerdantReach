@@ -28,6 +28,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Install Chromium for the browser smoke test
         run: npx playwright install --with-deps chromium
+      - name: Verify the modular game source and editor adapters
+        run: npm run check:modules
       - name: Run v0.8.6 game-module geometry and editor integration tests
         run: npm test
       - name: Build the v0.8.6-connected 3D preview
