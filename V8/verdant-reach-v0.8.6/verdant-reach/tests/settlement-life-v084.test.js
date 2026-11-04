@@ -73,17 +73,17 @@ test('timber-framed housing, resident movement and walking animation remain wire
 });
 
 test('galleon stern structure uses curved, separately addressable tiers and galleries', () => {
-  const models = read('src/world/ship-models.js');
-  const structures = read('src/world/ship-structures.js');
-  const designs = read('src/world/ship-designs.js');
+  const models = read('src/world/ships/core/ship-model-builder.js');
+  const galleon = read('src/world/ships/vessels/galleon.js');
   assert.ok(models.includes('function sternHouseGeometry'));
   assert.ok(models.includes('curved-sternhouse-tier-'));
   assert.ok(models.includes('function addWindowFrame'));
   assert.ok(models.includes('gallery-rail-'));
   assert.ok(models.includes("const tierName = 'stern-tier-' + (index + 1)"));
   assert.ok(models.includes("registerPart(registry, 'stern-windows', root)"));
-  assert.ok(structures.includes('galleon:'));
-  assert.ok(designs.includes("sternwork: 'galleon-castle'"));
+  assert.ok(galleon.includes("id: 'galleon'"));
+  assert.ok(galleon.includes("sternwork: 'galleon-castle'"));
+  assert.ok(galleon.includes("frameCount: 36"));
 });
 
 test('ruined castles retain broken crenellations, flanking gatehouse towers and reinforced keep corners', () => {
