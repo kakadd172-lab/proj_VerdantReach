@@ -97,6 +97,9 @@ let historyEntries=[];
 let historyCursor=0;
 let dragSnapshot=null;
 let snapEnabled=false;
+let wireframeEnabled=false;
+let gridEnabled=true;
+let shadowsEnabled=true;
 const raycaster=new THREE.Raycaster();
 const rayPointer=new THREE.Vector2();
 const identity={x:0,y:0,z:0,rx:0,ry:0,rz:0,sx:1,sy:1,sz:1};
@@ -272,6 +275,52 @@ function refreshSelectionTools(){
   const part=ship&&selectedName?ship.userData.getPart(selectedName):null;
   const toggle=document.querySelector('#toggle-visibility');
   if(toggle)toggle.textContent=part&&!part.visible?'Show selected':'Hide selected';
+  const detached=part?.parent?.name==='unlinked-parts';
+  const detach=document.querySelector('#detach-part');
+  const relink=document.querySelector('#relink-part');
+  if(detach)detach.disabled=!part||detached;
+  if(relink)relink.disabled=!part||!detached;
+}
+function detachSelectedPart(){
+  if(!ship||!selectedName)return;
+  const before=captureDocumentSnapshot();
+  if(!ship.userData.detachPart(selectedName)){setStatus('This component is already detached.',true);return;}
+  syncCurrentShipState();
+  commitHistory(before,'Detach '+selectedName);
+  refreshSelectionTools();
+}
+function relinkSelectedPart(){
+  if(!ship||!selectedName)return;
+  const before=captureDocumentSnapshot();
+  if(!ship.userData.relinkPart(selectedName)){setStatus('This component is already linked.',true);return;}
+  syncCurrentShipState();
+  commitHistory(before,'Relink '+selectedName);
+  refreshSelectionTools();
+}
+function applyWireframe(){
+  if(!ship)return;
+  ship.traverse(object=>{
+    if(!object.isMesh)return;
+    const materials=Array.isArray(object.material)?object.material:[object.material];
+    for(const material of materials)if(material&&'wireframe'in material)material.wireframe=wireframeEnabled;
+  });
+}
+function toggleWireframe(){
+  wireframeEnabled=!wireframeEnabled;
+  applyWireframe();
+  document.querySelector('#wireframe-toggle').textContent='Wireframe '+(wireframeEnabled?'on':'off');
+}
+function toggleGrid(){
+  gridEnabled=!gridEnabled;
+  grid.visible=gridEnabled;
+  document.querySelector('#grid-toggle').textContent='Grid '+(gridEnabled?'on':'off');
+}
+function toggleShadows(){
+  shadowsEnabled=!shadowsEnabled;
+  renderer.shadowMap.enabled=shadowsEnabled;
+  key.castShadow=shadowsEnabled;
+  renderer.shadowMap.needsUpdate=true;
+  document.querySelector('#shadows-toggle').textContent='Shadows '+(shadowsEnabled?'on':'off');
 }
 function frameObject(object){
   if(!object)return;
@@ -426,6 +475,7 @@ function loadShip(type,preferredPart='',reframe=true,skipSync=false){
     const savedState=config.partState||{partTransforms:config.componentTransforms||{}};
     ship=createShipModel(type,savedState.partTransforms||config.componentTransforms||{},savedState);
     scene.add(ship);
+    applyWireframe();
     if(reframe)fit(ship);
     updateInfo(design);
     populatePartList();
@@ -484,6 +534,11 @@ document.querySelector('#reset-part').addEventListener('click',()=>{
 });
 document.querySelector('#reset-all-parts').addEventListener('click',resetAllComponents);
 document.querySelector('#reset-vessel').addEventListener('click',resetVesselDesign);
+document.querySelector('#detach-part').addEventListener('click',detachSelectedPart);
+document.querySelector('#relink-part').addEventListener('click',relinkSelectedPart);
+document.querySelector('#wireframe-toggle').addEventListener('click',toggleWireframe);
+document.querySelector('#grid-toggle').addEventListener('click',toggleGrid);
+document.querySelector('#shadows-toggle').addEventListener('click',toggleShadows);
 document.querySelector('#frame-selected').addEventListener('click',()=>{
   if(ship&&selectedName)frameObject(ship.userData.getPart(selectedName));
 });
