@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: experimental-ship-redesign-checks
+  group: experimental-ship-redesign-checks-current
   cancel-in-progress: true
 jobs:
   candidate:
