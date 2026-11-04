@@ -26,6 +26,9 @@ scene.fog=new THREE.Fog(0x101a22,120,900);
 const camera=new THREE.PerspectiveCamera(42,1,.1,4000);
 
 for(const [id,d] of Object.entries(SHIP_DESIGNS)){
+  // The HTML contains a static fallback list so vessel choices remain visible
+  // even if a browser fails while loading the editor modules.
+  if(selector.querySelector('option[value="'+CSS.escape(id)+'"]')) continue;
   const option=document.createElement('option');
   option.value=id;
   option.textContent=d.label;
