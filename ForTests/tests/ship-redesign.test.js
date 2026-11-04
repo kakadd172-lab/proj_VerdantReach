@@ -37,7 +37,8 @@ test('the preview uses v0.8.6 game data through 16 dedicated ForTests ship modul
     const module = getVesselModule(id);
     assert.ok(module, id + ' ForTests ship module');
     assert.equal(module.id, id);
-    assert.equal(typeof module.generate, 'function', id + ' dedicated generator');
+    assert.equal(typeof module.createModel, 'function', id + ' dedicated model creator');
+    assert.equal(module.generate, module.createModel, id + ' generator/model entry point');
     assert.equal(module.editorModulePath, 'ForTests/ships/vessels/' + id + '.js');
     assert.equal(typeof SHIP_GENERATORS[id], 'function', id + ' registered generator');
   }
@@ -64,7 +65,8 @@ test('each vessel has an independent design, structure profile and generator', (
 
 test('all 16 dedicated ForTests generators build their own editable game models', () => {
   for (const id of ids) {
-    const ship = createShipModel(id);
+    const module = getVesselModule(id);
+    const ship = module.createModel();
     try {
       assert.equal(ship.userData.shipType, id, id + ' model type');
       assert.equal(ship.userData.shipGeneratorId, id, id + ' generator routing');

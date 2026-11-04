@@ -2,9 +2,9 @@
  * Shared adapter for the ForTests vessel modules.
  *
  * Each vessel keeps its own entry point under ships/vessels/. The historical
- * dimensions, hull profile, rig, structural profile and model recipe remain
- * in that vessel's v0.8.6 source module. The actual Three.js mesh construction
- * is intentionally delegated to the game's shared model engine.
+ * dimensions, hull profile, rig and structural profile come from that vessel's
+ * v0.8.6 source module. Actual mesh construction is delegated to the game's
+ * reusable Three.js model engine.
  */
 import {
   createShipModel as createGameShipModel,
@@ -24,8 +24,9 @@ export function defineTestVessel(sourceVessel, editorModulePath) {
   const id = sourceVessel.id;
   const gameDefinitionPath = 'src/world/ships/vessels/' + id + '.js';
 
-  function generate() {
-    // This per-vessel entry point invokes that ship's actual game generator.
+  function createModel() {
+    // This vessel-specific module calls its own game's generator. The game
+    // generator then builds a distinct editable model using its own design.
     const model = sourceVessel.generate(createGameShipModel);
     if (!model?.isObject3D) {
       throw new Error('The ' + id + ' generator did not return a Three.js Object3D.');
@@ -45,6 +46,7 @@ export function defineTestVessel(sourceVessel, editorModulePath) {
     source: sourceVessel,
     gameDefinitionPath,
     editorModulePath,
-    generate,
+    createModel,
+    generate: createModel,
   });
 }
