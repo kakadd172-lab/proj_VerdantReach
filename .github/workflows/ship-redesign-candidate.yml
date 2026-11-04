@@ -1,7 +1,7 @@
 name: Experimental ship redesign candidate checks
 on:
   push:
-    branches: [chatgpt-v0.8.5-modular-fleet]
+    branches: [chatgpt-v0.8.6-modular-ship-generators]
     paths:
       - 'ForTests/**'
       - '.github/workflows/ship-redesign-candidate.yml'
@@ -27,9 +27,9 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Install Chromium for the browser smoke test
         run: npx playwright install --with-deps chromium
-      - name: Run candidate geometry and integration tests
+      - name: Run v0.8.6 game-module geometry and editor integration tests
         run: npm test
-      - name: Build the standalone 3D preview
+      - name: Build the v0.8.6-connected 3D preview
         run: npm run build
-      - name: Verify the editor loads ships in Chromium
+      - name: Verify the modular game generators load in the editor
         run: npm run smoke
