@@ -706,7 +706,7 @@ function setupPartApi(root, registry, design) {
   const state = { rudderAngle: 0, sailTrim: {}, sailDeployment: {}, mastLean: {}, hiddenParts: {}, unlinkedParts: [], partTransforms: {}, time: 0 };
   for (const [name, part] of registry) {
     original.set(name, { parent: part.parent, position: part.position.clone(), quaternion: part.quaternion.clone(), rotation: part.rotation.clone(), scale: part.scale.clone() });
-    transformBase.set(name, { position: part.position.clone(), rotation: part.rotation.clone() });
+    transformBase.set(name, { position: part.position.clone(), rotation: part.rotation.clone(), scale: part.scale.clone() });
   }
   const sailControls = [...registry.values()].filter((part) => part.userData.sailControl);
   const sailCloths = new Map(sailControls.map((part) => {
@@ -717,6 +717,22 @@ function setupPartApi(root, registry, design) {
   const api = {
     parts: registry,
     getPart(name) { return registry.get(name) ?? null; },
+    getPartTransform(name) {
+      const part = registry.get(name);
+      const base = transformBase.get(name);
+      if (!part || !base) return null;
+      return {
+        x: part.position.x - base.position.x,
+        y: part.position.y - base.position.y,
+        z: part.position.z - base.position.z,
+        rx: part.rotation.x - base.rotation.x,
+        ry: part.rotation.y - base.rotation.y,
+        rz: part.rotation.z - base.rotation.z,
+        sx: part.scale.x / (base.scale.x || 1),
+        sy: part.scale.y / (base.scale.y || 1),
+        sz: part.scale.z / (base.scale.z || 1),
+      };
+    },
     detachPart(name) {
       const part = registry.get(name);
       if (!part || part === unlinked || part.parent === unlinked) return false;
@@ -728,7 +744,7 @@ function setupPartApi(root, registry, design) {
       unlinked.updateMatrixWorld(true);
       const local = unlinked.matrixWorld.clone().invert().multiply(world);
       local.decompose(part.position, part.quaternion, part.scale);
-      transformBase.set(name, { position: part.position.clone(), rotation: part.rotation.clone() });
+      transformBase.set(name, { position: part.position.clone(), rotation: part.rotation.clone(), scale: part.scale.clone() });
       state.unlinkedParts = [...new Set([...state.unlinkedParts, name])];
       return true;
     },
@@ -742,7 +758,7 @@ function setupPartApi(root, registry, design) {
       info.parent.add(part);
       const local = info.parent.matrixWorld.clone().invert().multiply(world);
       local.decompose(part.position, part.quaternion, part.scale);
-      transformBase.set(name, { position: part.position.clone(), rotation: part.rotation.clone() });
+      transformBase.set(name, { position: part.position.clone(), rotation: part.rotation.clone(), scale: part.scale.clone() });
       state.unlinkedParts = state.unlinkedParts.filter((item) => item !== name);
       return true;
     },
@@ -760,15 +776,39 @@ function setupPartApi(root, registry, design) {
       const values = {
         x: clamp(transform.x, -24, 24), y: clamp(transform.y, -24, 24), z: clamp(transform.z, -24, 24),
         rx: clamp(transform.rx, -Math.PI, Math.PI), ry: clamp(transform.ry, -Math.PI, Math.PI), rz: clamp(transform.rz, -Math.PI, Math.PI),
+        sx: clamp(transform.sx ?? 1, .05, 20), sy: clamp(transform.sy ?? 1, .05, 20), sz: clamp(transform.sz ?? 1, .05, 20),
       };
       part.position.copy(base.position).add(V(values.x, values.y, values.z));
       part.rotation.set(base.rotation.x + values.rx, base.rotation.y + values.ry, base.rotation.z + values.rz, 'XYZ');
+      part.scale.set(base.scale.x * values.sx, base.scale.y * values.sy, base.scale.z * values.sz);
       state.partTransforms[name] = values;
       return true;
     },
     resetPartTransform(name) {
-      if (!registry.has(name)) return false;
-      return api.setPartTransform(name, {});
+      const part = registry.get(name);
+      const info = original.get(name);
+      if (!part || !info) return false;
+      // Reset restores the original hierarchy and full local transform, not a
+      // zero offset from a detach/relink-adjusted transform base.
+      if (part.parent !== info.parent) {
+        part.parent?.remove(part);
+        info.parent.add(part);
+      }
+      part.position.copy(info.position);
+      part.quaternion.copy(info.quaternion);
+      part.rotation.copy(info.rotation);
+      part.scale.copy(info.scale);
+      part.visible = true;
+      part.updateMatrix();
+      transformBase.set(name, {
+        position: info.position.clone(),
+        rotation: info.rotation.clone(),
+        scale: info.scale.clone(),
+      });
+      delete state.partTransforms[name];
+      delete state.hiddenParts[name];
+      state.unlinkedParts = state.unlinkedParts.filter((item) => item !== name);
+      return true;
     },
     setRudderAngle(radians) {
       const part = registry.get('rudder');
@@ -788,7 +828,8 @@ function setupPartApi(root, registry, design) {
       const target = mastControls.find((part) => part.userData.mastControl.mastId === mastId);
       if (!target) return false;
       state.mastLean[mastId] = clamp(radians, -.16, .16);
-      target.rotation.x = state.mastLean[mastId] + (state.partTransforms[target.name]?.rx ?? 0);
+      const base = transformBase.get(target.name);
+      target.rotation.x = (base?.rotation.x ?? 0) + state.mastLean[mastId] + (state.partTransforms[target.name]?.rx ?? 0);
       return true;
     },
     setSailDeployment(mastId, deployment = 'full', duration = .85) {
@@ -825,14 +866,21 @@ function setupPartApi(root, registry, design) {
       }
     },
     getShipState() {
+      const partTransforms = Object.fromEntries([...registry.keys()]
+        .map((name) => [name, api.getPartTransform(name)])
+        .filter(([, value]) => value && (
+          Math.abs(value.x) > 1e-8 || Math.abs(value.y) > 1e-8 || Math.abs(value.z) > 1e-8
+          || Math.abs(value.rx) > 1e-8 || Math.abs(value.ry) > 1e-8 || Math.abs(value.rz) > 1e-8
+          || Math.abs(value.sx - 1) > 1e-8 || Math.abs(value.sy - 1) > 1e-8 || Math.abs(value.sz - 1) > 1e-8
+        )));
       return {
         rudderAngle: state.rudderAngle,
         sailTrim: { ...state.sailTrim },
         sailDeployment: { ...state.sailDeployment },
         mastLean: { ...state.mastLean },
-        hiddenParts: { ...state.hiddenParts },
+        hiddenParts: Object.fromEntries(Object.entries(state.hiddenParts).filter(([, hidden]) => hidden)),
         unlinkedParts: [...state.unlinkedParts],
-        partTransforms: Object.fromEntries(Object.entries(state.partTransforms).map(([name, value]) => [name, { ...value }])),
+        partTransforms,
       };
     },
     applyShipState(saved = {}) {
