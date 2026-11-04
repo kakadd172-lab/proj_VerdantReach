@@ -961,7 +961,7 @@ function setupPartApi(root, registry, design) {
         sailTrim: { ...state.sailTrim },
         sailDeployment: { ...state.sailDeployment },
         mastLean: { ...state.mastLean },
-        hiddenParts: { ...state.hiddenParts },
+        hiddenParts: Object.fromEntries(Object.entries(state.hiddenParts).filter(([, hidden]) => hidden)),
         unlinkedParts: [...state.unlinkedParts],
         // Read transforms from live Object3D values. TransformControls edits meshes
         // directly, so state.partTransforms alone can be stale until explicitly synced.
@@ -1026,10 +1026,18 @@ export function createShipModel(type, componentTransforms = {}, partOptions = {}
 
   const api = setupPartApi(root, registry, design);
   // Restore detached hierarchy first so saved offsets are interpreted in the
-  // detached coordinate system; then apply transforms and visibility.
-  if (Array.isArray(partOptions.unlinkedParts)) api.applyShipState({ unlinkedParts: partOptions.unlinkedParts });
-  if (componentTransforms && typeof componentTransforms === 'object') api.applyShipState({ partTransforms: componentTransforms });
-  if (partOptions.hiddenParts && typeof partOptions.hiddenParts === 'object') api.applyShipState({ hiddenParts: partOptions.hiddenParts });
+  // detached coordinate system, then restore the complete editable ship state.
+  if (Array.isArray(partOptions.unlinkedParts) && partOptions.unlinkedParts.length) {
+    api.applyShipState({ unlinkedParts: partOptions.unlinkedParts });
+  }
+  const savedState = {
+    ...partOptions,
+    unlinkedParts: [],
+    partTransforms: componentTransforms && typeof componentTransforms === 'object'
+      ? componentTransforms
+      : (partOptions.partTransforms || {}),
+  };
+  api.applyShipState(savedState);
   for (const key of ['getPart', 'getPartTransform', 'detachPart', 'relinkPart', 'setPartVisible', 'setPartTransform', 'resetPartTransform', 'setRudderAngle', 'setSailTrim', 'setMastLean', 'setSailDeployment', 'animateShip', 'getShipState', 'applyShipState']) {
     root.userData[key] = api[key].bind(api);
   }
