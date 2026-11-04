@@ -1001,16 +1001,3 @@ export function disposeShipModel(group) {
   group.parent?.remove(group);
 }
 
-export function shipModelSummary(type) {
-  const design = SHIP_DESIGNS[String(type ?? '').replace(/^ship-/, '')];
-  if (!design) return null;
-  return {
-    id: design.id, label: design.label,
-    dimensions: design.hullLength.toFixed(1) + ' × ' + design.beam.toFixed(1) + ' m',
-    ratio: design.lengthBeamRatio.toFixed(2), rig: design.rig, period: design.era,
-    hullProfile: design.hullProfile, hullFormNote: design.hullFormNote,
-    modelScaleNote: design.modelScaleNote, reference: design.reference,
-    sources: design.sources.map((source) => ({ ...source })),
-    mastCount: design.mastCount, partCount: design.partNames.length, parts: design.partNames,
-  };
-}
