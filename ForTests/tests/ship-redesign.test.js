@@ -163,7 +163,9 @@ test('resetPartTransform restores the true original parent, visibility and trans
   assert.equal(part.parent,originalParent);
   assert.equal(part.visible,true);
   assert.ok(part.position.distanceTo(originalPosition)<1e-8);
-  assert.ok(part.rotation.toVector3().distanceTo(originalRotation.toVector3())<1e-8);
+  assert.ok(Math.abs(part.rotation.x-originalRotation.x)<1e-8);
+  assert.ok(Math.abs(part.rotation.y-originalRotation.y)<1e-8);
+  assert.ok(Math.abs(part.rotation.z-originalRotation.z)<1e-8);
   assert.ok(part.scale.distanceTo(originalScale)<1e-8);
   const offset=ship.userData.getPartTransform('mast-single');
   assert.ok(Math.abs(offset.x)<1e-8&&Math.abs(offset.y)<1e-8&&Math.abs(offset.z)<1e-8);
