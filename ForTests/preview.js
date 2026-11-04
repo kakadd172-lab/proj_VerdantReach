@@ -90,9 +90,11 @@ function applyOverrides(){
 applyOverrides();
 let ship=null;
 let selectedName='';
-let undoStack=[];
-let redoStack=[];
+let activeShipId=selector.value||Object.keys(SHIP_DESIGNS)[0];
+let historyEntries=[];
+let historyCursor=0;
 let dragSnapshot=null;
+let snapEnabled=false;
 const raycaster=new THREE.Raycaster();
 const rayPointer=new THREE.Vector2();
 const identity={x:0,y:0,z:0,rx:0,ry:0,rz:0,sx:1,sy:1,sz:1};
@@ -158,41 +160,56 @@ function fit(object){
   const y=box.min.y-Math.max(.25,diameter*.008);
   ground.position.y=y;grid.position.y=y+.015;
 }
-function captureTransforms(){
-  const result={};
-  if(!ship)return result;
-  for(const name of ship.userData.partNames){
-    const transform=ship.userData.getPartTransform(name);
-    if(!transform)continue;
-    const normal=Math.abs(transform.x)<1e-6&&Math.abs(transform.y)<1e-6&&Math.abs(transform.z)<1e-6
-      &&Math.abs(transform.rx)<1e-6&&Math.abs(transform.ry)<1e-6&&Math.abs(transform.rz)<1e-6
-      &&Math.abs(transform.sx-1)<1e-6&&Math.abs(transform.sy-1)<1e-6&&Math.abs(transform.sz-1)<1e-6;
-    if(!normal)result[name]=transform;
-  }
-  return result;
-}
-function syncTransforms(){
-  if(!ship)return;
-  const config=getConfig(selector.value);
-  const transforms=captureTransforms();
-  if(Object.keys(transforms).length)config.componentTransforms=transforms;
+function syncCurrentShipState(){
+  if(!ship||!activeShipId)return;
+  const config=getConfig(activeShipId);
+  const state=ship.userData.getShipState();
+  config.partState=clone(state);
+  if(state.partTransforms&&Object.keys(state.partTransforms).length)config.componentTransforms=clone(state.partTransforms);
   else delete config.componentTransforms;
 }
-function captureSnapshot(){syncTransforms();return clone(getConfig(selector.value));}
-function refreshHistory(){
-  document.querySelector('#undo').disabled=undoStack.length===0;
-  document.querySelector('#redo').disabled=redoStack.length===0;
+function captureDocumentSnapshot(){
+  syncCurrentShipState();
+  return {activeShip:activeShipId,ships:clone(overrideConfig)};
 }
-function recordUndo(before){
-  undoStack.push(before);
-  if(undoStack.length>80)undoStack.shift();
-  redoStack=[];
+function refreshHistory(){
+  document.querySelector('#undo').disabled=historyCursor<=0;
+  document.querySelector('#redo').disabled=historyCursor>=historyEntries.length;
+  const count=document.querySelector('#history-count');
+  if(count)count.textContent=historyCursor+' / '+historyEntries.length;
+}
+function commitHistory(before,label='Edit'){
+  const after=captureDocumentSnapshot();
+  if(JSON.stringify(before)===JSON.stringify(after)){refreshHistory();return false;}
+  historyEntries.splice(historyCursor);
+  historyEntries.push({before,after,label});
+  if(historyEntries.length>100)historyEntries.shift();
+  historyCursor=historyEntries.length;
+  refreshHistory();
+  setStatus('Recorded: '+label+'.');
+  return true;
+}
+function restoreDocumentSnapshot(snapshot){
+  overrideConfig=clone(snapshot.ships||{});
+  applyOverrides();
+  const nextId=Object.hasOwn(SHIP_DESIGNS,snapshot.activeShip)?snapshot.activeShip:Object.keys(SHIP_DESIGNS)[0];
+  selector.value=nextId;
+  loadShip(nextId,selectedName,false);
   refreshHistory();
 }
-function restoreSnapshot(snapshot){
-  overrideConfig[selector.value]=clone(snapshot||{});
-  applyOverrides();
-  loadShip(selector.value,selectedName,false);
+function historyAction(action){
+  if(action==='undo'){
+    if(historyCursor<=0)return;
+    const entry=historyEntries[--historyCursor];
+    restoreDocumentSnapshot(entry.before);
+    setStatus('Undone: '+entry.label);
+  }else{
+    if(historyCursor>=historyEntries.length)return;
+    const entry=historyEntries[historyCursor++];
+    restoreDocumentSnapshot(entry.after);
+    setStatus('Redone: '+entry.label);
+  }
+  refreshHistory();
 }
 function getSelectedTransform(){
   return ship&&selectedName?(ship.userData.getPartTransform(selectedName)||identity):identity;
@@ -214,10 +231,10 @@ function readTransformFields(){
 }
 function commitManualTransform(){
   if(!ship||!selectedName)return;
-  const before=captureSnapshot();
+  const before=captureDocumentSnapshot();
   ship.userData.setPartTransform(selectedName,readTransformFields());
-  syncTransforms();
-  recordUndo(before);
+  syncCurrentShipState();
+  commitHistory(before,'Transform '+selectedName);
   refreshTransformFields();
 }
 function selectPart(name){
@@ -265,14 +282,14 @@ function renderDesignInputs(){
     input.addEventListener('change',()=>{
       const next=Number(input.value);
       if(!Number.isFinite(next))return;
-      const before=captureSnapshot();
-      const config=getConfig(selector.value);
+      const before=captureDocumentSnapshot();
+      const config=getConfig(activeShipId);
       const target=field.path.startsWith('design.')?(config.design||={}):(config.structure||={});
       setNested(target,field.path.replace(/^(design|structure)\./,''),next);
-      setShipDesignOverrides(selector.value,config.design||{});
-      setShipStructureOverrides(selector.value,config.structure||{});
-      loadShip(selector.value,selectedName,false);
-      recordUndo(before);
+      setShipDesignOverrides(activeShipId,config.design||{});
+      setShipStructureOverrides(activeShipId,config.structure||{});
+      loadShip(activeShipId,selectedName,false);
+      commitHistory(before,'Change '+field.label);
       renderDesignInputs();
       setStatus('Updated '+field.label+'. Save to keep the change.');
     });
@@ -288,11 +305,14 @@ function updateInfo(design){
   document.querySelector('#description').textContent=design.hullProfile+' '+(design.reference||'');
 }
 function loadShip(type,preferredPart='',reframe=true){
-  if(ship){gizmo.detach();disposeShipModel(ship);ship=null;}
+  if(ship){syncCurrentShipState();gizmo.detach();disposeShipModel(ship);ship=null;}
+  activeShipId=type;
   const design=getShipDesign(type);
   if(!design){setStatus('Unknown vessel design.',true);return;}
   try{
-    ship=createShipModel(type,getConfig(type).componentTransforms||{});
+    const config=getConfig(type);
+    const savedState=config.partState||{partTransforms:config.componentTransforms||{}};
+    ship=createShipModel(type,savedState.partTransforms||config.componentTransforms||{},savedState);
     scene.add(ship);
     if(reframe)fit(ship);
     updateInfo(design);
@@ -309,15 +329,6 @@ function loadShip(type,preferredPart='',reframe=true){
 function changeMode(mode){
   gizmo.setMode(mode);
   document.querySelectorAll('[data-mode]').forEach(button=>button.classList.toggle('active',button.dataset.mode===mode));
-}
-function historyAction(action){
-  const source=action==='undo'?undoStack:redoStack;
-  const target=action==='undo'?redoStack:undoStack;
-  if(!source.length)return;
-  const current=captureSnapshot();
-  const previous=source.pop();target.push(current);
-  restoreSnapshot(previous);refreshHistory();
-  setStatus(action==='undo'?'Undid the previous edit.':'Restored the edit.');
 }
 function buildExport(){
   syncTransforms();
@@ -341,7 +352,9 @@ function exportDesign(){
 
 renderTransformInputs();
 selector.addEventListener('change',()=>{
-  undoStack=[];redoStack=[];loadShip(selector.value);refreshHistory();
+  syncCurrentShipState();
+  loadShip(selector.value);
+  refreshHistory();
 });
 partSelector.addEventListener('change',()=>selectPart(partSelector.value));
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>changeMode(button.dataset.mode)));
@@ -350,10 +363,11 @@ document.querySelector('#redo').addEventListener('click',()=>historyAction('redo
 document.querySelector('#reset-camera').addEventListener('click',()=>{if(ship)fit(ship);});
 document.querySelector('#reset-part').addEventListener('click',()=>{
   if(!ship||!selectedName)return;
-  const before=captureSnapshot();
+  const before=captureDocumentSnapshot();
   ship.userData.resetPartTransform(selectedName);
-  syncTransforms();recordUndo(before);refreshTransformFields();
-  setStatus('Reset '+selectedName+'.');
+  syncCurrentShipState();
+  commitHistory(before,'Reset component '+selectedName);
+  refreshTransformFields();
 });
 document.querySelector('#save-design').addEventListener('click',saveDesign);
 document.querySelector('#export-design').addEventListener('click',exportDesign);
@@ -371,11 +385,13 @@ renderer.domElement.addEventListener('click',event=>{
     }
   }
 });
-gizmo.addEventListener('mouseDown',()=>{dragSnapshot=captureSnapshot();});
+gizmo.addEventListener('mouseDown',()=>{dragSnapshot=captureDocumentSnapshot();});
 gizmo.addEventListener('mouseUp',()=>{
   if(!dragSnapshot)return;
-  syncTransforms();recordUndo(dragSnapshot);dragSnapshot=null;refreshTransformFields();
-  setStatus('Component updated. Save to keep the change.');
+  syncCurrentShipState();
+  commitHistory(dragSnapshot,'Gizmo transform '+selectedName);
+  dragSnapshot=null;
+  refreshTransformFields();
 });
 window.addEventListener('keydown',event=>{
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'){event.preventDefault();historyAction(event.shiftKey?'redo':'undo');}
