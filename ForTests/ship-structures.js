@@ -1,4 +1,4 @@
-import { getCrossSectionHalfBreadthRatio, getKeelLineHeight, getLongitudinalHalfBeamRatio, getOpenHullPoint } from './ship-hull-parameterization.js?v=0.8.5';
+import { getCrossSectionHalfBreadthRatio, getKeelLineHeight, getLongitudinalHalfBeamRatio, getOpenHullPoint } from './ship-hull-parameterization.js?v=0.8.6';
 /**
  * Ship-specific hull-line and framing profiles for the v0.8.5 modular fleet.
  * Profiles are dimensionless reconstruction controls. Real-world length,
@@ -139,6 +139,7 @@ const profiles = {
 };
 
 for (const profile of Object.values(profiles)) Object.freeze(profile);
+export const SHIP_STRUCTURE_MODULE_VERSION = '0.8.6';
 export const SHIP_STRUCTURE_BLUEPRINTS = Object.freeze(profiles);
 
 const clamp01 = (value) => Math.max(0, Math.min(1, Number(value) || 0));
