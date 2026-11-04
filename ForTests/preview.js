@@ -14,12 +14,26 @@ async function bootShipStudio(){
     const overrideResponse=await fetch('./design-overrides.json',{cache:'no-store'});
     if(!overrideResponse.ok) throw new Error('Could not read design-overrides.json (HTTP '+overrideResponse.status+').');
     const DESIGN_OVERRIDES=await overrideResponse.json();
-    const designModule=await import('./ship-designs.js?v=0.8.5');
-    const structureModule=await import('./ship-structures.js?v=0.8.5');
-    const modelModule=await import('./ship-models.js?v=0.8.5');
-    const {SHIP_DESIGNS,getShipDesign,setShipDesignOverrides}=designModule;
-    const {getShipStructureBlueprint,setShipStructureOverrides}=structureModule;
-    const {createShipModel,disposeShipModel}=modelModule;
+    const designModule=await import('./ship-designs.js?v=0.8.6');
+    const structureModule=await import('./ship-structures.js?v=0.8.6');
+    const modelModule=await import('./ship-models.js?v=0.8.6');
+    const {SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION}=designModule;
+    const {getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION}=structureModule;
+    const {createShipModel,disposeShipModel,SHIP_MODEL_MODULE_VERSION}=modelModule;
+    const apiProblems=[];
+    if(typeof setShipDesignOverrides!=='function')apiProblems.push('ship-designs.js: setShipDesignOverrides');
+    if(typeof getShipDesign!=='function')apiProblems.push('ship-designs.js: getShipDesign');
+    if(typeof setShipStructureOverrides!=='function')apiProblems.push('ship-structures.js: setShipStructureOverrides');
+    if(typeof getShipStructureBlueprint!=='function')apiProblems.push('ship-structures.js: getShipStructureBlueprint');
+    if(typeof createShipModel!=='function')apiProblems.push('ship-models.js: createShipModel');
+    if(typeof disposeShipModel!=='function')apiProblems.push('ship-models.js: disposeShipModel');
+    if(SHIP_DESIGN_MODULE_VERSION!=='0.8.6')apiProblems.push('ship-designs.js version '+String(SHIP_DESIGN_MODULE_VERSION));
+    if(SHIP_STRUCTURE_MODULE_VERSION!=='0.8.6')apiProblems.push('ship-structures.js version '+String(SHIP_STRUCTURE_MODULE_VERSION));
+    if(SHIP_MODEL_MODULE_VERSION!=='0.8.6')apiProblems.push('ship-models.js version '+String(SHIP_MODEL_MODULE_VERSION));
+    if(Object.keys(SHIP_DESIGNS||{}).length!==16)apiProblems.push('ship catalogue count '+Object.keys(SHIP_DESIGNS||{}).length);
+    if(apiProblems.length){
+      throw new Error('Ship module mismatch: '+apiProblems.join('; ')+'. Pull the latest ForTests files, restart Vite, then hard-refresh the preview.');
+    }
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x101a22);
 scene.fog=new THREE.Fog(0x101a22,120,900);
@@ -616,7 +630,7 @@ window.addEventListener('beforeunload',()=>{
     status.style.color='#f0a49b';
     const notice=document.createElement('div');
     notice.style.cssText='position:absolute;inset:14px 14px 52px;display:flex;align-items:center;justify-content:center;padding:24px;border:1px solid #8c5550;border-radius:10px;background:#21191acc;color:#f4d8d4;text-align:left;white-space:pre-wrap;overflow:auto;font:12px/1.6 ui-monospace,monospace;z-index:5';
-    notice.textContent='SHIP EDITOR COULD NOT START\\n\\n'+message+'\\n\\nOpen the terminal running npm run dev for the detailed error.\\nThe ship selector has been populated when the design modules loaded; if it is still empty, the import error occurred before the fleet catalogue could load.';
+    notice.textContent='SHIP EDITOR COULD NOT START\n\n'+message+'\n\nOpen the terminal running npm run dev for the detailed error.\nThe vessel list remains available while the startup issue is corrected.';
     viewport?.appendChild(notice);
   }
 }
