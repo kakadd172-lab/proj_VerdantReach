@@ -1,4 +1,5 @@
 import { createChunk } from './chunk.js';
+import { CollisionWorld } from './collision.js';
 
 export class WorldManager {
   constructor(scene, generator, sharedAssets, options = {}) {
@@ -15,6 +16,7 @@ export class WorldManager {
     this.renderOriginX = 0;
     this.renderOriginZ = 0;
     this.onChunkLoaded = options.onChunkLoaded ?? (() => {});
+    this.collisionWorld = options.collisionWorld ?? new CollisionWorld(options.collisionCellSize ?? 24);
   }
 
   _key(cx, cz) {
@@ -63,6 +65,7 @@ export class WorldManager {
 
     for (const [key, chunk] of this.chunks) {
       if (!wanted.has(key)) {
+        this.collisionWorld.removeBodies('chunk:' + key);
         chunk.dispose();
         this.chunks.delete(key);
         this._rebuildInteractables();
@@ -94,6 +97,7 @@ export class WorldManager {
       });
       chunk.group.position.set(-this.renderOriginX, 0, -this.renderOriginZ);
       this.chunks.set(item.key, chunk);
+      this.collisionWorld.setBodies('chunk:' + item.key, chunk.colliders ?? []);
       this.onChunkLoaded(chunk);
       made += 1;
     }
@@ -101,7 +105,16 @@ export class WorldManager {
     return made;
   }
 
+  setCollisionBodies(ownerId, bodies) {
+    return this.collisionWorld.setBodies(ownerId, bodies);
+  }
+
+  removeCollisionBodies(ownerId) {
+    return this.collisionWorld.removeBodies(ownerId);
+  }
+
   invalidateAll() {
+    for (const key of this.chunks.keys()) this.collisionWorld.removeBodies('chunk:' + key);
     for (const chunk of this.chunks.values()) chunk.dispose();
     this.chunks.clear();
     this.pending.clear();
@@ -135,6 +148,7 @@ export class WorldManager {
   }
 
   dispose() {
+    this.collisionWorld.clear();
     for (const chunk of this.chunks.values()) chunk.dispose();
     this.chunks.clear();
     this.pending.clear();

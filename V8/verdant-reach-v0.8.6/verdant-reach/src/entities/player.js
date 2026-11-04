@@ -97,6 +97,17 @@ export class Player {
     this.group.add(marker);
   }
 
+  setCollisionWorld(collisionWorld) {
+    this.collisionWorld = collisionWorld ?? null;
+    if (this.collisionWorld) {
+      const resolved = this.collisionWorld.resolveCircle(this.position.x, this.position.z, this.collisionRadius);
+      this.position.x = resolved.x;
+      this.position.z = resolved.z;
+      this.position.y = this.generator.heightAt(resolved.x, resolved.z);
+      this.group.position.set(this.position.x - this.renderOriginX, this.position.y, this.position.z - this.renderOriginZ);
+    }
+  }
+
   update(delta, input, camera, rpg, transport = null, weather = null) {
     const forward = new THREE.Vector3();
     camera.getWorldDirection(forward);
@@ -144,18 +155,49 @@ export class Player {
       this.velocity.z = THREE.MathUtils.damp(this.velocity.z, 0, coastDamping, delta);
     }
 
-    const nextX = this.position.x + this.velocity.x * delta;
-    const nextZ = this.position.z + this.velocity.z * delta;
+    // Vehicle footprints are larger than the on-foot capsule. While mounted,
+    // ignore the collider owned by the current vehicle so the rider is not
+    // trapped inside their own horse, cart, or vessel.
+    this.collisionRadius = transport?.mode === 'boat'
+      ? (transport.vesselType ? 1.45 : 1.0)
+      : transport?.mode === 'cart' ? 1.02
+        : transport?.mode === 'horse' ? 0.82 : 0.62;
+
+    const intendedX = this.position.x + this.velocity.x * delta;
+    const intendedZ = this.position.z + this.velocity.z * delta;
+    const collisionMove = this.collisionWorld
+      ? this.collisionWorld.moveCircle(
+        this.position.x, this.position.z,
+        intendedX - this.position.x, intendedZ - this.position.z,
+        this.collisionRadius,
+        { ignoreIds: transport?.mounted && transport.vehicleId ? [transport.vehicleId] : [] },
+      )
+      : { x: intendedX, z: intendedZ, contacts: [] };
+    const nextX = collisionMove.x;
+    const nextZ = collisionMove.z;
     const nextSample = this.generator.sample(nextX, nextZ, true);
     const nextGround = nextSample.height;
     const currentGround = this.generator.heightAt(this.position.x, this.position.z);
-    const canTraverse = transport ? transport.canTraverse(nextGround, nextSample.slope) : (nextGround > 0.55 || currentGround < 0.55);
+    const canTraverse = transport
+      ? transport.canTraverse(nextGround, nextSample.slope)
+      : (nextGround > 0.55 || currentGround < 0.55);
+
     if (canTraverse) {
       this.position.x = nextX;
       this.position.z = nextZ;
     } else {
       this.velocity.x = 0;
       this.velocity.z = 0;
+    }
+
+    // Strip only velocity aimed into a contact normal. Its tangential
+    // component remains so movement can naturally slide along walls and rocks.
+    for (const contact of collisionMove.contacts) {
+      const intoSurface = this.velocity.x * contact.normal.x + this.velocity.z * contact.normal.z;
+      if (intoSurface < 0) {
+        this.velocity.x -= contact.normal.x * intoSurface;
+        this.velocity.z -= contact.normal.z * intoSurface;
+      }
     }
     const ground = this.generator.heightAt(this.position.x, this.position.z);
     this.position.y = transport?.mode === 'boat' && ground < 1.8
@@ -196,8 +238,11 @@ export class Player {
   }
 
   setPosition(x, z) {
-    this.position.set(x, this.generator.heightAt(x, z), z);
-    this.group.position.set(x - this.renderOriginX, this.position.y, z - this.renderOriginZ);
+    const resolved = this.collisionWorld
+      ? this.collisionWorld.resolveCircle(x, z, this.collisionRadius)
+      : { x, z };
+    this.position.set(resolved.x, this.generator.heightAt(resolved.x, resolved.z), resolved.z);
+    this.group.position.set(this.position.x - this.renderOriginX, this.position.y, this.position.z - this.renderOriginZ);
   }
 
   getSaveData() {

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { seededRandom, random2, smoothstep } from '../core/random.js';
 import { BIOMES } from './biomes.js';
+import { circleCollider } from './collision.js';
 
 const COLOR_SAND = new THREE.Color(0xb9a67b);
 const COLOR_ROCK = new THREE.Color(0x777e78);
@@ -154,6 +155,7 @@ export function createChunk(generator, cx, cz, options) {
   treeTrunks.receiveShadow = true;
   treeLeaves.receiveShadow = true;
   const interactables = [];
+  const colliders = [];
   const seed = generator.seed;
   const samples = new Array((resolution + 1) * (resolution + 1));
 
@@ -239,6 +241,8 @@ export function createChunk(generator, cx, cz, options) {
     const yaw = rng() * Math.PI * 2;
     addInstance(treeTrunks, dummy2, x, sample.height + 2.05 * scale, z, yaw, scale, scale, scale);
     addInstance(treeLeaves, dummy2, x, sample.height + 4.75 * scale, z, yaw, scale, scale * (0.92 + rng() * 0.26), scale);
+    // Only the trunk is solid; foliage stays traversable.
+    colliders.push(circleCollider('tree-trunk-' + i, originX + x, originZ + z, 0.31 * scale, { kind: 'tree' }));
   }
 
   for (let i = 0; i < 25; i += 1) {
@@ -248,6 +252,7 @@ export function createChunk(generator, cx, cz, options) {
     if (sample.height < 2.5 || sample.slope > 1.4 || rng() > 0.28) continue;
     const scale = 0.35 + rng() * 0.95;
     addInstance(rocks, dummy2, x, sample.height + scale * 0.48, z, rng() * Math.PI * 2, scale * 1.2, scale * 0.8, scale);
+    colliders.push(circleCollider('rock-' + i, originX + x, originZ + z, scale * 1.22, { kind: 'rock' }));
   }
   // Instanced meadow grasses and flowers bring visual detail to plains without
   // adding hundreds of individual draw calls. Every placement uses chunk-local
@@ -266,7 +271,11 @@ export function createChunk(generator, cx, cz, options) {
     if (outcrops.count >= outcrops.instanceMatrix.count) break;
     const scale = 1.1 + rng() * 3.4;
     const yaw = rng() * Math.PI * 2;
-    addInstance(outcrops, dummy2, x, sample.height + scale * 0.42, z, yaw, scale * (0.85 + rng() * 0.7), scale * (0.62 + rng() * 0.42), scale * (0.9 + rng() * 0.6));
+    const scaleX = scale * (0.85 + rng() * 0.7);
+    const scaleY = scale * (0.62 + rng() * 0.42);
+    const scaleZ = scale * (0.9 + rng() * 0.6);
+    addInstance(outcrops, dummy2, x, sample.height + scale * 0.42, z, yaw, scaleX, scaleY, scaleZ);
+    colliders.push(circleCollider('outcrop-' + i, originX + x, originZ + z, Math.max(scaleX, scaleZ) * 0.92, { kind: 'outcrop' }));
   }
 
   for (let i = 0; i < 260; i += 1) {
@@ -361,6 +370,7 @@ export function createChunk(generator, cx, cz, options) {
       const stone = createWaystone(originX + x, sample.height, originZ + z, id);
       stone.userData.chunkKey = `${cx}:${cz}`;
       interactables.push(stone);
+      colliders.push(circleCollider('waystone:' + id, originX + x, originZ + z, 1.9, { kind: 'waystone' }));
       break;
     }
   }
@@ -369,6 +379,7 @@ export function createChunk(generator, cx, cz, options) {
   group.add(terrain, water, treeTrunks, treeLeaves, rocks, outcrops, grass, flowers, crops);
   for (const item of interactables) group.add(item);
   group.userData.chunkKey = `${cx}:${cz}`;
+  group.userData.collisionBodies = colliders;
   group.userData.centerX = originX + size / 2;
   group.userData.centerZ = originZ + size / 2;
   scene.add(group);
@@ -381,6 +392,7 @@ export function createChunk(generator, cx, cz, options) {
     terrain,
     water,
     interactables,
+    colliders,
     createdAt: performance.now(),
     dispose() {
       scene.remove(group);
