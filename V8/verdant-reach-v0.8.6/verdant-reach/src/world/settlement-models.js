@@ -543,6 +543,9 @@ export function createRuinedCastleCollisionBodies(site, generator) {
     addWall(plan.innerWall[edge], plan.innerWall[(edge + 1) % plan.innerWall.length], 2.8, 8, 'inner-wall-' + edge);
   }
   for (const tower of plan.towers) {
+    // Do not place the old curtain-wall tower across the gate axis; the two
+    // gatehouse towers below now defend that opening as proper flanking towers.
+    if (Math.hypot(tower.x - plan.gate.x, tower.z - plan.gate.z) < 12) continue;
     bodies.push(circleCollider('outer-tower-' + tower.id, tower.x, tower.z, 9, { kind: 'castle-tower' }));
   }
 
@@ -660,6 +663,8 @@ export function createRuinedCastleModel(site, generator) {
     addBrokenCrenellations(a, b, height);
   }
   for (const point of plan.towers) {
+    // Leave the entry approach clear; the dedicated gatehouse towers flank it.
+    if (Math.hypot(point.x - plan.gate.x, point.z - plan.gate.z) < 12) continue;
     const ground = generator.heightAt(point.x, point.z);
     const height = 18 + ((site.seed + Math.round(point.angle * 100)) % 15);
     batches.add('cylinder', 'darkStone', { x: point.x, y: ground + height * 0.5, z: point.z }, { x: 18, y: height, z: 18 });

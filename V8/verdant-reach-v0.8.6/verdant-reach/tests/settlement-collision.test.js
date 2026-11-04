@@ -45,11 +45,6 @@ test('ruined-castle curtain walls block movement while the gate approach remains
   const bodies = createRuinedCastleCollisionBodies(site, flatGenerator);
   const world = new CollisionWorld(24);
   world.setBodies('ruin', bodies);
-  const gateCandidates = world.queryCircle(plan.gate.x, plan.gate.z, 0.6);
-  console.log('RUIN_GATE_COLLIDERS', JSON.stringify(gateCandidates.map(body => ({
-    id: body.id, type: body.type, x: body.x, z: body.z,
-    radius: body.radius, halfWidth: body.halfWidth, halfDepth: body.halfDepth, yaw: body.yaw,
-  }))));
 
   const wall = bodies.find((body) => body.kind === 'castle-wall');
   assert.ok(wall, 'castle walls have collision proxies');
