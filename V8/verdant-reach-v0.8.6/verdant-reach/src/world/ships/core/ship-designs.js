@@ -11,7 +11,7 @@
  * the player standing on deck in a consistent scale.
  */
 import { getShipStructureBlueprint } from './ship-structures.js?v=0.8.6';
-import { VESSEL_SPECS } from './ships/vessels/index.js?v=0.8.6';
+import { VESSEL_SPECS } from '../vessels/index.js?v=0.8.6';
 
 export const SHIP_CATALOGUE_VERSION = '0.8.6';
 export const WORLD_UNITS_PER_METRE = 4 / 3;
