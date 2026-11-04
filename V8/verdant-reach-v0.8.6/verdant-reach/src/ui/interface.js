@@ -1,6 +1,6 @@
 import { BIOMES } from '../world/biomes.js';
 import { CREATIVE_ENTITY_TYPES } from '../systems/world-editing.js';
-import { SHIP_DESIGNS, getShipTypeFromCreativeKind, describeShipDimensions, WORLD_UNITS_PER_METRE } from '../world/ship-designs.js?v=0.8.5';
+import { SHIP_DESIGNS, getShipTypeFromCreativeKind, describeShipDimensions, WORLD_UNITS_PER_METRE } from '../world/ship-designs.js?v=0.8.6';
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -636,7 +636,7 @@ export class GameInterface {
       <p class="panel-lede">Fine-tune the view of the Reach.</p>
       <div class="setting-row"><div><b>Camera sensitivity</b><span>How quickly the view responds to orbit controls.</span></div><input id="camera-sensitivity" type="range" min="0.25" max="1.8" step="0.05" value="1" /></div>
       <div class="setting-row"><div><b>Render distance</b><span>Terrain regions currently stream around you.</span></div><strong>7 × 7 regions</strong></div>
-      <div class="setting-row"><div><b>World generation</b><span>Seeded terrain, major landforms and streamed settlements with stable coordinates.</span></div><strong>v0.8.5</strong></div>
+      <div class="setting-row"><div><b>World generation</b><span>Seeded terrain, major landforms and streamed settlements with stable coordinates.</span></div><strong>v0.8.6</strong></div>
       <div class="panel-note"><span>◷</span> Graphics quality controls and accessibility options are planned for a later build.</div>
     `;
   }
