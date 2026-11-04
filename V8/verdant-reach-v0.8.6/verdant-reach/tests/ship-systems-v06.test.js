@@ -9,14 +9,14 @@ import {
 import { TransportSystem } from '../src/systems/transport.js';
 import { WorldEditSystem, CREATIVE_ENTITY_TYPES } from '../src/systems/world-editing.js';
 import { MaritimeSystem, selectShipType } from '../src/systems/maritime.js';
-import { createShipModel, disposeShipModel } from '../src/world/ship-models.js?v=0.8.5';
+import { createShipModel, disposeShipModel } from '../src/world/ship-models.js?v=0.8.6';
 import { WorldGenerator } from '../src/world/terrain.js';
 import { WorldIntelligence } from '../src/world/world-intelligence.js';
 
 const root = path.resolve(import.meta.dirname, '..');
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8');
 
-test('v0.8.5 catalogue contains 16 distinct sailing-vessel families', () => {
+test('v0.8.6 catalogue contains 16 distinct sailing-vessel families', () => {
   const expected = [
     'sloop', 'schooner', 'brigantine', 'brig', 'snow', 'cutter', 'frigate', 'barque',
     'caravel', 'carrack', 'galleon', 'fluyt', 'xebec', 'junk', 'first-rate', 'pinnace',
@@ -172,8 +172,8 @@ test('Creative object duplication and save restoration preserve ship state', () 
 });
 
 test('the replacement model builder uses high-resolution hull lofts and editable curved structures', () => {
-  const source = read('src/world/ship-models.js');
-  const structures = read('src/world/ship-structures.js');
+  const source = read('src/world/ships/core/ship-model-builder.js');
+  const structures = read('src/world/ships/core/ship-structures.js');
   for (const token of ['hullGeometry', 'deckGeometry', 'sternHouseGeometry', 'addJunkRig', 'addFrames', 'addStrakesAndPlanking', 'setupPartApi', 'createShipModel', 'disposeShipModel']) {
     assert.ok(source.includes(token), 'missing model feature: ' + token);
   }
@@ -200,10 +200,10 @@ test('all historical vessels are available in the Creative editor', () => {
   assert.ok(main.includes('creativePlacement'));
 });
 
-test('version metadata and browser entry identify v0.8.5', () => {
+test('version metadata and browser entry identify v0.8.6', () => {
   const pkg = JSON.parse(read('package.json'));
   const html = read('index.html');
-  assert.equal(pkg.version, '0.8.5');
+  assert.equal(pkg.version, '0.8.6');
   assert.match(html, /styles\.css\?v=0\.8\.5/);
   assert.match(html, /main\.js\?v=0\.8\.5/);
   assert.match(read('src/main.js'), /version: '0\.8\.5'/);
