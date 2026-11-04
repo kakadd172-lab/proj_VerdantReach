@@ -25,8 +25,8 @@ test('movement slides along a long wall while its normal component is blocked', 
   world.setBodies('wall', [boxCollider('long-panel', 0, 0, 30, 0.5, 0)]);
   const result = world.moveCircle(-4, -5, 8, 8, 0.6);
   assert.equal(result.collided, true);
-  assert.ok(result.x < 0, 'the actor remains on the approach side of the wall');
-  assert.ok(result.z > -1, 'the actor slides along the wall');
+  assert.ok(result.x > 2, 'the actor travels along the wall instead of stopping completely');
+  assert.ok(result.z < 0, 'the actor remains on the approach side of the wall');
   assert.ok(world.isCircleFree(result.x, result.z, 0.6));
 });
 
