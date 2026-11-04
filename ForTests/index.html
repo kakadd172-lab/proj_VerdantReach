@@ -29,6 +29,10 @@ button{cursor:pointer;font-size:12px}button:hover{background:#2b4550}button:disa
 .small-note{color:#91a6ad;font-size:10px;line-height:1.4;margin:7px 0 0}
 #design-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #part-name{color:#e5d9b9;font-size:12px;margin:5px 0 10px;overflow-wrap:anywhere}
+#history-count{align-self:center;text-align:center;color:#9db1b8;font-size:11px}
+.tool-note{color:#91a6ad;font-size:10px;line-height:1.45;margin:6px 0 0}
+.camera-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #82bfd0;outline-offset:2px}
 @media(max-width:1000px){main{grid-template-columns:minmax(0,1fr) 320px}}
 @media(max-width:760px){main{grid-template-columns:1fr}#viewport{min-height:58vh}aside{border-left:0;border-top:1px solid #31434d;max-height:none}}
 </style></head><body>
@@ -60,7 +64,20 @@ button{cursor:pointer;font-size:12px}button:hover{background:#2b4550}button:disa
 <p class="small-note">Choose a component from the list or click it in the 3D view.</p></div>
 <div class="section"><h2>Selected component</h2><label for="part-select">Component</label><select id="part-select"></select><div id="part-name">No component selected</div>
 <div class="row"><button id="undo" type="button" disabled>↶ Undo</button><button id="redo" type="button" disabled>↷ Redo</button></div>
-<div class="row"><button id="reset-part" type="button">Reset component</button><button id="reset-camera" type="button">Reset camera</button></div>
+<div id="history-count">0 / 0</div>
+<div class="row"><button id="reset-part" type="button">Reset component</button><button id="frame-selected" type="button">Frame selected</button></div>
+<div class="row"><button id="reset-all-parts" type="button">Reset all components</button><button id="reset-vessel" type="button">Reset vessel design</button></div>
+<div class="section"><h2>Selection and visibility</h2>
+<label for="part-search">Find component</label><input id="part-search" type="search" placeholder="Search components…"/>
+<div class="row"><button id="toggle-visibility" type="button">Hide selected</button><button id="isolate-selected" type="button">Isolate selected</button></div>
+<button id="show-all-parts" type="button">Show all components</button>
+<p class="tool-note">Visibility and isolation are saved with the design.</p></div>
+<div class="section"><h2>Transform options</h2>
+<div class="row"><button id="space-toggle" type="button">Local space</button><button id="snap-toggle" type="button">Snapping off</button></div>
+<div class="camera-grid">
+<button type="button" data-camera="top">Top</button><button type="button" data-camera="side">Side</button><button type="button" data-camera="bow">Bow</button><button type="button" data-camera="stern">Stern</button>
+</div>
+<p class="tool-note">Shortcuts: W move · E rotate · R scale · F frame · Ctrl+Z undo · Ctrl+Y redo.</p></div>
 <div class="section"><h2>Position · game units</h2><div id="position-fields" class="transform-grid"></div></div>
 <div class="section"><h2>Rotation · degrees</h2><div id="rotation-fields" class="transform-grid"></div></div>
 <div class="section"><h2>Scale</h2><div id="scale-fields" class="transform-grid"></div></div></div>
