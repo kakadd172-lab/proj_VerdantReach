@@ -4,7 +4,7 @@ The editor in this folder now runs the **actual v0.8.6 game ship system**. The p
 
 `V8/verdant-reach-v0.8.6/verdant-reach/src/world/ships/`
 
-There is no second, copied ship catalogue in ForTests. Changes made in the editor are runtime overrides and are saved to `ForTests/design-overrides.json`; they do not rewrite the source vessel files or the main game.
+There is no second, copied ship catalogue in ForTests. Changes made in the editor are runtime overrides and are saved to `ForTests/design-overrides.json`; they do not rewrite the source vessel files or the main game.\n\nThe adapters preserve the exact `?v=0.8.6` module URLs used by the game builder, so editor overrides and generated vessels share one runtime state.
 
 ## What the studio can do
 
