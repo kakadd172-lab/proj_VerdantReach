@@ -963,7 +963,9 @@ function setupPartApi(root, registry, design) {
         mastLean: { ...state.mastLean },
         hiddenParts: { ...state.hiddenParts },
         unlinkedParts: [...state.unlinkedParts],
-        partTransforms: Object.fromEntries(Object.entries(state.partTransforms).map(([name, value]) => [name, { ...value }])),
+        // Read transforms from live Object3D values. TransformControls edits meshes
+        // directly, so state.partTransforms alone can be stale until explicitly synced.
+        partTransforms: Object.fromEntries([...registry.keys()].map((name) => [name, api.getPartTransform(name)]).filter(([, value]) => Boolean(value))),
       };
     },
     applyShipState(saved = {}) {
