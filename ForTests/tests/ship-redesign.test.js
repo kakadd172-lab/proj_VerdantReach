@@ -145,3 +145,48 @@ test('live design and structure overrides feed the parametric model helpers',()=
  }
  assert.ok(Math.abs(getShipDesign('sloop').beam-base.beam)<1e-9);
 });
+
+test('resetPartTransform restores the true original parent, visibility and transform',()=>{
+ const ship=createShipModel('sloop');
+ try{
+  const part=ship.userData.getPart('mast-single');
+  const originalParent=part.parent;
+  const originalPosition=part.position.clone();
+  const originalRotation=part.rotation.clone();
+  const originalScale=part.scale.clone();
+  assert.equal(ship.userData.setPartTransform('mast-single',{x:1.25,y:.4,z:-.6,rx:.2,ry:-.15,rz:.1,sx:1.4,sy:1.2,sz:.8}),true);
+  assert.equal(ship.userData.setPartVisible('mast-single',false),true);
+  assert.equal(ship.userData.detachPart('mast-single'),true);
+  assert.notEqual(part.parent,originalParent);
+  assert.equal(part.visible,false);
+  assert.equal(ship.userData.resetPartTransform('mast-single'),true);
+  assert.equal(part.parent,originalParent);
+  assert.equal(part.visible,true);
+  assert.ok(part.position.distanceTo(originalPosition)<1e-8);
+  assert.ok(part.rotation.toVector3().distanceTo(originalRotation.toVector3())<1e-8);
+  assert.ok(part.scale.distanceTo(originalScale)<1e-8);
+  const offset=ship.userData.getPartTransform('mast-single');
+  assert.ok(Math.abs(offset.x)<1e-8&&Math.abs(offset.y)<1e-8&&Math.abs(offset.z)<1e-8);
+  assert.ok(Math.abs(offset.sx-1)<1e-8&&Math.abs(offset.sy-1)<1e-8&&Math.abs(offset.sz-1)<1e-8);
+  assert.deepEqual(ship.userData.getShipState().unlinkedParts,[]);
+ }finally{disposeShipModel(ship);}
+});
+test('getShipState captures live Object3D changes made by the transform gizmo',()=>{
+ const ship=createShipModel('sloop');
+ try{
+  const mast=ship.userData.getPart('mast-single');
+  mast.position.x+=.75;
+  mast.rotation.y+=.12;
+  mast.scale.z*=1.15;
+  const saved=ship.userData.getShipState().partTransforms['mast-single'];
+  assert.ok(saved);
+  assert.ok(Math.abs(saved.x-.75)<1e-8);
+  assert.ok(Math.abs(saved.ry-.12)<1e-8);
+  assert.ok(Math.abs(saved.sz-1.15)<1e-8);
+  const restored=createShipModel('sloop',ship.userData.getShipState().partTransforms);
+  try{
+   const value=restored.userData.getPartTransform('mast-single');
+   assert.ok(Math.abs(value.x-.75)<1e-8&&Math.abs(value.ry-.12)<1e-8&&Math.abs(value.sz-1.15)<1e-8);
+  }finally{disposeShipModel(restored);}
+ }finally{disposeShipModel(ship);}
+});
