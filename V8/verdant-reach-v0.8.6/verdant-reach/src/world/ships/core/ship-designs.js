@@ -14,6 +14,7 @@ import { getShipStructureBlueprint } from './ship-structures.js?v=0.8.6';
 import { VESSEL_SPECS } from '../vessels/index.js?v=0.8.6';
 
 export const SHIP_CATALOGUE_VERSION = '0.8.6';
+export const SHIP_DESIGN_MODULE_VERSION = SHIP_CATALOGUE_VERSION;
 export const WORLD_UNITS_PER_METRE = 4 / 3;
 
 const basePartNames = Object.freeze([
@@ -101,8 +102,52 @@ export const SHIP_PART_BASE_NAMES = basePartNames;
 // than rendering the previous generic box-and-plane models.
 const LEGACY_SHIP_KIND_MAP = Object.freeze({ 'sailing-ship': 'sloop', 'large-ship': 'galleon' });
 
+const designOverrides = new Map();
+
+function mergeDesignData(base, patch) {
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) return base;
+  const result = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) continue;
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      result[key] = mergeDesignData(
+        base[key] && typeof base[key] === 'object' && !Array.isArray(base[key]) ? base[key] : {},
+        value,
+      );
+    } else if (Array.isArray(value)) {
+      result[key] = value.map((item) => item && typeof item === 'object' ? structuredClone(item) : item);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+/**
+ * Apply editor/runtime-only design overrides without mutating the immutable
+ * catalogue. Empty overrides restore the vessel's source definition.
+ */
+export function setShipDesignOverrides(type, overrides = {}) {
+  const id = String(type ?? '').replace(/^ship-/, '');
+  if (!Object.hasOwn(designs, id)) return false;
+  if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides)) {
+    throw new TypeError('Ship design overrides must be an object.');
+  }
+  if (Object.keys(overrides).length === 0) designOverrides.delete(id);
+  else designOverrides.set(id, structuredClone(overrides));
+  return true;
+}
+
+export function resetShipDesignOverrides(type) {
+  return setShipDesignOverrides(type, {});
+}
+
 export function getShipDesign(type) {
-  return SHIP_DESIGNS[String(type ?? '').replace(/^ship-/, '')] ?? null;
+  const id = String(type ?? '').replace(/^ship-/, '');
+  const base = SHIP_DESIGNS[id];
+  if (!base) return null;
+  const overrides = designOverrides.get(id);
+  return overrides ? freezeDesign(mergeDesignData(designs[id], overrides)) : base;
 }
 
 export function getShipTypeFromCreativeKind(kind) {
