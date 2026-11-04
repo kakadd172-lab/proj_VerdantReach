@@ -887,7 +887,7 @@ export function createShipModel(type) {
   addDeckDetails(design, root, registry, mats);
 
   const api = setupPartApi(root, registry, design);
-  for (const key of ['getPart', 'detachPart', 'relinkPart', 'setPartVisible', 'setPartTransform', 'resetPartTransform', 'setRudderAngle', 'setSailTrim', 'setMastLean', 'setSailDeployment', 'animateShip', 'getShipState', 'applyShipState']) {
+  for (const key of ['getPart', 'getPartTransform', 'detachPart', 'relinkPart', 'setPartVisible', 'setPartTransform', 'resetPartTransform', 'setRudderAngle', 'setSailTrim', 'setMastLean', 'setSailDeployment', 'animateShip', 'getShipState', 'applyShipState']) {
     root.userData[key] = api[key].bind(api);
   }
   root.userData.shipModelSummary = api.summary.bind(api);
