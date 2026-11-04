@@ -1,4 +1,5 @@
 name: Experimental ship redesign candidate checks
+# Keep the v0.8.6 editor adapter module URLs aligned with the game builder.
 on:
   push:
     branches: [chatgpt-v0.8.6-modular-ship-generators]
