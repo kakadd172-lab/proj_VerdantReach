@@ -49,6 +49,7 @@ for (const id of ids) {
   assert.ok(editorVessel.includes('/vessels/' + id + '.js'), id + ' must link to its matching game vessel source');
   assert.ok(editorVessel.includes("ForTests/ships/vessels/" + id + ".js"), id + ' editor module path');
   assert.ok(editorVessel.includes('defineTestVessel'), id + ' dedicated model adapter');
+  assert.ok(editorVessel.includes('export const createModel'), id + ' dedicated model creator');
   assert.ok(editorVessel.includes('export const generate' + pascal(id)), id + ' named per-vessel generator');
   assert.ok(forTestsRegistry.includes("./vessels/" + id + ".js"), id + ' ForTests registry registration');
 }
