@@ -67,6 +67,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 <div id="history-count">0 / 0</div>
 <div class="row"><button id="reset-part" type="button">Reset component</button><button id="frame-selected" type="button">Frame selected</button></div>
 <div class="row"><button id="reset-all-parts" type="button">Reset all components</button><button id="reset-vessel" type="button">Reset vessel design</button></div>
+<div class="row"><button id="detach-part" type="button" disabled>Detach component</button><button id="relink-part" type="button" disabled>Relink component</button></div>
 <div class="section"><h2>Selection and visibility</h2>
 <label for="part-search">Find component</label><input id="part-search" type="search" placeholder="Search components…"/>
 <div class="row"><button id="toggle-visibility" type="button">Hide selected</button><button id="isolate-selected" type="button">Isolate selected</button></div>
@@ -78,6 +79,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 <button type="button" data-camera="top">Top</button><button type="button" data-camera="side">Side</button><button type="button" data-camera="bow">Bow</button><button type="button" data-camera="stern">Stern</button>
 </div>
 <button id="reset-camera" type="button">Reset camera to ship</button>
+<div class="section"><h2>Viewport display</h2>
+<div class="row"><button id="wireframe-toggle" type="button">Wireframe off</button><button id="grid-toggle" type="button">Grid on</button></div>
+<button id="shadows-toggle" type="button">Shadows on</button>
+<p class="tool-note">Display options affect the preview only; they do not alter the saved vessel design.</p></div>
 <p class="tool-note">Shortcuts: W move · E rotate · R scale · F frame · Ctrl+Z undo · Ctrl+Y redo.</p></div>
 <div class="section"><h2>Position · game units</h2><div id="position-fields" class="transform-grid"></div></div>
 <div class="section"><h2>Rotation · degrees</h2><div id="rotation-fields" class="transform-grid"></div></div>
