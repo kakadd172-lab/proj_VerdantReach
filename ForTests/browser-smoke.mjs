@@ -133,6 +133,29 @@ try{
   await page.locator('#show-all-parts').click();
   assert.equal(await page.locator('#toggle-visibility').innerText(),'Hide selected','Show all did not restore component visibility.');
 
+  // Detach/relink is a reversible hierarchy edit.
+  await page.locator('#detach-part').click();
+  assert.ok(await page.locator('#relink-part').isEnabled(),'Detach did not enable Relink.');
+  assert.ok(await page.locator('#detach-part').isDisabled(),'Detach remained enabled for an unlinked component.');
+  await page.locator('#relink-part').click();
+  assert.ok(await page.locator('#detach-part').isEnabled(),'Relink did not restore the Detach action.');
+  assert.ok(await page.locator('#relink-part').isDisabled(),'Relink remained enabled for a linked component.');
+  await page.locator('#undo').click();
+  assert.ok(await page.locator('#relink-part').isEnabled(),'Undo did not restore the detached hierarchy state.');
+  await page.locator('#redo').click();
+  assert.ok(await page.locator('#detach-part').isEnabled(),'Redo did not restore the linked hierarchy state.');
+
+  // Viewport display options are functional and independent of model edits.
+  await page.locator('#wireframe-toggle').click();
+  assert.equal(await page.locator('#wireframe-toggle').innerText(),'Wireframe on');
+  await page.locator('#wireframe-toggle').click();
+  await page.locator('#grid-toggle').click();
+  assert.equal(await page.locator('#grid-toggle').innerText(),'Grid off');
+  await page.locator('#grid-toggle').click();
+  await page.locator('#shadows-toggle').click();
+  assert.equal(await page.locator('#shadows-toggle').innerText(),'Shadows off');
+  await page.locator('#shadows-toggle').click();
+
   // Resetting the full vessel must also be undoable and redoable.
   await page.locator('#reset-vessel').click();
   assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-originalGalleonBeam)<1e-6,'Reset vessel did not restore the catalogue dimensions.');
