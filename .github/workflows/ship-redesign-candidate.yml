@@ -29,11 +29,11 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Install Chromium for the browser smoke test
         run: npx playwright install --with-deps chromium
-      - name: Verify the modular game source and editor adapters
+      - name: Verify the standalone ForTests vessel definitions and shared geometry engine
         run: npm run check:modules
-      - name: Run v0.8.6 game-module geometry and editor integration tests
+      - name: Run standalone vessel geometry and editor integration tests
         run: npm test
-      - name: Build the v0.8.6-connected 3D preview
+      - name: Build the standalone modular ship editor
         run: npm run build
-      - name: Verify the modular game generators load in the editor
+      - name: Verify all 16 standalone vessel generators load in the editor
         run: npm run smoke
