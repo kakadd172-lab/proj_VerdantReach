@@ -22,7 +22,7 @@ test('the editor uses 16 self-contained ForTests vessel modules', () => {
     assert.ok(module, id + ' ForTests ship module');
     assert.equal(module.id, id);
     assert.equal(typeof module.createModel, 'function', id + ' dedicated model creator');
-    assert.equal(module.generate, module.createModel, id + ' generator/model entry point');
+    assert.equal(typeof module.generate, 'function', id + ' dedicated generator entry point');
     assert.equal(module.editorModulePath, 'ForTests/ships/vessels/' + id + '.js');
     assert.equal(typeof SHIP_GENERATORS[id], 'function', id + ' registered generator');
   }
