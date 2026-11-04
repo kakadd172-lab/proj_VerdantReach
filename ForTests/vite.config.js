@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const allowedShips = new Set([
   'sloop','schooner','brigantine','brig','snow','cutter','frigate','barque',
@@ -55,11 +56,23 @@ function shipEditorSavePlugin() {
   };
 }
 
+const forTestsDir = path.dirname(fileURLToPath(import.meta.url));
+const repositoryRoot = path.resolve(forTestsDir, '..');
+
 export default defineConfig({
+  root: forTestsDir,
   base: './',
-  // Share exactly one Three.js instance between the preview, controls and models.
+  // The preview imports the actual v0.8.6 game source one directory above
+  // ForTests. Keep that source readable while still using this folder as the
+  // only Vite root and save destination.
+  server: {
+    host: '127.0.0.1',
+    port: 5174,
+    strictPort: true,
+    fs: { allow: [repositoryRoot] },
+  },
+  // Share one Three.js instance between the studio and game model builder.
   resolve: { dedupe: ['three'] },
   optimizeDeps: { include: ['three'], force: true },
   plugins: [shipEditorSavePlugin()],
-  server: { host: '127.0.0.1', port: 5174, strictPort: true }
 });
