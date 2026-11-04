@@ -317,6 +317,62 @@ function addLargeHall(batches, feature, generator, style = 0) {
   }
 }
 
+
+/**
+ * Collision proxies derived from the free-city layout used by the renderer.
+ * Wall panels deliberately use the same gate-gap test as their visible meshes.
+ */
+export function createFreeCityCollisionBodies(settlement, generator) {
+  const plan = buildFreeCityPlan(settlement, generator);
+  const bodies = [];
+  for (let edge = 0; edge < plan.wall.length; edge += 1) {
+    const a = plan.wall[edge], b = plan.wall[(edge + 1) % plan.wall.length];
+    const dx = b.x - a.x, dz = b.z - a.z;
+    const length = Math.hypot(dx, dz);
+    const panels = Math.max(1, Math.ceil(length / 9));
+    for (let panel = 0; panel < panels; panel += 1) {
+      const t = (panel + 0.5) / panels;
+      const mid = { x: a.x + dx * t, z: a.z + dz * t };
+      if (plan.gates.some((gate) => isCityGateWallPanelGap(mid, gate))) continue;
+      bodies.push(boxCollider(
+        'city-wall-' + edge + '-' + panel,
+        mid.x, mid.z, 3.4, length / panels + 0.6,
+        Math.atan2(dx, dz), { kind: 'city-wall' },
+      ));
+    }
+  }
+  for (const tower of plan.towers) {
+    bodies.push(circleCollider('city-wall-tower-' + tower.id, tower.x, tower.z, 5.25, { kind: 'tower' }));
+  }
+  for (const gate of plan.gates) {
+    const sideX = Math.cos(gate.angle) * 7;
+    const sideZ = -Math.sin(gate.angle) * 7;
+    for (const side of [-1, 1]) {
+      bodies.push(circleCollider(
+        'city-gate-tower-' + gate.name + '-' + side,
+        gate.x + sideX * side, gate.z + sideZ * side, 3.7, { kind: 'gate-tower' },
+      ));
+    }
+  }
+  for (const building of plan.buildings) {
+    bodies.push(boxCollider(
+      'city-building-' + building.id,
+      building.x, building.z, building.width + 0.55, building.depth + 0.55,
+      building.yaw, { kind: 'city-building' },
+    ));
+  }
+  for (const landmark of plan.landmarks) {
+    bodies.push(boxCollider(
+      'city-landmark-' + landmark.id,
+      landmark.x, landmark.z,
+      (landmark.collisionWidth ?? landmark.width) + 1.2,
+      (landmark.collisionDepth ?? landmark.depth) + 1.2,
+      landmark.yaw, { kind: 'landmark' },
+    ));
+  }
+  return bodies;
+}
+
 export function createFreeCityModel(settlement, generator) {
   const plan = buildFreeCityPlan(settlement, generator);
   const group = new THREE.Group();
@@ -679,7 +735,13 @@ export function createRuinedCastleModel(site, generator) {
     batches.add('box', 'stone', { x, y: keepGround + keep.height + h * 0.45, z }, { x: 1.2, y: h, z: 1.4 });
   }
   // Detached barbican outwork protects the gate approach.
+  const barbicanGateSegment = plan.barbican.reduce((best, a, index) => {
+    const b = plan.barbican[(index + 1) % plan.barbican.length];
+    const distance = Math.hypot((a.x + b.x) * 0.5 - plan.gate.x, (a.z + b.z) * 0.5 - plan.gate.z);
+    return !best || distance < best.distance ? { index, distance } : best;
+  }, null)?.index;
   for (let i = 0; i < plan.barbican.length; i += 1) {
+    if (i === barbicanGateSegment) continue;
     const a = plan.barbican[i];
     const b = plan.barbican[(i + 1) % plan.barbican.length];
     addTerrainWall(a, b, 2.5, 7.6, 'stone', 7);
