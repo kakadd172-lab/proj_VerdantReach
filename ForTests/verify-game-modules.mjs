@@ -41,9 +41,21 @@ for (const adapter of ['ship-designs.js','ship-structures.js','ship-hull-paramet
   const source = readFileSync(join(here, adapter), 'utf8');
   assert.ok(source.includes('../V8/verdant-reach-v0.8.6/verdant-reach/'), adapter + ' must import v0.8.6 game code');
 }
+
+const designAdapter = readFileSync(join(here, 'ship-designs.js'), 'utf8');
+const structureAdapter = readFileSync(join(here, 'ship-structures.js'), 'utf8');
+const modelBuilder = readFileSync(join(shipRoot, 'core', 'ship-model-builder.js'), 'utf8');
+
+// Query strings are part of browser ES-module identity. The adapters must use
+// the exact same query as the builder or live override maps silently split.
+assert.ok(designAdapter.includes('ship-designs.js?v=0.8.6'), 'Design adapter must share the builder module URL.');
+assert.ok(structureAdapter.includes('ship-structures.js?v=0.8.6'), 'Structure adapter must share the builder module URL.');
+assert.ok(modelBuilder.includes("'./ship-designs.js?v=0.8.6'"), 'Builder design import revision changed unexpectedly.');
+assert.ok(modelBuilder.includes("'./ship-structures.js?v=0.8.6'"), 'Builder structure import revision changed unexpectedly.');
+
 const preview = readFileSync(join(here, 'preview.js'), 'utf8');
 assert.ok(preview.includes("./ship-designs.js?v=0.8.6"));
 assert.ok(preview.includes("./ship-structures.js?v=0.8.6"));
 assert.ok(preview.includes("./ship-models.js?v=0.8.6"));
 
-console.log('Verified v0.8.6 modular game source, 16 individual vessel modules, registry and ForTests adapters.');
+console.log('Verified v0.8.6 modular game source, 16 vessel modules, editor adapters and shared override module identity.');
