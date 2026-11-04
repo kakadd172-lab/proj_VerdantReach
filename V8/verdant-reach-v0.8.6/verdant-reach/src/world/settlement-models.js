@@ -448,6 +448,85 @@ export function createFreeCityModel(settlement, generator) {
   return group;
 }
 
+
+/**
+ * Static collision proxies for the ruined castle's broken masonry.
+ * The decorative moat is intentionally omitted; breached walls and the
+ * barbican entrance remain traversable.
+ */
+export function createRuinedCastleCollisionBodies(site, generator) {
+  const plan = buildRuinedCastlePlan(site);
+  const bodies = [];
+  const addWall = (a, b, width, maxPanelLength, id) => {
+    const dx = b.x - a.x, dz = b.z - a.z;
+    const length = Math.hypot(dx, dz);
+    const panels = Math.max(1, Math.ceil(length / maxPanelLength));
+    for (let panel = 0; panel < panels; panel += 1) {
+      const t = (panel + 0.5) / panels;
+      bodies.push(boxCollider(
+        id + '-' + panel,
+        a.x + dx * t, a.z + dz * t,
+        width, length / panels + 0.45, Math.atan2(dx, dz),
+        { kind: 'castle-wall' },
+      ));
+    }
+  };
+
+  for (let edge = 0; edge < plan.outerWall.length; edge += 1) {
+    if (plan.breaches.includes(edge)) continue;
+    addWall(plan.outerWall[edge], plan.outerWall[(edge + 1) % plan.outerWall.length], 4.8, 8, 'outer-wall-' + edge);
+  }
+  for (let edge = 0; edge < plan.innerWall.length; edge += 1) {
+    if (edge === 1 || edge === 5) continue;
+    addWall(plan.innerWall[edge], plan.innerWall[(edge + 1) % plan.innerWall.length], 2.8, 8, 'inner-wall-' + edge);
+  }
+  for (const tower of plan.towers) {
+    bodies.push(circleCollider('outer-tower-' + tower.id, tower.x, tower.z, 9, { kind: 'castle-tower' }));
+  }
+
+  const keep = plan.keep;
+  const keepWalls = [
+    { a: { x: keep.x - keep.width * 0.5, z: keep.z - keep.depth * 0.5 }, b: { x: keep.x + keep.width * 0.5, z: keep.z - keep.depth * 0.5 } },
+    { a: { x: keep.x - keep.width * 0.5, z: keep.z - keep.depth * 0.5 }, b: { x: keep.x - keep.width * 0.5, z: keep.z + keep.depth * 0.5 } },
+    { a: { x: keep.x + keep.width * 0.5, z: keep.z - keep.depth * 0.5 }, b: { x: keep.x + keep.width * 0.5, z: keep.z + keep.depth * 0.5 } },
+    { a: { x: keep.x + 2 - keep.width * 0.31, z: keep.z + keep.depth * 0.5 }, b: { x: keep.x + 2 + keep.width * 0.31, z: keep.z + keep.depth * 0.5 } },
+  ];
+  keepWalls.forEach((wall, index) => addWall(wall.a, wall.b, 3.0, 7, 'keep-wall-' + index));
+  for (const sideX of [-1, 1]) {
+    for (const sideZ of [-1, 1]) {
+      const x = keep.x + sideX * (keep.width * 0.5 - 1.5);
+      const z = keep.z + sideZ * (keep.depth * 0.5 - 1.5);
+      bodies.push(boxCollider('keep-pier-' + sideX + '-' + sideZ, x, z, 3.5, 3.5, 0, { kind: 'castle-pier' }));
+    }
+  }
+
+  const gateSegment = plan.barbican.reduce((best, a, index) => {
+    const b = plan.barbican[(index + 1) % plan.barbican.length];
+    const distance = Math.hypot((a.x + b.x) * 0.5 - plan.gate.x, (a.z + b.z) * 0.5 - plan.gate.z);
+    return !best || distance < best.distance ? { index, distance } : best;
+  }, null)?.index;
+  for (let edge = 0; edge < plan.barbican.length; edge += 1) {
+    if (edge === gateSegment) continue;
+    addWall(plan.barbican[edge], plan.barbican[(edge + 1) % plan.barbican.length], 2.5, 7, 'barbican-' + edge);
+  }
+
+  const gateTangentX = Math.cos(plan.gate.angle + Math.PI * 0.5);
+  const gateTangentZ = -Math.sin(plan.gate.angle + Math.PI * 0.5);
+  for (const side of [-1, 1]) {
+    const x = plan.gate.x + gateTangentX * side * 8.5;
+    const z = plan.gate.z + gateTangentZ * side * 8.5;
+    bodies.push(circleCollider('gatehouse-' + side, x, z, 3.9, { kind: 'gatehouse' }));
+  }
+
+  bodies.push(circleCollider('courtyard-well', plan.courtyardWell.x, plan.courtyardWell.z, 1.4, { kind: 'well' }));
+  for (let i = 0; i < plan.rubble.length; i += 1) {
+    const stone = plan.rubble[i];
+    if (stone.scale < 1.65) continue;
+    bodies.push(circleCollider('rubble-' + i, stone.x, stone.z, stone.scale * 0.9, { kind: 'rubble' }));
+  }
+  return bodies;
+}
+
 export function createRuinedCastleModel(site, generator) {
   const plan = buildRuinedCastlePlan(site);
   const group = new THREE.Group();
