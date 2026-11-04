@@ -1,21 +1,28 @@
 /**
  * Ship Design Studio adapter.
  *
- * The mesh generator and part API are the same modules used by the v0.8.6
- * game. The optional extra arguments are an editor convenience for restoring
- * saved component transforms and ship state.
+ * The editor calls the same per-vessel generator registry used by Creative
+ * ship placement in v0.8.6. Optional state arguments restore an editor session
+ * after a model rebuild.
  */
 import {
-  createShipModel as createGameShipModel,
+  createShip as createGameShip,
+  SHIP_GENERATORS,
+  VESSEL_IDS,
+} from '../V8/verdant-reach-v0.8.6/verdant-reach/src/world/ships/index.js';
+import {
   disposeShipModel,
   shipModelSummary,
   SHIP_MODEL_ENGINE_VERSION,
 } from '../V8/verdant-reach-v0.8.6/verdant-reach/src/world/ships/core/ship-model-builder.js';
 
 export const SHIP_MODEL_MODULE_VERSION = SHIP_MODEL_ENGINE_VERSION;
+export { SHIP_GENERATORS, VESSEL_IDS, disposeShipModel, shipModelSummary };
 
 export function createShipModel(type, componentTransforms = {}, savedState = {}) {
-  const ship = createGameShipModel(type);
+  // This is intentionally the game registry, not a direct call to the shared
+  // builder: the preview therefore exercises each vessel's own generator.
+  const ship = createGameShip(type);
   const transforms = componentTransforms && Object.keys(componentTransforms).length
     ? componentTransforms
     : (savedState?.partTransforms || {});
@@ -34,9 +41,5 @@ export function createShipModel(type, componentTransforms = {}, savedState = {})
   ) {
     ship.userData.applyShipState(state);
   }
-  ship.userData.shipGeneratorId = type;
-  ship.userData.shipDefinitionPath = 'src/world/ships/vessels/' + String(type).replace(/^ship-/, '') + '.js';
   return ship;
 }
-
-export { disposeShipModel, shipModelSummary };
