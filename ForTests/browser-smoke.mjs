@@ -133,6 +133,14 @@ try{
   await page.locator('#show-all-parts').click();
   assert.equal(await page.locator('#toggle-visibility').innerText(),'Hide selected','Show all did not restore component visibility.');
 
+  // Resetting the full vessel must also be undoable and redoable.
+  await page.locator('#reset-vessel').click();
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-originalGalleonBeam)<1e-6,'Reset vessel did not restore the catalogue dimensions.');
+  await page.locator('#undo').click();
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-16.5)<1e-6,'Undo did not restore the edited vessel design.');
+  await page.locator('#redo').click();
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-originalGalleonBeam)<1e-6,'Redo did not reapply the vessel reset.');
+
   assert.deepEqual(pageErrors,[],'Browser runtime errors: '+pageErrors.join(' | '));
   console.log('Browser smoke test passed.');
   console.log('Vessels in dropdown: '+optionCount);
