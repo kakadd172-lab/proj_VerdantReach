@@ -136,7 +136,9 @@ test('v0.8.6 modular ship modules and browser entry use consistent cache revisio
   assert.ok(hullMath.includes('getCrossSectionHalfBreadthRatio'));
   assert.ok(hullMath.includes('getKeelLineHeight'));
   assert.ok(models.includes('ship-designs.js?v=0.8.6'));
-  assert.ok(registry.includes("'galleon'"));
+  assert.ok(registry.includes('VESSEL_SPECS'));
+  assert.ok(registry.includes('VESSEL_IDS.map'));
+  assert.ok(registry.includes('getShipGenerator(type)'));
   assert.ok(registry.includes('createShip(type)'));
   assert.ok(models.includes('ship-structures.js?v=0.8.6'));
   assert.ok(structures.includes('getHullHalfBeam'));
