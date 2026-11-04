@@ -1,7 +1,11 @@
 import * as THREE from 'three';
+import { boxCollider, circleCollider } from './collision.js';
 import { buildDrapedRoadData } from './road-geometry.js';
 import { createShipModel, disposeShipModel } from './ship-models.js?v=0.8.4-completion';
-import { createFreeCityModel, createRuinedCastleModel } from './settlement-models.js?v=0.8.4-completion';
+import {
+  createFreeCityModel, createRuinedCastleModel,
+  createFreeCityCollisionBodies, createRuinedCastleCollisionBodies,
+} from './settlement-models.js?v=0.8.4-completion';
 
 function material(color, roughness = 0.9, extra = {}) {
   return new THREE.MeshStandardMaterial({ color, roughness, ...extra });
@@ -29,6 +33,7 @@ export class WorldActorManager {
     this.civilization = civilization;
     this.ecosystem = ecosystem;
     this.combat = combat;
+    this.collisionWorld = null;
     this.root = new THREE.Group();
     this.scene.add(this.root);
     this.originX = 0;
@@ -47,6 +52,17 @@ export class WorldActorManager {
     this.currentDay = 1;
     this.elapsed = 0;
     this._buildAssets();
+  }
+
+  setCollisionWorld(collisionWorld) {
+    this.collisionWorld = collisionWorld ?? null;
+    if (!this.collisionWorld) return;
+    for (const [id, record] of this.settlements) {
+      this.collisionWorld.setBodies('settlement:' + id, record.collisionBodies ?? []);
+    }
+    for (const [id, record] of this.ruins) {
+      this.collisionWorld.setBodies('ruin:' + id, record.collisionBodies ?? []);
+    }
   }
 
   _buildAssets() {
@@ -154,9 +170,11 @@ export class WorldActorManager {
 
   _createSettlement(settlement, day) {
     const root = new THREE.Group();
+    const collisionBodies = [];
     root.userData.settlementId = settlement.id;
     if (settlement.type === 'freeCity') {
       root.add(createFreeCityModel(settlement, this.generator));
+      collisionBodies.push(...createFreeCityCollisionBodies(settlement, this.generator));
     } else {
       const count = settlement.buildingCount;
       for (let i = 0; i < count; i += 1) {
@@ -165,13 +183,18 @@ export class WorldActorManager {
         const x = settlement.x + Math.cos(angle) * radius;
         const z = settlement.z + Math.sin(angle) * radius;
         const sample = this.generator.sample(x, z, true);
-        if (sample.slope < 0.5 && sample.height > 0) this._addHouse(root, x, z, i, i % 4 === 0 ? 1.12 : 0.92);
+        const houseScale = i % 4 === 0 ? 1.12 : 0.92;
+        if (sample.slope < 0.5 && sample.height > 0) {
+          this._addHouse(root, x, z, i, houseScale);
+          collisionBodies.push(boxCollider('house-' + i, x, z, 5.8 * houseScale, 5.8 * houseScale, 0, { kind: 'settlement-house' }));
+        }
       }
 
       const well = new THREE.Mesh(this.geometry.well, this.materials.stone);
       well.position.set(settlement.x, settlement.elevation + 0.45, settlement.z);
       well.castShadow = true;
       root.add(well);
+      collisionBodies.push(circleCollider('settlement-well', settlement.x, settlement.z, 1.2, { kind: 'well' }));
       // The detailed, stocked stalls are added below; do not draw a duplicate empty counter.
       for (let i = 0; i < 5; i += 1) {
         const crop = new THREE.Mesh(this.geometry.crop, this.materials.crop);
@@ -197,6 +220,7 @@ export class WorldActorManager {
           item.position.set(-1.25 + goods * 1.25, 1.62, 0.1); item.scale.setScalar(0.8 + (goods % 2) * 0.14); stall.add(item);
         }
         stall.position.set(x, this.generator.heightAt(x, z), z); root.add(stall);
+        collisionBodies.push(boxCollider('market-stall-' + index, x, z, 4.1, 3.0, angle + Math.PI * 0.5, { kind: 'market-stall' }));
       }
     }
 
@@ -228,17 +252,20 @@ export class WorldActorManager {
     this.vehicles.set(cart.id, cart);
 
     this.root.add(root);
-    return { root, settlement, state, npcActors, horse, cart, boat };
+    this.collisionWorld?.setBodies('settlement:' + settlement.id, collisionBodies);
+    return { root, settlement, state, npcActors, horse, cart, boat, collisionBodies };
   }
 
   _createRuin(site) {
     const group = createRuinedCastleModel(site, this.generator);
+    const collisionBodies = createRuinedCastleCollisionBodies(site, this.generator);
+    this.collisionWorld?.setBodies('ruin:' + site.id, collisionBodies);
     group.userData.interactable = {
       type: 'ruinedCastle', id: site.id,
       label: `Explore ${site.name}`,
     };
     this.root.add(group);
-    return { ...site, group };
+    return { ...site, group, collisionBodies };
   }
 
   _createPerson(npc, settlement, index) {
@@ -620,6 +647,7 @@ export class WorldActorManager {
     const activeIds = new Set(settlements.map((item) => item.id));
     for (const [id, record] of this.settlements) {
       if (!activeIds.has(id)) {
+        this.collisionWorld?.removeBodies('settlement:' + id);
         this.root.remove(record.root);
         record.root.traverse((child) => { if (child.userData?.ownedGeometry) child.geometry?.dispose(); });
         this.settlements.delete(id);
@@ -639,6 +667,7 @@ export class WorldActorManager {
     const activeRuinIds = new Set(nearbyRuins.map((site) => site.id));
     for (const [id, ruin] of this.ruins) {
       if (activeRuinIds.has(id)) continue;
+      this.collisionWorld?.removeBodies('ruin:' + id);
       this.root.remove(ruin.group);
       this.ruins.delete(id);
     }
@@ -1174,6 +1203,8 @@ export class WorldActorManager {
   }
 
   dispose() {
+    for (const id of this.settlements.keys()) this.collisionWorld?.removeBodies('settlement:' + id);
+    for (const id of this.ruins.keys()) this.collisionWorld?.removeBodies('ruin:' + id);
     this.scene.remove(this.root);
     for (const caravan of this.caravans) {
       for (const geometry of caravan.road?.userData.routeGeometries ?? []) geometry.dispose();
