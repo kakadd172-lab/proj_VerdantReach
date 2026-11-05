@@ -70,15 +70,23 @@ actual game remains unchanged; this is an independent editor/test collection.
 
 ## Editor capabilities
 
-- Preview all 16 vessel modules.
-- Inspect the full editable component hierarchy.
-- Move, rotate and scale parts with TransformControls or numeric inputs.
-- Use Local/World transform space, snapping, camera presets and framing.
+- Preview all 16 vessel modules from their independent vessel files.
+- Inspect the editable component hierarchy, mesh counts, materials and transformed bounds.
+- Move, rotate and scale parts with TransformControls or precise numeric inputs.
+- Use Local/World transform space, snapping, camera presets, component focus and fullscreen viewport mode.
 - Search, hide/show, isolate, detach/relink and reset components.
-- Undo/Redo across vessel changes and parameter/component edits.
+- Undo/Redo across vessel changes, imported configurations, parameter edits and component transforms.
 - Adjust each vessel's own hull and structural parameters.
-- Save local overrides to `design-overrides.json` or export JSON.
+- Inspect hull cross-sections with a movable clipping plane.
+- Measure point-to-point spans directly on the 3D model.
+- Compare the principal dimensions of two vessels side by side.
+- Save local overrides to `design-overrides.json`, import a JSON backup, or export JSON.
+- Capture the viewport as a PNG image.
 - Inspect wireframe, grid and shadow modes.
+
+The editor uses a calmer, collapsible workspace layout. The game title screen also
+has a responsive comfort-focused redesign; the Survival/Creative selectors,
+seed entry, saved-world library and existing start actions remain intact.
 
 ## Setup
 
@@ -87,13 +95,14 @@ Requires Node.js 22+, npm, and a WebGL-capable browser.
 ```powershell
 cd D:\Projects\VerdantReach
 git fetch origin
-git switch chatgpt-v0.8.6-modular-ship-generators
-git pull --ff-only origin chatgpt-v0.8.6-modular-ship-generators
+git switch --track -c chatgpt-v0.8.6-editor-menu-refresh origin/chatgpt-v0.8.6-editor-menu-refresh
+git pull --ff-only origin chatgpt-v0.8.6-editor-menu-refresh
 cd ForTests
 npm install
 npm run check:modules
 npm test
 npm run build
+npx playwright install chromium
 npm run smoke
 npm run dev
 ```
