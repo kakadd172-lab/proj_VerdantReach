@@ -166,6 +166,49 @@ try{
   await page.locator('#redo').click();
   assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-originalGalleonBeam)<1e-6,'Redo did not reapply the vessel reset.');
 
+  // New component inspector reports useful details for the current selection.
+  assert.notEqual(await page.locator('#part-size').innerText(),'—','Component bounds were not reported.');
+  assert.ok(Number(await page.locator('#part-meshes').innerText())>0,'Component inspector did not count meshes.');
+
+  // Vessel-to-vessel comparison displays the current design dimensions.
+  await page.locator('#compare-select').selectOption('sloop');
+  assert.ok((await page.locator('#compare-summary').innerText()).includes('Length'),'Vessel comparison summary was not updated.');
+
+  // Point measurement mode and hull-section clipping remain reversible.
+  await page.locator('#measure-toggle').click();
+  assert.ok((await page.locator('#measure-toggle').innerText()).startsWith('Measuring'),'Measurement mode did not activate.');
+  await page.locator('#measure-toggle').click();
+  await page.locator('#clear-measurement').click();
+  await page.locator('#section-toggle').click();
+  assert.equal(await page.locator('#section-slider').isEnabled(),true,'Hull section slider did not enable.');
+  await page.locator('#section-slider').evaluate(element=>{
+    element.value=String((Number(element.min)+Number(element.max))*0.35);
+    element.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  await page.locator('#section-toggle').click();
+  assert.equal(await page.locator('#section-slider').isDisabled(),true,'Hull section slider remained enabled after turning the section off.');
+
+  // The viewport can be captured as a PNG from the current WebGL canvas.
+  const [previewDownload]=await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('#capture-preview').click(),
+  ]);
+  assert.ok(previewDownload.suggestedFilename().endsWith('.png'),'Preview capture did not create a PNG download.');
+
+  // Import a design backup and verify that it participates in global undo/redo.
+  const importJson=JSON.stringify({format:'verdant-reach-ship-editor',version:2,ships:{galleon:{design:{beam:16.4}}}});
+  await page.locator('#import-file').setInputFiles({
+    name:'shipyard-import-test.json',
+    mimeType:'application/json',
+    buffer:Buffer.from(importJson),
+  });
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Imported '),{timeout:10000});
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-16.4)<1e-6,'Imported vessel beam override was not applied.');
+  await page.locator('#undo').click();
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-originalGalleonBeam)<1e-6,'Undo did not revert the imported vessel configuration.');
+  await page.locator('#redo').click();
+  assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-16.4)<1e-6,'Redo did not restore the imported vessel configuration.');
+
   assert.deepEqual(pageErrors,[],'Browser runtime errors: '+pageErrors.join(' | '));
   assert.deepEqual(duplicateThreeWarnings,[],'Multiple Three.js instances detected: '+duplicateThreeWarnings.join(' | '));
   console.log('Browser smoke test passed.');
