@@ -1,98 +1,261 @@
 <!doctype html>
-<html lang="en"><head>
-<meta charset="UTF-8"/><link rel="icon" href="data:,"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="theme-color" content="#101a22"/><title>Verdant Reach — Ship Design Studio</title>
-<style>
-:root{color-scheme:dark;font-family:Inter,Segoe UI,sans-serif;background:#101a22;color:#e8e5dc}
-*{box-sizing:border-box}body{margin:0;min-height:100vh}
-header{display:flex;gap:18px;align-items:center;justify-content:space-between;padding:12px 18px;background:#17242e;border-bottom:1px solid #31434d}
-header h1{margin:0;font:600 19px Georgia,serif;letter-spacing:.03em}header span{color:#9db1b8;font-size:12px}
-main{display:grid;grid-template-columns:minmax(0,1fr) 360px;min-height:calc(100vh - 54px)}
-#viewport{min-height:680px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#243b45,#0b141b 78%)}
-#viewport canvas{display:block;width:100%;height:100%}
-#hint{position:absolute;left:14px;bottom:12px;padding:8px 10px;border-radius:6px;background:#0b141bcc;color:#b8c5c8;font-size:11px;pointer-events:none;max-width:calc(100% - 28px)}
-aside{padding:14px;background:#17242e;border-left:1px solid #31434d;overflow:auto;max-height:calc(100vh - 54px)}
-label{display:block;color:#aebfc3;font-size:11px;margin:0 0 5px}
-select,input,button{width:100%;min-height:34px;color:#eee9dd;background:#21343e;border:1px solid #40545d;border-radius:6px;padding:7px 9px;font:inherit}
-input{min-width:0;font-size:12px}select{font-size:13px}
-button{cursor:pointer;font-size:12px}button:hover{background:#2b4550}button:disabled{opacity:.4;cursor:not-allowed}
-.section{border-top:1px solid #30434d;margin-top:14px;padding-top:12px}
-.section h2{font:600 12px Inter,Segoe UI,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#b7c8cb;margin:0 0 10px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:9px}
-.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.tools button.active{border-color:#79b7c7;background:#31515d;color:#fff}
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.transform-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.field{min-width:0}.field label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.metric{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #30414a;padding:7px 0;font-size:12px}
-.metric span{color:#9db1b8}.metric strong{text-align:right;font-weight:600}
-#description{color:#b8c5c8;line-height:1.45;font-size:11px;margin-top:10px}
-#status{margin-top:10px;color:#a9caa6;font-size:11px;line-height:1.4;min-height:28px}
-.small-note{color:#91a6ad;font-size:10px;line-height:1.4;margin:7px 0 0}
-#design-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-#part-name{color:#e5d9b9;font-size:12px;margin:5px 0 10px;overflow-wrap:anywhere}
-#history-count{align-self:center;text-align:center;color:#9db1b8;font-size:11px}
-.tool-note{color:#91a6ad;font-size:10px;line-height:1.45;margin:6px 0 0}
-.camera-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #82bfd0;outline-offset:2px}
-@media(max-width:1000px){main{grid-template-columns:minmax(0,1fr) 320px}}
-@media(max-width:760px){main{grid-template-columns:1fr}#viewport{min-height:58vh}aside{border-left:0;border-top:1px solid #31434d;max-height:none}}
-</style></head><body>
-<header><h1>Verdant Reach v0.8.6 · Modular Ship Studio</h1><span>v0.8.6 game generators · local edits saved only inside ForTests</span></header>
-<main>
-<section id="viewport" aria-label="Interactive 3D ship editor"><div id="hint">Click a component to select it · Drag the gizmo to edit · Drag empty space to orbit · Scroll to zoom</div></section>
-<aside>
-<label for="ship-select">Vessel</label>
-<select id="ship-select">
-<option value="sloop" selected>Caribbean merchant sloop</option>
-<option value="schooner">West Indies schooner</option>
-<option value="brigantine">Brigantine</option>
-<option value="brig">Full-rigged brig</option>
-<option value="snow">Snow brig</option>
-<option value="cutter">Caribbean cutter</option>
-<option value="frigate">18th-century frigate</option>
-<option value="barque">Atlantic barque</option>
-<option value="caravel">Atlantic caravel redonda</option>
-<option value="carrack">Iberian carrack / nao</option>
-<option value="galleon">Iberian merchant galleon</option>
-<option value="fluyt">Dutch fluyt merchantman</option>
-<option value="xebec">Mediterranean xebec</option>
-<option value="junk">Chinese ocean junk</option>
-<option value="first-rate">First-rate ship of the line</option>
-<option value="pinnace">Ship’s pinnace</option>
-</select>
-<div class="section"><h2>Transform tool</h2><div class="tools">
-<button type="button" data-mode="translate" class="active">Move</button><button type="button" data-mode="rotate">Rotate</button><button type="button" data-mode="scale">Scale</button></div>
-<p class="small-note">Choose a component from the list or click it in the 3D view.</p></div>
-<div class="section"><h2>Selected component</h2><label for="part-select">Component</label><select id="part-select"></select><div id="part-name">No component selected</div>
-<div class="row"><button id="undo" type="button" disabled>↶ Undo</button><button id="redo" type="button" disabled>↷ Redo</button></div>
-<div id="history-count">0 / 0</div>
-<div class="row"><button id="reset-part" type="button">Reset component</button><button id="frame-selected" type="button">Frame selected</button></div>
-<div class="row"><button id="reset-all-parts" type="button">Reset all components</button><button id="reset-vessel" type="button">Reset vessel design</button></div>
-<div class="row"><button id="detach-part" type="button" disabled>Detach component</button><button id="relink-part" type="button" disabled>Relink component</button></div>
-<div class="section"><h2>Selection and visibility</h2>
-<label for="part-search">Find component</label><input id="part-search" type="search" placeholder="Search components…"/>
-<div class="row"><button id="toggle-visibility" type="button">Hide selected</button><button id="isolate-selected" type="button">Isolate selected</button></div>
-<button id="show-all-parts" type="button">Show all components</button>
-<p class="tool-note">Visibility and isolation are saved with the design.</p></div>
-<div class="section"><h2>Transform options</h2>
-<div class="row"><button id="space-toggle" type="button">Local space</button><button id="snap-toggle" type="button">Snapping off</button></div>
-<div class="camera-grid">
-<button type="button" data-camera="top">Top</button><button type="button" data-camera="side">Side</button><button type="button" data-camera="bow">Bow</button><button type="button" data-camera="stern">Stern</button>
-</div>
-<button id="reset-camera" type="button">Reset camera to ship</button>
-<div class="section"><h2>Viewport display</h2>
-<div class="row"><button id="wireframe-toggle" type="button">Wireframe off</button><button id="grid-toggle" type="button">Grid on</button></div>
-<button id="shadows-toggle" type="button">Shadows on</button>
-<p class="tool-note">Display options affect the preview only; they do not alter the saved vessel design.</p></div>
-<p class="tool-note">Shortcuts: W move · E rotate · R scale · F frame · Ctrl+Z undo · Ctrl+Y redo.</p></div>
-<div class="section"><h2>Position · game units</h2><div id="position-fields" class="transform-grid"></div></div>
-<div class="section"><h2>Rotation · degrees</h2><div id="rotation-fields" class="transform-grid"></div></div>
-<div class="section"><h2>Scale</h2><div id="scale-fields" class="transform-grid"></div></div></div>
-<div class="section"><h2>Design parameters</h2><div id="design-controls"></div><p class="small-note">Changing a design value rebuilds the ship immediately. These controls edit the selected vessel's parametric configuration.</p></div>
-<div class="section"><h2>Vessel information</h2>
-<div class="metric"><span>Length</span><strong id="length">—</strong></div><div class="metric"><span>Beam</span><strong id="beam">—</strong></div>
-<div class="metric"><span>Loaded draft</span><strong id="draft">—</strong></div><div class="metric"><span>Masts</span><strong id="masts">—</strong></div>
-<div class="metric"><span>Editable parts</span><strong id="parts">—</strong></div><p id="description">Select a vessel to inspect its design.</p></div>
-<div class="section"><h2>Save and export</h2><div class="actions"><button id="save-design" type="button">Save to ForTests</button><button id="export-design" type="button">Export JSON</button></div>
-<p class="small-note">Save writes to ForTests/design-overrides.json through the local Vite server. Export downloads a backup JSON.</p></div>
-<div id="status" role="status">Loading ship editor…</div>
-</aside></main><script type="module" src="./preview.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#111b1b"/>
+  <meta name="description" content="A quiet, detailed shipbuilding studio for the Verdant Reach fleet."/>
+  <title>Verdant Reach — Shipyard Studio</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+    :root {
+      color-scheme: dark;
+      font-family: 'DM Sans', Inter, sans-serif;
+      --bg:#101818; --panel:#172222; --panel-soft:#1b2928; --panel-raised:#223331;
+      --line:rgba(210,219,198,.12); --line-strong:rgba(210,219,198,.2);
+      --text:#e8eadf; --muted:#aab6a9; --dim:#7f9186;
+      --sage:#a8bd9d; --sage-strong:#c6d5b6; --gold:#d8bf8e;
+      --danger:#d59d91; --radius:15px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
+    body{min-height:100vh;background:radial-gradient(ellipse at 15% -15%,rgba(90,123,101,.15),transparent 42%),var(--bg)}
+    button,input,select{font:inherit}
+    button{color:inherit;cursor:pointer}
+    button:disabled{opacity:.38;cursor:not-allowed}
+    button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+    .app-header{height:66px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:0 22px;border-bottom:1px solid var(--line);background:rgba(15,24,24,.88);backdrop-filter:blur(18px)}
+    .brand{display:flex;align-items:center;gap:12px;min-width:0}
+    .brand-mark{width:35px;height:35px;display:grid;place-items:center;border:1px solid rgba(216,191,142,.38);border-radius:12px;color:var(--gold);font-size:18px;background:rgba(216,191,142,.07)}
+    .brand-copy{min-width:0}
+    .brand-copy strong{display:block;font:700 13px Manrope,sans-serif;letter-spacing:.02em}
+    .brand-copy span{display:block;margin-top:2px;color:var(--dim);font-size:10px}
+    .header-meta{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:11px}
+    .version-pill{padding:6px 9px;border:1px solid var(--line);border-radius:99px;color:var(--sage);font-size:10px;letter-spacing:.06em}
+    .header-actions{display:flex;gap:7px}
+    .shell{display:grid;grid-template-columns:minmax(0,1fr) 390px;min-height:calc(100vh - 66px)}
+    .viewport-wrap{position:relative;min-width:0;min-height:calc(100vh - 66px);overflow:hidden;background:radial-gradient(ellipse at 50% 42%,#263c3d 0%,#172627 45%,#0d1517 100%)}
+    #viewport{position:absolute;inset:0;overflow:hidden}
+    #viewport canvas{display:block;width:100%;height:100%}
+    .viewport-topbar{position:absolute;top:17px;left:18px;right:18px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;pointer-events:none}
+    .viewport-card{padding:10px 12px;border:1px solid rgba(219,225,207,.13);border-radius:13px;background:rgba(12,21,22,.58);backdrop-filter:blur(12px);box-shadow:0 12px 35px rgba(0,0,0,.15)}
+    .viewport-kicker{color:var(--sage);font-size:9px;letter-spacing:.13em;text-transform:uppercase}
+    #ship-caption{margin-top:4px;font:600 13px Manrope,sans-serif}
+    .viewport-actions{display:flex;gap:6px;pointer-events:auto}
+    .hint{position:absolute;left:18px;bottom:16px;max-width:min(520px,calc(100% - 36px));padding:9px 12px;border:1px solid rgba(219,225,207,.12);border-radius:11px;background:rgba(12,21,22,.58);backdrop-filter:blur(10px);color:#b8c6ba;font-size:10px;line-height:1.5;pointer-events:none}
+    .viewport-readout{position:absolute;right:18px;bottom:16px;max-width:250px;padding:9px 12px;border:1px solid rgba(219,225,207,.12);border-radius:11px;background:rgba(12,21,22,.66);color:var(--sage-strong);font-size:10px;pointer-events:none}
+    .sidebar{min-width:0;max-height:calc(100vh - 66px);overflow:auto;padding:16px 15px 28px;background:rgba(21,32,32,.97);border-left:1px solid var(--line);scrollbar-width:thin;scrollbar-color:#435650 transparent}
+    .sidebar-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin:2px 2px 14px}
+    .sidebar-heading h2{margin:0;font:700 15px Manrope,sans-serif}
+    .sidebar-heading p{margin:4px 0 0;color:var(--dim);font-size:10px;line-height:1.4}
+    .saved-dot{width:7px;height:7px;border-radius:50%;margin-top:6px;background:#94b98a;box-shadow:0 0 0 4px rgba(148,185,138,.1)}
+    .card{padding:13px;margin-bottom:10px;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(145deg,rgba(31,47,45,.9),rgba(24,37,37,.9))}
+    .card h3{margin:0 0 10px;color:#dce3d5;font:700 10px Manrope,sans-serif;letter-spacing:.1em;text-transform:uppercase}
+    label{display:block;margin:0 0 5px;color:var(--dim);font-size:10px}
+    select,input[type=number],input[type=search],input[type=file]{width:100%;min-width:0;min-height:35px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:9px;background:#152322;color:var(--text);font-size:11px}
+    input[type=range]{width:100%;accent-color:var(--sage)}
+    .field{min-width:0}
+    .field label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+    .row.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .btn{min-height:34px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:9px;background:rgba(205,220,199,.055);color:#dce5d8;font-size:10px;font-weight:600;transition:background .15s,border-color .15s,transform .15s}
+    .btn:hover:not(:disabled){border-color:rgba(178,204,164,.42);background:rgba(178,204,164,.12);transform:translateY(-1px)}
+    .btn.primary{border-color:rgba(175,198,157,.5);background:linear-gradient(110deg,#9eaf8e,#c1c99f);color:#17221b;font-weight:800}
+    .btn.primary:hover:not(:disabled){background:linear-gradient(110deg,#b1c29d,#d3d8b3)}
+    .btn.ghost{background:transparent}
+    .btn.active{border-color:rgba(177,207,160,.6);background:rgba(156,190,142,.17);color:#e1edd9}
+    .btn.danger{color:#e0b2a8;border-color:rgba(213,157,145,.24)}
+    .tool-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+    .camera-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+    .section-card{margin-bottom:9px;border:1px solid var(--line);border-radius:var(--radius);background:rgba(27,41,40,.76);overflow:hidden}
+    .section-card summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;list-style:none;cursor:pointer;color:#dce4d7;font:700 10px Manrope,sans-serif;letter-spacing:.08em;text-transform:uppercase}
+    .section-card summary::-webkit-details-marker{display:none}
+    .section-card summary::after{content:'＋';color:var(--dim);font-size:13px}
+    .section-card[open] summary::after{content:'−'}
+    .section-content{padding:0 13px 13px}
+    .note{margin:8px 0 0;color:var(--dim);font-size:9px;line-height:1.55}
+    #part-name{margin:6px 0 9px;color:var(--gold);font:600 12px Manrope,sans-serif;overflow-wrap:anywhere}
+    .history-line{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px;color:var(--dim);font-size:9px}
+    #history-count{color:var(--sage);font-variant-numeric:tabular-nums}
+    .transform-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:8px}
+    #design-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    #design-controls input{min-height:33px}
+    .metric{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:10px}
+    .metric:last-child{border-bottom:0}
+    .metric span{color:var(--dim)}
+    .metric strong{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+    #description{margin:10px 0 0;color:var(--muted);font-size:10px;line-height:1.55}
+    .inspector-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .inspector-cell{min-width:0;padding:8px;border-radius:9px;background:rgba(8,15,15,.22)}
+    .inspector-cell span{display:block;color:var(--dim);font-size:8px;text-transform:uppercase;letter-spacing:.08em}
+    .inspector-cell strong{display:block;margin-top:4px;color:#dce5d9;font-size:10px;overflow-wrap:anywhere}
+    .compare-box{margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:rgba(10,18,18,.24)}
+    #compare-summary{margin-top:7px;color:var(--muted);font-size:9px;line-height:1.55}
+    .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+    #status{min-height:34px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(14,23,22,.75);color:var(--sage-strong);font-size:10px;line-height:1.5}
+    .range-row{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:9px}
+    .hidden-input{display:none!important}
+    @media(max-width:1050px){.shell{grid-template-columns:minmax(0,1fr) 350px}}
+    @media(max-width:760px){
+      .app-header{height:58px;padding:0 13px}.header-meta{display:none}
+      .shell{grid-template-columns:1fr;min-height:calc(100vh - 58px)}
+      .viewport-wrap{min-height:54vh}.sidebar{max-height:none;border-left:0;border-top:1px solid var(--line)}
+      .viewport-card{padding:8px 10px}.viewport-readout{bottom:55px}
+    }
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">✦</div>
+      <div class="brand-copy"><strong>Verdant Reach Shipyard</strong><span>Modular fleet design studio</span></div>
+    </div>
+    <div class="header-meta"><span class="version-pill">GAME GENERATORS · v0.8.6</span><span>Local design workspace</span></div>
+    <div class="header-actions"><button id="save-design" class="btn primary" type="button">Save changes</button><button id="export-design" class="btn" type="button">Export JSON</button></div>
+  </header>
+
+  <main class="shell">
+    <section class="viewport-wrap" aria-label="Interactive 3D ship viewport">
+      <div id="viewport"></div>
+      <div class="viewport-topbar">
+        <div class="viewport-card"><div class="viewport-kicker">Current vessel</div><div id="ship-caption">Preparing your ship…</div></div>
+        <div class="viewport-actions"><button id="viewport-fullscreen" class="btn" type="button">Expand view</button><button id="capture-preview" class="btn" type="button">Capture image</button></div>
+      </div>
+      <div id="hint" class="hint">Select a component from the list or click it in the model. Drag empty space to orbit · scroll to zoom · W / E / R changes the transform tool.</div>
+      <div id="viewport-readout" class="viewport-readout" aria-live="polite">3D viewport readying…</div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="sidebar-heading"><div><h2>Ship workspace</h2><p>Shape, inspect and compare each vessel.</p></div><span class="saved-dot" title="Local workspace active"></span></div>
+
+      <section class="card">
+        <label for="ship-select">Vessel design</label>
+        <select id="ship-select">
+          <option value="sloop" selected>Caribbean merchant sloop</option>
+          <option value="schooner">West Indies schooner</option>
+          <option value="brigantine">Brigantine</option>
+          <option value="brig">Full-rigged brig</option>
+          <option value="snow">Snow brig</option>
+          <option value="cutter">Caribbean cutter</option>
+          <option value="frigate">18th-century frigate</option>
+          <option value="barque">Atlantic barque</option>
+          <option value="caravel">Atlantic caravel redonda</option>
+          <option value="carrack">Iberian carrack / nao</option>
+          <option value="galleon">Iberian merchant galleon</option>
+          <option value="fluyt">Dutch fluyt merchantman</option>
+          <option value="xebec">Mediterranean xebec</option>
+          <option value="junk">Chinese ocean junk</option>
+          <option value="first-rate">First-rate ship of the line</option>
+          <option value="pinnace">Ship’s pinnace</option>
+        </select>
+      </section>
+
+      <details class="section-card" open>
+        <summary>Build & transform</summary>
+        <div class="section-content">
+          <div class="tool-grid">
+            <button type="button" data-mode="translate" class="btn active">Move · W</button>
+            <button type="button" data-mode="rotate" class="btn">Rotate · E</button>
+            <button type="button" data-mode="scale" class="btn">Scale · R</button>
+          </div>
+          <div class="row"><button id="space-toggle" class="btn" type="button">Local space</button><button id="snap-toggle" class="btn" type="button">Snapping off</button></div>
+          <div class="row"><button id="undo" class="btn" type="button" disabled>Undo</button><button id="redo" class="btn" type="button" disabled>Redo</button></div>
+          <div class="history-line"><span>Design history</span><strong id="history-count">0 / 0</strong></div>
+          <div class="row"><button id="reset-part" class="btn" type="button">Reset component</button><button id="frame-selected" class="btn" type="button">Focus component · F</button></div>
+          <div class="row"><button id="reset-all-parts" class="btn" type="button">Reset all parts</button><button id="reset-vessel" class="btn" type="button">Reset vessel</button></div>
+          <div class="row"><button id="detach-part" class="btn" type="button" disabled>Detach</button><button id="relink-part" class="btn" type="button" disabled>Relink</button></div>
+        </div>
+      </details>
+
+      <details class="section-card" open>
+        <summary>Component inspector</summary>
+        <div class="section-content">
+          <label for="part-search">Find a component</label>
+          <input id="part-search" type="search" placeholder="Try: mast, hull, cannon…"/>
+          <label for="part-select" style="margin-top:9px">Selected component</label>
+          <select id="part-select"></select>
+          <div id="part-name">No component selected</div>
+          <div class="row"><button id="toggle-visibility" class="btn" type="button">Hide selected</button><button id="isolate-selected" class="btn" type="button">Isolate selected</button></div>
+          <button id="show-all-parts" class="btn ghost" style="width:100%;margin-top:7px" type="button">Show all components</button>
+          <div class="inspector-grid" style="margin-top:10px">
+            <div class="inspector-cell"><span>Bounds · X / Y / Z</span><strong id="part-size">—</strong></div>
+            <div class="inspector-cell"><span>Parent group</span><strong id="part-parent">—</strong></div>
+            <div class="inspector-cell"><span>Mesh count</span><strong id="part-meshes">—</strong></div>
+            <div class="inspector-cell"><span>Materials</span><strong id="part-materials">—</strong></div>
+          </div>
+          <p class="note">Dimensions are measured in the current 3D preview after component transforms.</p>
+        </div>
+      </details>
+
+      <details class="section-card">
+        <summary>Precise transforms</summary>
+        <div class="section-content">
+          <div class="range-row"><span>Position · game units</span><span>XYZ</span></div><div id="position-fields" class="transform-grid"></div>
+          <div class="range-row" style="margin-top:12px"><span>Rotation · degrees</span><span>XYZ</span></div><div id="rotation-fields" class="transform-grid"></div>
+          <div class="range-row" style="margin-top:12px"><span>Scale</span><span>XYZ</span></div><div id="scale-fields" class="transform-grid"></div>
+        </div>
+      </details>
+
+      <details class="section-card">
+        <summary>Hull analysis tools</summary>
+        <div class="section-content">
+          <div class="row"><button id="measure-toggle" class="btn" type="button">Measure points</button><button id="clear-measurement" class="btn" type="button">Clear measure</button></div>
+          <div id="measurement-value" class="metric"><span>Point-to-point distance</span><strong>—</strong></div>
+          <p class="note">Activate Measure, then click two points on the ship. The measured span appears in the viewport.</p>
+          <div class="row" style="margin-top:13px"><button id="section-toggle" class="btn" type="button">Section view off</button><span class="range-row" style="justify-content:flex-end">X slice</span></div>
+          <input id="section-slider" type="range" min="-20" max="20" step=".1" value="0" disabled/>
+          <div class="range-row"><span>Cross-section position</span><strong id="section-value">0.0</strong></div>
+          <p class="note">Clips the model at a movable vertical plane so the inner hull and deck structure can be inspected.</p>
+        </div>
+      </details>
+
+      <details class="section-card">
+        <summary>Viewport & camera</summary>
+        <div class="section-content">
+          <div class="camera-grid">
+            <button type="button" class="btn" data-camera="top">Top</button><button type="button" class="btn" data-camera="side">Side</button><button type="button" class="btn" data-camera="bow">Bow</button><button type="button" class="btn" data-camera="stern">Stern</button>
+          </div>
+          <div class="row"><button id="reset-camera" class="btn" type="button">Fit whole ship</button><button id="wireframe-toggle" class="btn" type="button">Wireframe off</button></div>
+          <div class="row"><button id="grid-toggle" class="btn" type="button">Grid on</button><button id="shadows-toggle" class="btn" type="button">Shadows on</button></div>
+        </div>
+      </details>
+
+      <details class="section-card">
+        <summary>Design parameters</summary>
+        <div class="section-content"><div id="design-controls"></div><p class="note">A parameter change rebuilds the selected vessel immediately. Use Undo to step back through design edits.</p></div>
+      </details>
+
+      <section class="card">
+        <h3>Vessel specification</h3>
+        <div class="metric"><span>Length overall</span><strong id="length">—</strong></div>
+        <div class="metric"><span>Maximum beam</span><strong id="beam">—</strong></div>
+        <div class="metric"><span>Loaded draft</span><strong id="draft">—</strong></div>
+        <div class="metric"><span>Masts</span><strong id="masts">—</strong></div>
+        <div class="metric"><span>Editable parts</span><strong id="parts">—</strong></div>
+        <p id="description">Select a vessel to inspect its design.</p>
+        <div class="compare-box">
+          <label for="compare-select">Compare with another vessel</label>
+          <select id="compare-select"><option value="">Choose a vessel…</option></select>
+          <div id="compare-summary">Choose a second vessel to compare its principal dimensions.</div>
+        </div>
+      </section>
+
+      <details class="section-card">
+        <summary>Import & export</summary>
+        <div class="section-content">
+          <div class="action-grid">
+            <button id="import-design" class="btn" type="button">Import JSON</button>
+            <button id="export-design-secondary" class="btn" type="button">Export backup</button>
+          </div>
+          <input id="import-file" class="hidden-input" type="file" accept=".json,application/json"/>
+          <p class="note">Import accepts this editor's exported JSON or a saved design-overrides.json file. It does not modify the base vessel modules.</p>
+        </div>
+      </details>
+
+      <div id="status" role="status" aria-live="polite">Loading ship editor…</div>
+    </aside>
+  </main>
+  <script type="module" src="./preview.js"></script>
+</body>
+</html>
