@@ -1,0 +1,52 @@
+name: v0.8.6 shipyard editor and menu refresh
+
+on:
+  push:
+    branches: [chatgpt-v0.8.6-editor-menu-refresh]
+    paths:
+      - 'ForTests/**'
+      - 'V8/verdant-reach-v0.8.6/verdant-reach/index.html'
+      - 'V8/verdant-reach-v0.8.6/verdant-reach/src/styles.css'
+      - '.github/workflows/editor-menu-refresh.yml'
+  pull_request:
+    paths:
+      - 'ForTests/**'
+      - 'V8/verdant-reach-v0.8.6/verdant-reach/index.html'
+      - 'V8/verdant-reach-v0.8.6/verdant-reach/src/styles.css'
+      - '.github/workflows/editor-menu-refresh.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v086-editor-menu-refresh
+  cancel-in-progress: true
+
+jobs:
+  editor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ForTests
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ForTests/package.json
+      - name: Install editor dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify game/editor module identities
+        run: npm run check:modules
+      - name: Run editor and vessel tests
+        run: npm test
+      - name: Build shipyard editor
+        run: npm run build
+      - name: Install browser for interactive smoke test
+        run: npx playwright install --with-deps chromium
+      - name: Run interactive editor browser smoke test
+        run: npm run smoke
