@@ -129,6 +129,7 @@ try{
   assert.equal(await page.locator('#snap-toggle').innerText(),'Snapping on');
   await page.locator('#space-toggle').click();
   assert.equal(await page.locator('#space-toggle').innerText(),'World space');
+  await page.locator('details.section-card').filter({hasText:'Viewport & camera'}).locator('summary').click();
   await page.locator('[data-camera="top"]').click();
   await page.locator('#frame-selected').click();
   await page.locator('#reset-all-parts').click();
@@ -177,6 +178,7 @@ try{
   assert.ok((await page.locator('#compare-summary').innerText()).includes('Length'),'Vessel comparison summary was not updated.');
 
   // Point measurement mode and hull-section clipping remain reversible.
+  await page.locator('details.section-card').filter({hasText:'Hull analysis tools'}).locator('summary').click();
   await page.locator('#measure-toggle').click();
   assert.ok((await page.locator('#measure-toggle').innerText()).startsWith('Measuring'),'Measurement mode did not activate.');
   await page.locator('#measure-toggle').click();
