@@ -46,6 +46,13 @@ for(const [id,d] of Object.entries(SHIP_DESIGNS)){
   option.textContent=d.label;
   selector.appendChild(option);
 }
+const compareSelector=document.querySelector('#compare-select');
+for(const [id,design] of Object.entries(SHIP_DESIGNS)){
+  const option=document.createElement('option');
+  option.value=id;option.textContent=design.label;
+  compareSelector?.appendChild(option);
+}
+if(compareSelector&&Object.hasOwn(SHIP_DESIGNS,'galleon'))compareSelector.value='galleon';
 setStatus('Ship list ready · initializing 3D graphics…');
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
@@ -54,6 +61,7 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.05;
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.localClippingEnabled=true;
 viewport.appendChild(renderer.domElement);
 
 const orbit=new OrbitControls(camera,renderer.domElement);
@@ -90,6 +98,10 @@ const grid=new THREE.GridHelper(500,50,0x58717a,0x324b55);
 grid.material.transparent=true;
 grid.material.opacity=.28;
 scene.add(grid);
+const sectionPlane=new THREE.Plane(new THREE.Vector3(1,0,0),0);
+const sectionHelper=new THREE.PlaneHelper(sectionPlane,80,0xd8bf8e);
+sectionHelper.visible=false;
+scene.add(sectionHelper);
 
 let overrideConfig=JSON.parse(JSON.stringify(DESIGN_OVERRIDES||{}));
 function getConfig(id){if(!overrideConfig[id])overrideConfig[id]={};return overrideConfig[id];}
@@ -112,6 +124,10 @@ let snapEnabled=false;
 let wireframeEnabled=false;
 let gridEnabled=true;
 let shadowsEnabled=true;
+let measureEnabled=false;
+let measurementPoints=[];
+let measurementLine=null;
+let sectionEnabled=false;
 const raycaster=new THREE.Raycaster();
 const rayPointer=new THREE.Vector2();
 const identity={x:0,y:0,z:0,rx:0,ry:0,rz:0,sx:1,sy:1,sz:1};
@@ -265,15 +281,36 @@ function commitManualTransform(){
   commitHistory(before,'Transform '+selectedName);
   refreshTransformFields();
 }
+function refreshPartInspector(){
+  const part=ship&&selectedName?ship.userData.getPart(selectedName):null;
+  const set=(id,value)=>{const node=document.querySelector('#'+id);if(node)node.textContent=value;};
+  if(!part){set('part-size','—');set('part-parent','—');set('part-meshes','—');set('part-materials','—');return;}
+  part.updateWorldMatrix(true,true);
+  const bounds=new THREE.Box3().setFromObject(part);
+  const size=bounds.isEmpty()?new THREE.Vector3():bounds.getSize(new THREE.Vector3());
+  const meshes=[];const materials=new Set();
+  part.traverse(object=>{
+    if(!object.isMesh)return;
+    meshes.push(object);
+    for(const material of (Array.isArray(object.material)?object.material:[object.material])){
+      if(material)materials.add(material.name||material.type||'Material');
+    }
+  });
+  set('part-size',[size.x,size.y,size.z].map(value=>value.toFixed(2)).join(' × '));
+  set('part-parent',part.parent?.name||'Ship root');
+  set('part-meshes',String(meshes.length));
+  set('part-materials',String(materials.size));
+}
 function selectPart(name){
   if(!ship)return;
   const part=ship.userData.getPart(name);
-  if(!part){selectedName='';gizmo.detach();document.querySelector('#part-name').textContent='No component selected';return;}
+  if(!part){selectedName='';gizmo.detach();document.querySelector('#part-name').textContent='No component selected';refreshPartInspector();refreshSelectionTools();return;}
   selectedName=name;partSelector.value=name;
   document.querySelector('#part-name').textContent=name;
   gizmo.attach(part);
   refreshTransformFields();
   refreshSelectionTools();
+  refreshPartInspector();
 }
 function populatePartList(){
   const filter=(document.querySelector('#part-search')?.value||'').trim().toLowerCase();
@@ -471,13 +508,109 @@ function renderDesignInputs(){
     wrapper.append(label,input);container.appendChild(wrapper);
   }
 }
+function updateComparison(){
+  const target=compareSelector?.value;
+  const output=document.querySelector('#compare-summary');
+  if(!output)return;
+  if(!target||target===activeShipId){output.textContent='Choose a different vessel to compare principal dimensions.';return;}
+  const current=getShipDesign(activeShipId),other=getShipDesign(target);
+  if(!current||!other){output.textContent='Comparison data is unavailable.';return;}
+  const delta=(value)=>value>0?'+':'−';
+  const format=(value)=>Math.abs(value).toFixed(2)+' m';
+  const rows=[
+    ['Length',current.hullLength,other.hullLength],
+    ['Beam',current.beam,other.beam],
+    ['Draft',current.draft,other.draft],
+  ];
+  output.textContent=rows.map(([label,a,b])=>label+': '+a.toFixed(2)+' m vs '+b.toFixed(2)+' m ('+delta(b-a)+format(b-a)+')').join(' · ')
+    +' · Masts: '+current.masts.length+' vs '+other.masts.length;
+}
+function updateSectionRange(){
+  if(!ship)return;
+  ship.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(ship);
+  const slider=document.querySelector('#section-slider');
+  if(bounds.isEmpty()||!slider)return;
+  const min=bounds.min.x,max=bounds.max.x;
+  slider.min=String(min.toFixed(2));slider.max=String(max.toFixed(2));
+  slider.step=String(Math.max(.05,(max-min)/500));
+  slider.value=String(((min+max)*.5).toFixed(2));
+  updateSectionPlane();
+  sectionHelper.size=Math.max(12,bounds.getSize(new THREE.Vector3()).length()*.78);
+  sectionHelper.updateMatrixWorld(true);
+}
+function updateSectionPlane(){
+  const slider=document.querySelector('#section-slider');
+  if(!slider)return;
+  const value=Number(slider.value)||0;
+  sectionPlane.constant=-value;
+  sectionHelper.visible=sectionEnabled;
+  const readout=document.querySelector('#section-value');
+  if(readout)readout.textContent=value.toFixed(2)+' units';
+  if(ship){ship.traverse(object=>{
+    if(!object.isMesh)return;
+    const materials=Array.isArray(object.material)?object.material:[object.material];
+    for(const material of materials){
+      if(!material)continue;
+      material.clippingPlanes=sectionEnabled?[sectionPlane]:[];
+      material.needsUpdate=true;
+    }
+  });}
+}
+function toggleSection(){
+  sectionEnabled=!sectionEnabled;
+  const button=document.querySelector('#section-toggle');
+  const slider=document.querySelector('#section-slider');
+  if(button){button.textContent='Section view '+(sectionEnabled?'on':'off');button.classList.toggle('active',sectionEnabled);}
+  if(slider)slider.disabled=!sectionEnabled;
+  updateSectionPlane();
+  setStatus(sectionEnabled?'Hull section view enabled. Move the slider to inspect the interior.':'Hull section view disabled.');
+}
+function updateMeasurementReadout(){
+  const strong=document.querySelector('#measurement-value strong');
+  if(!strong)return;
+  if(measurementPoints.length<2){strong.textContent=measurementPoints.length?'Select the second point…':'—';return;}
+  strong.textContent=measurementPoints[0].distanceTo(measurementPoints[1]).toFixed(2)+' game units';
+}
+function clearMeasurement(){
+  if(measurementLine){scene.remove(measurementLine);measurementLine.geometry.dispose();measurementLine.material.dispose();measurementLine=null;}
+  measurementPoints=[];updateMeasurementReadout();
+  const button=document.querySelector('#measure-toggle');
+  if(button)button.classList.toggle('active',measureEnabled);
+  const readout=document.querySelector('#viewport-readout');
+  if(readout)readout.textContent='Measurement cleared.';
+}
+function toggleMeasure(){
+  measureEnabled=!measureEnabled;
+  const button=document.querySelector('#measure-toggle');
+  if(button){button.classList.toggle('active',measureEnabled);button.textContent=measureEnabled?'Measuring · click 2 points':'Measure points';}
+  if(measureEnabled){clearMeasurement();measureEnabled=true;button.classList.add('active');button.textContent='Measuring · click 2 points';setStatus('Measurement mode: click two points on the visible ship.');}
+  else setStatus('Measurement mode disabled.');
+}
+function addMeasurementPoint(point){
+  if(measurementPoints.length>=2)clearMeasurement();
+  measurementPoints.push(point.clone());
+  if(measurementPoints.length===2){
+    const geometry=new THREE.BufferGeometry().setFromPoints(measurementPoints);
+    const material=new THREE.LineBasicMaterial({color:0xf0d39b,depthTest:false,transparent:true,opacity:.98});
+    measurementLine=new THREE.Line(geometry,material);measurementLine.renderOrder=1000;scene.add(measurementLine);
+    updateMeasurementReadout();
+    const distance=measurementPoints[0].distanceTo(measurementPoints[1]);
+    document.querySelector('#viewport-readout').textContent='Measured span · '+distance.toFixed(2)+' game units';
+    setStatus('Measured '+distance.toFixed(2)+' game units. Click again to start another measurement.');
+  }else{
+    updateMeasurementReadout();document.querySelector('#viewport-readout').textContent='Point 1 recorded · choose a second point.';
+  }
+}
 function updateInfo(design){
+  document.querySelector('#ship-caption').textContent=design.label;
   document.querySelector('#length').textContent=design.hullLength.toFixed(2)+' m';
   document.querySelector('#beam').textContent=design.beam.toFixed(2)+' m';
   document.querySelector('#draft').textContent=design.draft.toFixed(2)+' m';
   document.querySelector('#masts').textContent=design.masts.length;
   document.querySelector('#parts').textContent=ship.userData.partNames.length;
   document.querySelector('#description').textContent=design.hullProfile+' '+(design.reference||'');
+  updateComparison();
 }
 function loadShip(type,preferredPart='',reframe=true,skipSync=false){
   if(ship){if(!skipSync)syncCurrentShipState();gizmo.detach();disposeShipModel(ship);ship=null;}
@@ -493,6 +626,7 @@ function loadShip(type,preferredPart='',reframe=true,skipSync=false){
     if(reframe)fit(ship);
     updateInfo(design);
     populatePartList();
+    updateSectionRange();
     const chosen=preferredPart&&ship.userData.getPart(preferredPart)?preferredPart:(ship.userData.partNames.includes('hull')?'hull':ship.userData.partNames[0]);
     selectPart(chosen);
     renderDesignInputs();
@@ -505,6 +639,8 @@ function loadShip(type,preferredPart='',reframe=true,skipSync=false){
 function changeMode(mode){
   gizmo.setMode(mode);
   document.querySelectorAll('[data-mode]').forEach(button=>button.classList.toggle('active',button.dataset.mode===mode));
+  const readout=document.querySelector('#viewport-readout');
+  if(readout)readout.textContent='Transform tool · '+mode.toUpperCase();
 }
 function buildExport(){
   syncCurrentShipState();
@@ -569,13 +705,63 @@ document.querySelector('#snap-toggle').addEventListener('click',toggleSnap);
 document.querySelectorAll('[data-camera]').forEach(button=>button.addEventListener('click',()=>setCameraPreset(button.dataset.camera)));
 document.querySelector('#save-design').addEventListener('click',saveDesign);
 document.querySelector('#export-design').addEventListener('click',exportDesign);
+document.querySelector('#export-design-secondary')?.addEventListener('click',exportDesign);
+document.querySelector('#compare-select')?.addEventListener('change',updateComparison);
+document.querySelector('#measure-toggle')?.addEventListener('click',toggleMeasure);
+document.querySelector('#clear-measurement')?.addEventListener('click',clearMeasurement);
+document.querySelector('#section-toggle')?.addEventListener('click',toggleSection);
+document.querySelector('#section-slider')?.addEventListener('input',updateSectionPlane);
+document.querySelector('#viewport-fullscreen')?.addEventListener('click',async()=>{
+  const target=document.querySelector('.viewport-wrap');
+  try{if(!document.fullscreenElement)await target.requestFullscreen();else await document.exitFullscreen();}
+  catch(error){setStatus('Fullscreen is unavailable in this browser.',true);}
+});
+document.querySelector('#capture-preview')?.addEventListener('click',()=>{
+  try{
+    const link=document.createElement('a');link.href=renderer.domElement.toDataURL('image/png');
+    link.download='verdant-reach-'+activeShipId+'-preview.png';link.click();
+    setStatus('Captured the current shipyard viewport as a PNG image.');
+  }catch(error){setStatus('Preview capture failed: '+error.message,true);}
+});
+document.querySelector('#import-design')?.addEventListener('click',()=>document.querySelector('#import-file')?.click());
+document.querySelector('#import-file')?.addEventListener('change',async event=>{
+  const file=event.target.files?.[0];if(!file)return;
+  try{
+    const parsed=JSON.parse(await file.text());
+    const imported=parsed?.ships&&typeof parsed.ships==='object'?parsed.ships:parsed;
+    if(!imported||typeof imported!=='object'||Array.isArray(imported))throw new Error('The file must contain a vessel configuration object.');
+    const next={};
+    for(const [id,config] of Object.entries(imported)){
+      if(!Object.hasOwn(SHIP_DESIGNS,id))continue;
+      if(!config||typeof config!=='object'||Array.isArray(config))throw new Error('Invalid configuration for '+id+'.');
+      next[id]=clone(config);
+    }
+    if(!Object.keys(next).length)throw new Error('No known vessel configurations were found in this file.');
+    const before=captureDocumentSnapshot();
+    const previous=overrideConfig;
+    try{
+      overrideConfig=next;applyOverrides();
+      loadShip(activeShipId,selectedName,false,true);
+      if(!ship)throw new Error('The current vessel could not be rebuilt from this file.');
+    }catch(error){overrideConfig=previous;applyOverrides();loadShip(activeShipId,selectedName,false,true);throw error;}
+    commitHistory(before,'Import '+file.name);
+    setStatus('Imported '+Object.keys(next).length+' vessel configuration(s) from '+file.name+'. Save to keep them in ForTests.');
+  }catch(error){setStatus('Import failed: '+error.message,true);}
+  finally{event.target.value='';}
+});
 renderer.domElement.addEventListener('click',event=>{
   if(!ship||gizmo.dragging)return;
   const rect=renderer.domElement.getBoundingClientRect();
   rayPointer.x=((event.clientX-rect.left)/rect.width)*2-1;
   rayPointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
   raycaster.setFromCamera(rayPointer,camera);
-  for(const hit of raycaster.intersectObject(ship,true)){
+  const hits=raycaster.intersectObject(ship,true);
+  if(measureEnabled){
+    if(hits.length)addMeasurementPoint(hits[0].point);
+    else setStatus('Choose a visible point on the ship model.',true);
+    return;
+  }
+  for(const hit of hits){
     let object=hit.object;
     while(object&&object!==ship){
       if(object.name&&ship.userData.getPart(object.name)===object){selectPart(object.name);return;}
@@ -620,7 +806,7 @@ const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(viewport)
 function animate(){requestAnimationFrame(animate);orbit.update();renderer.render(scene,camera);}
 loadShip(selector.value||Object.keys(SHIP_DESIGNS)[0]);animate();
 window.addEventListener('beforeunload',()=>{
-  resizeObserver.disconnect();if(ship)disposeShipModel(ship);gizmo.dispose();renderer.dispose();
+  resizeObserver.disconnect();clearMeasurement();if(ship)disposeShipModel(ship);gizmo.dispose();renderer.dispose();
 });
 
   }catch(error){
