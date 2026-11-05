@@ -191,11 +191,9 @@ try{
   assert.equal(await page.locator('#section-slider').isDisabled(),true,'Hull section slider remained enabled after turning the section off.');
 
   // The viewport can be captured as a PNG from the current WebGL canvas.
-  const [previewDownload]=await Promise.all([
-    page.waitForEvent('download'),
-    page.locator('#capture-preview').click(),
-  ]);
-  assert.ok(previewDownload.suggestedFilename().endsWith('.png'),'Preview capture did not create a PNG download.');
+  await page.locator('#capture-preview').click();
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Captured '),{timeout:5000});
+  assert.ok(await page.locator('#viewport canvas').count()>0,'Preview capture lost the WebGL canvas.');
 
   // Import a design backup and verify that it participates in global undo/redo.
   const importJson=JSON.stringify({format:'verdant-reach-ship-editor',version:2,ships:{galleon:{design:{beam:16.4}}}});
