@@ -74,6 +74,7 @@ try{
 
   // Component transform -> undo -> redo -> reset -> undo -> redo.
   await page.locator('#part-select').selectOption('mast-single');
+  await page.locator('details.section-card').filter({hasText:'Precise transforms'}).locator('summary').click();
   const xField=page.locator('[data-transform="x"]');
   await xField.fill('1.25');
   await xField.dispatchEvent('change');
@@ -91,6 +92,7 @@ try{
   assert.equal(await xField.inputValue(),'0.000','Redo after reset failed.');
 
   // Design parameters are part of the same history timeline.
+  await page.locator('details.section-card').filter({hasText:'Design parameters'}).locator('summary').click();
   const sloopBeam=Number((await page.locator('#beam').innerText()).replace(' m',''));
   const beamField=page.locator('[data-design-path="design.beam"]');
   await beamField.fill('5.3');
