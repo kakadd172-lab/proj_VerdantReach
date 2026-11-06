@@ -98,9 +98,10 @@ Examples used in this refinement include:
 
 - The Dutch frigate `'t Hart`: 30.8 m length and 8.4 m beam, from the
   archaeological study of the wreck identification.
-- The early fluit `Witte Swaen` (1636): estimated 32.75 m length and 6.7 m
-  breadth, with a notably long, narrow hull; kept distinct from later, broader
-  fluit forms.
+- The early fluit `Witte Swaen` (1636): estimated 32.75 ± 2% m length and
+  6.7 ± 2% m breadth, with evidence for a three-mast arrangement. The fluyt
+  generator uses this early, long-and-narrow reference rather than blending
+  its dimensions with a later, broader museum-model variant.
 - A circa-1490 Portuguese caravel model at Royal Museums Greenwich: 65 ft by
   23 ft, illustrated as a four-masted redonda form.
 - The 1856 barque `Ravensworth`: 131 ft length by 29 ft beam, with a
