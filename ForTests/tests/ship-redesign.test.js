@@ -45,7 +45,7 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     ]) assert.ok(source.includes(required), id + ' must own ' + required);
     assert.ok(source.includes('createShipContext('), id + ' must construct its own context');
     assert.ok(source.includes('finishShipModel('), id + ' must finish through editor support');
-    assert.ok(source.includes('const v=1-Math.pow(Math.abs(Math.sin(a)),'), id + ' hull section must reach both gunwales.');
+    assert.ok(source.includes('const v=1-Math.pow(Math.max(0,Math.sin(a)),'), id + ' hull section must trace one keel-to-gunwale half-profile on each side.');
     assert.ok(source.includes('half=halfBreadth(d,t)*deckBreadthRatio(d)'), id + ' deck must meet its own hull edge.');
     assert.ok(!/createVesselModel|createShipModelFromVessel|ship-model-builder|hull-math/.test(source),
       id + ' still calls the old shared geometry engine');
