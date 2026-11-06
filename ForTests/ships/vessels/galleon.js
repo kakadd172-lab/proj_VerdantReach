@@ -795,15 +795,26 @@ function buildRig(d,ctx){
   pennantMesh.material.side=THREE.DoubleSide;
  }
 
- // One compact fore-staysail replaces the pair of oversized triangular sails.
+ // Two compact, subordinate staysails preserve the editor controls without dominating the square rig.
  const fore=d.masts.find(m=>m.id==='fore');
  if(fore){
   const foreZ=fore.z*d.hullLengthUnits,baseT=.5+fore.z*.45,baseY=deckY(d,baseT)+.16;
-  const headPoint=V(0,baseY+fore.height*1.18*.72,foreZ-d.hullLengthUnits*.02);
-  const tack=V(0,deckY(d,.04)+.70,-d.hullLengthUnits*.5-d.beamUnits*.31);
-  const clew=V(0,deckY(d,.19)+.82,foreZ-d.hullLengthUnits*.06);
-  const lower=V(0,deckY(d,.16)+.32,foreZ-d.hullLengthUnits*.09);
-  buildCanvasSail(ctx,'sail-fore-staysail','fore',[tack,headPoint,clew,lower],.18,head,'x');
+  const foreStaysail=part('sail-fore-staysail',head);
+  const bowZ=-d.hullLengthUnits*.5-d.beamUnits*.31;
+
+  const upperHead=V(0,baseY+fore.height*1.18*.70,foreZ-d.hullLengthUnits*.02);
+  const upperTack=V(0,deckY(d,.045)+.74,bowZ);
+  const upperClew=V(0,deckY(d,.18)+.82,foreZ-d.hullLengthUnits*.055);
+  const upperFoot=V(0,deckY(d,.16)+.38,foreZ-d.hullLengthUnits*.08);
+  buildCanvasSail(ctx,'sail-head-1','fore',
+    [upperTack,upperHead,upperClew,upperFoot],.15,foreStaysail,'x');
+
+  const lowerHead=V(0,baseY+fore.height*1.18*.48,foreZ-d.hullLengthUnits*.055);
+  const lowerTack=V(0,deckY(d,.055)+.62,bowZ+d.beamUnits*.24);
+  const lowerClew=V(0,deckY(d,.16)+.58,foreZ-d.hullLengthUnits*.085);
+  const lowerFoot=V(0,deckY(d,.135)+.28,foreZ-d.hullLengthUnits*.10);
+  buildCanvasSail(ctx,'sail-head-2','fore',
+    [lowerTack,lowerHead,lowerClew,lowerFoot],.12,foreStaysail,'x');
  }
 }
 
