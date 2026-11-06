@@ -33,10 +33,25 @@ export const BrigantineDefinition = defineVesselSpec({
 import * as THREE from 'three';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 
-function deckY(d,t){const edge=Math.pow(Math.abs(t-.5)*2,1.35),rise=t<.5?d.hull.bowRise:d.hull.sternRise;return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*edge+rise*d.deckHeightUnits*Math.pow(edge,1.12)*d.structure.sheer;}
-function keelY(d,t){const mid=Math.pow(Math.max(0,Math.sin(Math.PI*t)),.72);return -d.draftUnits*.48-d.hull.keelDepth*d.draftUnits*mid;}
+function deckY(d,t){
+ const q=Math.max(0,Math.min(1,t)),edge=Math.abs(2*q-1);
+ const sheer=Math.pow(edge,1.28),bow=Math.pow(Math.max(0,1-2*q),1.12),stern=Math.pow(Math.max(0,2*q-1),1.12);
+ return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*sheer*d.structure.sheer+d.hull.bowRise*d.deckHeightUnits*bow+d.hull.sternRise*d.deckHeightUnits*stern;
+}
+function keelY(d,t){
+ const q=Math.max(0,Math.min(1,t)),mid=Math.pow(Math.max(0,Math.sin(Math.PI*q)),0.72);
+ const depth=0.8+(1-0.8)*mid+d.hull.keelDepth*0.08*mid*(1-mid);
+ return -d.draftUnits*Math.min(1,depth);
+}
 function halfBreadth(d,t){const mid=Math.max(0,Math.sin(Math.PI*t)),body=.87+.15*Math.sin(Math.PI*t*.92),bow=.82+.18*Math.min(1,t*3.8),stern=.92+.08*Math.min(1,(1-t)*4.2);return d.beamUnits*.5*Math.pow(mid,.68)*body*bow*stern;}
-function hullPoint(d,t,a){const v=(Math.sin(a)+1)*.5,deck=deckY(d,t),keel=keelY(d,t);const c=Math.cos(a),chine=1-.12*Math.pow(1-v,4)+d.structure.bilge*.12*Math.sin(Math.PI*v),tumble=v>.65?1-d.structure.tumble*(v-.65)/.35:1;return V(c*halfBreadth(d,t)*chine*tumble,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);}
+function hullPoint(d,t,a){
+ const raw=(Math.sin(a)+1)*.5,v=Math.max(0,Math.min(1,(raw-0.035)/(0.61-0.035)));
+ const deck=deckY(d,t),keel=keelY(d,t),lowerT=Math.min(1,v/.78),upperT=Math.max(0,Math.min(1,(v-.78)/.22));
+ const lower=0.16+(1-0.16)*Math.pow(Math.sin(lowerT*Math.PI*.5),0.72);
+ const tuck=d.hull.tumblehome*1.04+d.structure.tumble*.55+0.06,flare=d.structure.flare*0.34;
+ const upper=1-tuck*Math.pow(upperT,1.18)+flare*Math.pow(upperT,.9),section=v<=.78?lower:upper;
+ return V(Math.cos(a)*halfBreadth(d,t)*section,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);
+}
 function buildHull(d,ctx){
  const {THREE,part,mesh,materials,V}=ctx,hullGroup=part('hull'),stations=94,rings=36,positions=[],indices=[];
  for(let i=0;i<=stations;i++){const t=i/stations;for(let j=0;j<=rings;j++){const q=hullPoint(d,t,j/rings*Math.PI*2);positions.push(q.x,q.y,q.z);}}
@@ -147,7 +162,7 @@ function buildRig(d,ctx){
   if(mast.rig==='square'||mast.rig==='brigantine'){
    if((mast.rig==='square'&&mast.squares>0)||mast.rig==='brigantine'){const platform=part('mast-platform-'+mast.id,group),disk=ctx.mesh(platform,new ctx.THREE.CylinderGeometry(.56,.64,.12,12),materials.trim,'top-platform');disk.position.set(0,lowerHeight*.84,0);}
    const levels=mast.rig==='square'?['course','topsail','topgallant'].slice(0,mast.squares??2):['topsail'];
-   levels.forEach((level,index)=>{const width=d.beamUnits*(.58+index*.07)*d.structure.yardSpread*1,y0=lowerHeight*.3+index*lowerHeight*.2,y1=Math.min(topY-baseY-.45,y0+lowerHeight*.19),yard=part('yard-'+mast.id+'-'+level,group);
+   levels.forEach((level,index)=>{const width=d.beamUnits*(1.55-index*.16)*d.structure.yardSpread*1,y0=lowerHeight*.3+index*lowerHeight*.2,y1=Math.min(topY-baseY-.45,y0+lowerHeight*.19),yard=part('yard-'+mast.id+'-'+level,group);
     beam(yard,V(-width*.5,y1,0),V(width*.5,y1,0),Math.max(.045,radius*.7),materials.trim,'square-yard');
     buildCanvasSail(ctx,'sail-'+mast.id+'-'+level,mast.id,[V(-width*.48,y0,0),V(-width*.43,y1,0),V(width*.43,y1,0),V(width*.48,y0,0)],.08+index*.012,group);
     const sheets=part('sheets-'+mast.id+'-'+level,group);for(let side of [-1,1])beam(sheets,V(side*width*.45,y0,0),V(side*width*.45,y0-.28,.18),.016,materials.rope,'sail-sheet');
