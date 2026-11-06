@@ -52,7 +52,7 @@ function halfBreadth(d,t){
  const q=Math.max(0,Math.min(1,t));
  const raw=Math.pow(Math.max(0,Math.sin(Math.PI*q)),.61);
  const transomBlend=Math.pow(Math.max(0,Math.min(1,(q-.79)/.21)),2)*(3-2*Math.max(0,Math.min(1,(q-.79)/.21)));
- const shoulder=raw*(1-transomBlend)+.42*transomBlend;
+ const shoulder=raw*(1-transomBlend)+.78*transomBlend;
  const belly=.88+.18*Math.sin(Math.PI*q*.9);
  const entry=.77+.23*Math.min(1,q*3.1);
  const counter=.94+.06*Math.min(1,(1-q)*4);
@@ -209,6 +209,26 @@ function buildStern(d,ctx){
   geometry.setIndex([0,1,2,0,2,3]);geometry.computeVertexNormals();
   return mesh(parent,geometry,material,name);
  }
+ function addSternDeck(parent,name,width,depth,y,centerZ,material,camber=.1){
+  const across=18,along=8,positions=[],indices=[];
+  for(let row=0;row<=along;row++){
+   const q=row/along,edgeTaper=.985+.015*q,half=width*.5*edgeTaper;
+   for(let col=0;col<=across;col++){
+    const u=col/across*2-1;
+    const z=centerZ+(q-.5)*depth;
+    const crown=camber*(1-u*u)+.025*Math.sin(Math.PI*q);
+    positions.push(u*half,y+crown,z);
+   }
+  }
+  for(let row=0;row<along;row++)for(let col=0;col<across;col++){
+   const a=row*(across+1)+col;
+   indices.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geometry.setIndex(indices);geometry.computeVertexNormals();
+  return mesh(parent,geometry,material,name);
+ }
  function addCurvedTransom(parent,name,width,topWidth,height,lowY,aftZ,bulge){
   const across=28,rows=6,positions=[],indices=[];
   for(let row=0;row<=rows;row++){
@@ -232,8 +252,7 @@ function buildStern(d,ctx){
   const tierGroup=part('stern-tier-'+(index+1),stern);
   const width=d.beamUnits*tier.w,topWidth=width*(.91-index*.012),depth=d.hullLengthUnits*tier.d,height=tier.h*(4/3);
   const foreZ=baseZ-depth*.5,aftZ=baseZ+depth*.5,topY=bottomY+height,bulge=.24-index*.035;
-  const floor=box(tierGroup,width+.28,.16,depth+.3,materials.deck,'sterncastle-tier-floor');
-  floor.position.set(0,bottomY,baseZ);
+  addSternDeck(tierGroup,'sterncastle-tier-floor',width+.28,depth+.3,bottomY,baseZ,materials.deck,.1);
   addCurvedTransom(tierGroup,'curved-transom-wall-'+(index+1),width,topWidth,height,bottomY,aftZ,bulge);
   const sideGroup=part('stern-tier-side-walls-'+(index+1),tierGroup);
   for(const side of [-1,1]){
@@ -250,8 +269,7 @@ function buildStern(d,ctx){
     [side*topWidth*.5,topY,foreZ+.16]
    ],materials.hull);
   }
-  const cap=box(tierGroup,topWidth+.38,.16,depth+.38,materials.deck,'sterncastle-upper-deck');
-  cap.position.set(0,topY+.08,baseZ+.04);
+  addSternDeck(tierGroup,'sterncastle-upper-deck',topWidth+.38,depth+.38,topY+.04,baseZ+.04,materials.deck,.14);
   const transomTrim=part('stern-transom-trim-'+(index+1),tierGroup);
   for(const y of [bottomY+.12,topY-.07]){
    const points=[];
@@ -263,6 +281,18 @@ function buildStern(d,ctx){
   }
   const tierWindows=part('stern-windows-tier-'+(index+1),windows);
   const count=Math.max(3,5-index),windowW=width/(count+1)*.48,windowH=height*.38,windowY=bottomY+height*.55;
+  const sideWindows=part('stern-side-windows-tier-'+(index+1),windows);
+  for(const side of [-1,1])for(let paneIndex=0;paneIndex<3;paneIndex++){
+   const z=foreZ+depth*(.25+paneIndex*.22),x=side*(width*.485),y=bottomY+height*.49;
+   const pane=box(sideWindows,.055,.42,.32,materials.glass,'quarter-gallery-side-window');
+   pane.position.set(x,y,z);
+   for(const yy of [-.24,.24]){
+    beam(sideWindows,V(x+side*.04,y+yy,z-.19),V(x+side*.04,y+yy,z+.19),.026,materials.brass,'side-window-horizontal-trim');
+   }
+   for(const zz of [-.19,.19]){
+    beam(sideWindows,V(x+side*.04,y-.24,z+zz),V(x+side*.04,y+.24,z+zz),.026,materials.brass,'side-window-vertical-trim');
+   }
+  }
   for(let n=0;n<count;n++){
    const x=-width*.35+width*.7*n/Math.max(1,count-1);
    const z=aftZ+bulge*(1-Math.pow(x/(width*.5),2))+.065;
@@ -283,8 +313,7 @@ function buildStern(d,ctx){
    beam(frame,V(left+.03,windowY,z+.065),V(right-.03,windowY,z+.065),.018,materials.trim,'window-crossbar');
   }
   const galleryTier=part('stern-gallery-tier-'+(index+1),gallery);
-  const galleryDeck=box(galleryTier,width*.97,.13,depth*.19,materials.deck,'stern-balcony-walkway');
-  galleryDeck.position.set(0,topY+.22,aftZ+depth*.115);
+  addSternDeck(galleryTier,'stern-balcony-walkway',width*.97,depth*.19,topY+.18,aftZ+depth*.115,materials.deck,.05);
   const railY=topY+.82,railPoints=[];
   for(let i=0;i<=16;i++){
    const u=-1+2*i/16,x=u*width*.47;
@@ -586,9 +615,9 @@ function buildRig(d,ctx){
   const mainMast=mast.id==='main',foreMast=mast.id==='fore';
   if(mast.rig==='square'){
    const levels=[
-    {id:'course',low:.075,high:.36,span:mainMast?1.7:1.52,full:.17},
-    {id:'topsail',low:.43,high:.67,span:mainMast?1.4:1.27,full:.13},
-    {id:'topgallant',low:.735,high:.94,span:mainMast?1.12:1.02,full:.095}
+    {id:'course',low:.03,high:.41,span:mainMast?1.52:1.4,full:.15},
+    {id:'topsail',low:.46,high:.74,span:mainMast?1.25:1.15,full:.12},
+    {id:'topgallant',low:.79,high:.985,span:mainMast?1.02:.94,full:.09}
    ];
    for(const [index,level] of levels.entries()){
     const yard=part('yard-'+mast.id+'-'+level.id,group);
