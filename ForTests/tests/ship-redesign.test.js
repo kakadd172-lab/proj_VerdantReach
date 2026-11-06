@@ -73,7 +73,7 @@ test('historical reference variants stay within their intended length-to-beam en
     sloop: [3.8, 4.1], schooner: [3.3, 3.8], brigantine: [3.3, 3.8],
     brig: [3.2, 3.7], snow: [3.4, 3.9], cutter: [3.1, 3.5],
     frigate: [3.4, 3.8], barque: [4.4, 4.7], caravel: [2.6, 3.1],
-    carrack: [2.9, 3.3], galleon: [2.8, 3.3], fluyt: [4.0, 4.6],
+    carrack: [2.9, 3.3], galleon: [2.8, 3.3], fluyt: [4.7, 5.1],
     xebec: [4.0, 4.8], junk: [3.6, 4.2], 'first-rate': [3.4, 3.8],
     pinnace: [3.4, 4.0],
   };
@@ -105,6 +105,11 @@ test('named historical reference anchors match their selected vessel variants', 
   assert.ok(Math.abs(barque.beam - 8.84) < 0.02);
   assert.equal(barque.masts.length, 3);
   assert.equal(barque.masts[2].rig, 'gaff');
+
+  const fluyt = getShipDesign('fluyt');
+  assert.ok(Math.abs(fluyt.hullLength - 32.75) < 0.02);
+  assert.ok(Math.abs(fluyt.beam - 6.7) < 0.02);
+  assert.equal(fluyt.masts.length, 3);
 
   const pinnace = getShipDesign('pinnace');
   assert.ok(Math.abs(pinnace.hullLength - 9.75) < 0.01);
