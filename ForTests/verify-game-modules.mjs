@@ -30,8 +30,7 @@ assert.ok(!existsSync(join(shipRoot,'shared','define-vessel.js')),'Unused wrappe
 
 const hullFingerprints=new Set(),sailFingerprints=new Set();
 for(const id of ids){
- const path=join(shipRoot,'vessels',id+'.js');
- assert.ok(existsSync(path),'Missing independent vessel module: '+id);
+ const path=join(shipRoot,'vessels',id+'.js');assert.ok(existsSync(path),'Missing independent vessel module: '+id);
  const source=readFileSync(path,'utf8');
  for(const required of [
   "id: '"+id+"'",'design:','structure:','sternTiers:','keelDetails:','rudderDetails:',
