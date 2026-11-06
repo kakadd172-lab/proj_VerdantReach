@@ -210,6 +210,7 @@ function generateCaravelGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);
 }
