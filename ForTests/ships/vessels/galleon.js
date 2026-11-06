@@ -229,7 +229,7 @@ function buildFramesAndPlanking(d,ctx){
 function buildStern(d,ctx){
  const {THREE,part,mesh,box,beam,tube,materials,V}=ctx;
  const stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern);
- const tiers=d.sternTiers||[],baseDeck=deckY(d,.9)+.18;
+ const tiers=d.sternTiers||[],baseDeck=deckY(d,.9)-.20;
  let bottomY=baseDeck,tierCenterZ=d.hullLengthUnits*.355;
  function addSternDeck(parent,name,width,depth,y,centerZ,material,camber=.12){
   const across=24,along=12,positions=[],indices=[];
@@ -277,8 +277,8 @@ function buildStern(d,ctx){
    const v=row/rows,w=width+(topWidth-width)*v;
    const startZ=foreZ+(topForeZ-foreZ)*v,endZ=aftZ+(topAftZ-aftZ)*v;
    for(let col=0;col<=along;col++){
-    const u=col/along,z=startZ+(endZ-startZ)*u;
-    const flare=.12*Math.sin(Math.PI*u)*Math.sin(Math.PI*v);
+    const u=col/along,z=startZ+(endZ-startZ)*u+.16*Math.sin(Math.PI*u)*Math.sin(Math.PI*v);
+    const flare=.24*Math.pow(1-v,.82)+.08*Math.sin(Math.PI*u)*Math.sin(Math.PI*v);
     const x=side*(w*.5+flare);
     const y=bottomY+height*v+.04*Math.sin(Math.PI*u)*Math.sin(Math.PI*v);
     positions.push(x,y,z);
