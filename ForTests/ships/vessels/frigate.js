@@ -119,23 +119,7 @@ function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,a
  return control;
 }
 
-function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
- const {part,mesh,materials,THREE}=ctx;
- const control=part(name,parent);control.userData.sailControl={mastId,clothPart:'cloth-'+name};
- const cloth=part('cloth-'+name,control),points=corners.map(point=>point?.isVector3?point.clone():V(...point));
- const rows=20,columns=22,positions=[],indices=[];
- for(let row=0;row<=rows;row++){const v=row/rows;for(let column=0;column<=columns;column++){
-  const u=column/columns,lower=points[0].clone().lerp(points[3],u),upper=points[1].clone().lerp(points[2],u),point=lower.lerp(upper,v);
-  const chord=Math.pow(Math.max(0,Math.sin(Math.PI*u)),1.22),vertical=Math.pow(Math.max(0,Math.sin(Math.PI*v)),1.1);
-  const camber=fullness*chord*vertical*(1+0.21*(u-.5)*2);
-  const twist=0.0336*Math.sin(Math.PI*u)*Math.sin(Math.PI*v)*(v-.5);
-  if(axis==='x'){point.x+=camber;point.z+=twist;}else{point.z+=camber;point.x+=twist;}
-  positions.push(point.x,point.y,point.z);
- }}
- const stride=columns+1;for(let row=0;row<rows;row++)for(let column=0;column<columns;column++){const a=row*stride+column;indices.push(a,a+stride,a+1,a+1,a+stride,a+stride+1);}
- const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
- mesh(cloth,geometry,materials.sail,'frigate-individually-shaped-cloth');return control;
-}
+
 function buildRig(d,ctx){
  const {part,beam,tube,materials,V}=ctx,head=part('head-sails');
  for(const mast of d.masts){
@@ -216,17 +200,7 @@ function ensureSternTierComponents(d,ctx){
  });
 }
 
-function ensureSternTierComponents(d,ctx){
- const {part,box,materials}=ctx,tiers=d.sternTiers||[];
- tiers.forEach((tier,index)=>{
-  const name='stern-tier-'+(index+1);if(ctx.registry.has(name))return;
-  const component=part(name),width=d.beamUnits*tier.w*0.66,height=Math.max(.18,tier.h*0.66),depth=Math.max(.16,d.hullLengthUnits*tier.d);
-  const shell=box(component,width,height,depth,materials.hull,'frigate-independent-stern-tier');
-  shell.position.set(0,deckY(d,.94)+height*(.44+index*.08),d.hullLengthUnits*(.405+index*.014));
-  const cap=box(component,width*1.04,.09,depth*1.04,materials.trim,'stern-tier-cap');
-  cap.position.set(0,shell.position.y+height*.52,shell.position.z);
- });
-}
+
 function generateFrigateGeometry(vessel,componentTransforms={},savedState={}){
  const ctx=createShipContext(vessel,{"hull":5323568,"plank":8412741,"deck":11111270,"sail":15196108});
  buildHull(ctx.design,ctx);
