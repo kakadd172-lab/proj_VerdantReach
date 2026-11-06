@@ -135,7 +135,15 @@ try{
     mimeType:'model/gltf-binary',
     buffer:makeTestGlb(),
   });
-  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded test-imported-sailboat'));
+  await page.waitForFunction(()=>{
+    const value=document.querySelector('#status')?.textContent||'';
+    return value.startsWith('Loaded test-imported-sailboat')||value.startsWith('Model import failed:');
+  },{timeout:15000}).catch(async error=>{
+    const current=await page.locator('#status').innerText();
+    throw new Error('Local GLB import did not settle. Editor status: '+current+' · '+error.message);
+  });
+  const localImportStatus=await page.locator('#status').innerText();
+  assert.ok(localImportStatus.startsWith('Loaded test-imported-sailboat'),'Local GLB import failed: '+localImportStatus);
   assert.ok(Number(await page.locator('#parts').innerText())>0,'Local GLB import did not expose editable parts.');
   assert.ok(await page.locator('#ship-select').inputValue().startsWith('imported-local-'),'Local GLB import did not add a model selector entry.');
   await delay(350);
