@@ -799,11 +799,11 @@ function buildRig(d,ctx){
  const fore=d.masts.find(m=>m.id==='fore');
  if(fore){
   const foreZ=fore.z*d.hullLengthUnits,baseT=.5+fore.z*.45,baseY=deckY(d,baseT)+.16;
-  const head=V(0,baseY+fore.height*1.18*.72,foreZ-d.hullLengthUnits*.02);
+  const headPoint=V(0,baseY+fore.height*1.18*.72,foreZ-d.hullLengthUnits*.02);
   const tack=V(0,deckY(d,.04)+.70,-d.hullLengthUnits*.5-d.beamUnits*.31);
   const clew=V(0,deckY(d,.19)+.82,foreZ-d.hullLengthUnits*.06);
   const lower=V(0,deckY(d,.16)+.32,foreZ-d.hullLengthUnits*.09);
-  buildCanvasSail(ctx,'sail-fore-staysail','fore',[tack,head,clew,lower],.18,head,'x');
+  buildCanvasSail(ctx,'sail-fore-staysail','fore',[tack,headPoint,clew,lower],.18,head,'x');
  }
 }
 
