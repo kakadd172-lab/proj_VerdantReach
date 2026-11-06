@@ -148,6 +148,11 @@
           <option value="junk">Chinese ocean junk</option>
           <option value="first-rate">First-rate ship of the line</option>
           <option value="pinnace">Ship’s pinnace</option>
+          <optgroup label="Imported 3D models · CC0">
+            <option value="imported-sailing-sloop">Cruising sloop · imported model</option>
+            <option value="imported-coastal-trawler">Coastal fishing trawler · imported model</option>
+            <option value="imported-motor-cruiser">Motor cruiser · imported model</option>
+          </optgroup>
         </select>
       </section>
 
@@ -240,6 +245,21 @@
           <div id="compare-summary">Choose a second vessel to compare its principal dimensions.</div>
         </div>
       </section>
+
+      <details class="section-card" open>
+        <summary>Imported models & local files</summary>
+        <div class="section-content">
+          <p class="note">Choose one of the CC0 sample vessels in the dropdown above, or load your own GLB/glTF model. Imported meshes keep their materials and become selectable editor components.</p>
+          <div class="action-grid">
+            <button id="import-3d-file" class="btn" type="button">Import GLB / glTF</button>
+            <button id="import-3d-folder" class="btn" type="button">Import glTF folder</button>
+          </div>
+          <input id="import-3d-input" class="hidden-input" type="file" accept=".glb,.gltf,.bin,.png,.jpg,.jpeg,.webp,.ktx2" multiple/>
+          <input id="import-3d-folder-input" class="hidden-input" type="file" webkitdirectory directory multiple/>
+          <div id="imported-asset-sources" class="note" aria-live="polite">Select an imported vessel to see its licence and source links.</div>
+          <p class="note">A GLB is usually self-contained. For a glTF file with external textures or .bin data, select all related files together or choose the extracted model folder. Local files are not uploaded to GitHub; re-import them after restarting the browser.</p>
+        </div>
+      </details>
 
       <details class="section-card">
         <summary>Import & export</summary>
