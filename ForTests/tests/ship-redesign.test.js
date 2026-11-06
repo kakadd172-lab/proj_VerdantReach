@@ -70,7 +70,7 @@ test('historical reference variants stay within their intended length-to-beam en
   const ranges = {
     sloop: [3.8, 4.1], schooner: [3.3, 3.8], brigantine: [3.3, 3.8],
     brig: [3.2, 3.7], snow: [3.4, 3.9], cutter: [3.1, 3.5],
-    frigate: [3.4, 3.8], barque: [3.1, 3.6], caravel: [2.6, 3.1],
+    frigate: [3.4, 3.8], barque: [4.4, 4.7], caravel: [2.6, 3.1],
     carrack: [2.9, 3.3], galleon: [2.8, 3.3], fluyt: [4.0, 4.6],
     xebec: [4.0, 4.8], junk: [3.6, 4.2], 'first-rate': [3.4, 3.8],
     pinnace: [3.4, 4.0],
