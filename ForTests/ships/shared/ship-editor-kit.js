@@ -46,17 +46,6 @@ export function createShipContext(vessel,palette={}){
  function box(parent,w,h,depth,material=materials.trim,name='box'){
   return mesh(parent,new THREE.BoxGeometry(w,h,depth),material,name);
  }
- function sail(name,mastId,corners,fullness=.075,parent=root,axis='z'){
-  const control=part(name,parent);control.userData.sailControl={mastId,clothPart:'cloth-'+name};
-  const cloth=part('cloth-'+name,control),pts=corners.map(p=>p?.isVector3?p.clone():V(...p)),rows=14,cols=18,pos=[],indices=[];
-  for(let r=0;r<=rows;r++){const v=r/rows;for(let c=0;c<=cols;c++){
-   const u=c/cols,low=pts[0].clone().lerp(pts[3],u),high=pts[1].clone().lerp(pts[2],u),p=low.lerp(high,v),belly=Math.sin(Math.PI*u)*Math.sin(Math.PI*v)*fullness;
-   if(axis==='x')p.x+=belly;else p.z+=belly;pos.push(p.x,p.y,p.z);
-  }}
-  const stride=cols+1;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const a=r*stride+c;indices.push(a,a+stride,a+1,a+1,a+stride,a+stride+1);}
-  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(indices);geo.computeVertexNormals();mesh(cloth,geo,materials.sail,'sail-cloth');
-  return control;
- }
  root.userData.shipType=design.id;root.userData.shipLabel=design.label;root.userData.shipGeneratorId=design.id;
  root.userData.shipDefinitionPath=vessel.editorModulePath;root.userData.shipEditorModulePath=vessel.editorModulePath;root.userData.shipGameDefinitionPath=vessel.gameDefinitionPath;
  root.userData.shipSourceVersion='ForTests-native';root.userData.forwardAxis='-z';
@@ -64,7 +53,7 @@ export function createShipContext(vessel,palette={}){
  root.userData.shipDimensionsUnits={length:design.hullLengthUnits,beam:design.beamUnits,draft:design.draftUnits};
  root.userData.deckHeightUnits=design.deckHeightUnits;root.userData.deckHeight=design.deckHeightUnits;
  root.userData.vehicle={mode:'boat',vesselType:design.id,deckHeight:design.deckHeightUnits,label:'Board '+design.label};
- return {THREE,V,clamp,design,root,materials,registry,part,mesh,beam,tube,box,sail};
+ return {THREE,V,clamp,design,root,materials,registry,part,mesh,beam,tube,box};
 }
 function setupPartApi(root,registry,design){
  const unlinked=new THREE.Group();unlinked.name='unlinked-parts';root.add(unlinked);
