@@ -47,6 +47,6 @@ jobs:
       - name: Build shipyard editor
         run: npm run build
       - name: Install browser for interactive smoke test
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - name: Run interactive editor browser smoke test
         run: npm run smoke
