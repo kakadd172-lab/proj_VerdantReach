@@ -10,14 +10,14 @@ export const GalleonDefinition = defineVesselSpec({
   id: 'galleon',
   design: {
     id: 'galleon', label: 'Iberian ocean-going galleon', era: 'Mid-to-late 16th century reconstruction',
-    hullLength: 30.5, beam: 10.0, draft: 4.1, freeboard: 2.25,
+    hullLength: 34.0, beam: 8.5, draft: 4.4, freeboard: 2.55,
     rig: 'Three-masted early Iberian galleon: square courses, topsails and topgallants on fore and main; lateen mizzen; bowsprit and stay sails.',
-    hullProfile: 'Long ocean-going hull with a bluff lower bow, fine run aft, pronounced tumblehome, lowered forecastle, beakhead and a three-stage projecting sterncastle.',
-    reference: 'An early Iberian galleon reconstruction constrained by Santa Maria del Pilar (c. 1535), 30.5 m × 10 m, and the three-masted San Salvador replica sail plan. The game-inspired silhouette is an artistic interpretation, not a traced original lines plan.',
+    hullProfile: 'Slender early Iberian galleon reconstruction (about 4:1 length-to-beam), bluff lower bow, fine aft run, pronounced tumblehome, raised foredeck and an aft-projecting tapered sterncastle.',
+    reference: 'Game-scale early Iberian galleon reconstruction using a c.1550 galleon length-to-beam proportion of about 4:1 as a typological guide. Overall dimensions are design estimates, not measured plans for a named surviving ship. Stern profile informed by period galleon reconstructions.',
     sources: [{ label: 'Deutsches Historisches Museum — Galleon', url: 'https://www.dhm.de/mediathek/en/ship-types/milestones-in-the-history-of-european-shipbuilding/08-galleon/' }, { label: 'The Mariners’ Museum — Galleon development and rig', url: 'https://exploration.marinersmuseum.org/watercraft/galleon/' }, { label: 'Maritime Museum of San Diego — San Salvador dimensions and sail plan', url: 'https://sdmaritime.org/visit/the-ships/san-salvador/' }],
-    hull: { fullness: 0.8, entry: 0.66, stern: 'transom', sternWidth: 0.42, tumblehome: 0.15, sheer: 0.18, bowRise: 0.34, sternRise: 0.48, keelDepth: 0.16, deckCamber: 0.19 },
+    hull: { fullness: 0.74, entry: 0.58, stern: 'transom', sternWidth: 0.37, tumblehome: 0.19, sheer: 0.24, bowRise: 0.43, sternRise: 0.62, keelDepth: 0.24, deckCamber: 0.19 },
     sternwork: 'galleon-castle',
-    sternTiers: [{"w":0.72,"d":0.19,"h":2.2},{"w":0.58,"d":0.15,"h":1.75},{"w":0.43,"d":0.12,"h":1.45}], bowwork: 'beakhead',
+    sternTiers: [{"w":0.76,"d":0.20,"h":2.15},{"w":0.61,"d":0.16,"h":1.8},{"w":0.45,"d":0.13,"h":1.55}], bowwork: 'beakhead',
     keelDetails: {"pointOffset":0.06,"minimumRadius":0.08,"radiusFactor":0.018,"stemPosts":true,"label":"keelson-and-keel"},
     rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, sailingSpeed: 6.2, handling: 0.58,
     masts: [
@@ -27,7 +27,7 @@ export const GalleonDefinition = defineVesselSpec({
     ],
     headsails: 2, oars: false,
   },
-  structure: { frameCount: 44, beamStation: .51, forebody: .86, aftbody: .91, foreTip: .003, aftTip: .14, bottomFlat: .39, bilge: .27, flare: .14, tumble: .15, sheer: 1.2, lowerMastRatio: .63, shroudPairs: 4, ratlines: 12, yardSpread: .96 },
+  structure: { frameCount: 48, beamStation: .51, forebody: .82, aftbody: .84, foreTip: .003, aftTip: .11, bottomFlat: .34, bilge: .23, flare: .11, tumble: .18, sheer: 1.25, lowerMastRatio: .63, shroudPairs: 4, ratlines: 12, yardSpread: 1.02 },
 });
 
 
@@ -35,28 +35,37 @@ import * as THREE from 'three';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 
 function deckY(d,t){
- const q=Math.max(0,Math.min(1,t)),edge=Math.abs(2*q-1);
- const sheer=Math.pow(edge,1.08),bow=Math.pow(Math.max(0,1-2*q),1.08),stern=Math.pow(Math.max(0,2*q-1),1.02);
- return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*sheer*d.structure.sheer
-  +d.hull.bowRise*d.deckHeightUnits*bow+d.hull.sternRise*d.deckHeightUnits*stern;
+ const q=Math.max(0,Math.min(1,t));
+ const edge=Math.pow(Math.abs(2*q-1),.92);
+ const bow=Math.pow(Math.max(0,1-q/.34),1.55);
+ const stern=Math.pow(Math.max(0,(q-.70)/.30),1.28);
+ const waveSheer=.018*Math.sin(Math.PI*q);
+ return d.deckHeightUnits
+  +d.hull.sheer*d.deckHeightUnits*edge*d.structure.sheer
+  +d.hull.bowRise*d.deckHeightUnits*bow
+  +d.hull.sternRise*d.deckHeightUnits*stern
+  +waveSheer*d.deckHeightUnits;
 }
 function keelY(d,t){
- const q=Math.max(0,Math.min(1,t)),mid=Math.pow(Math.max(0,Math.sin(Math.PI*q)),.64);
- const depth=.82+(.18)*mid+d.hull.keelDepth*.09*mid*(1-mid);
+ const q=Math.max(0,Math.min(1,t));
+ const mid=Math.pow(Math.max(0,Math.sin(Math.PI*q)),.72);
+ const endDepth=.62+.06*q;
+ const depth=endDepth+(1-endDepth)*mid;
  return -d.draftUnits*Math.min(1,depth);
 }
 function deckBreadthRatio(d){
- return Math.max(.56,Math.min(.99,.89-d.hull.tumblehome*.34-d.structure.tumble*.22-.012+d.structure.flare*.22));
+ return Math.max(.56,Math.min(.96,.865-d.hull.tumblehome*.42-d.structure.tumble*.26-.012+d.structure.flare*.20));
 }
 function halfBreadth(d,t){
  const q=Math.max(0,Math.min(1,t));
- const raw=Math.pow(Math.max(0,Math.sin(Math.PI*q)),.61);
- const transomBlend=Math.pow(Math.max(0,Math.min(1,(q-.79)/.21)),2)*(3-2*Math.max(0,Math.min(1,(q-.79)/.21)));
- const shoulder=raw*(1-transomBlend)+.78*transomBlend;
- const belly=.88+.18*Math.sin(Math.PI*q*.9);
- const entry=.77+.23*Math.min(1,q*3.1);
- const counter=.94+.06*Math.min(1,(1-q)*4);
- return d.beamUnits*.5*shoulder*belly*entry*counter;
+ const raw=Math.pow(Math.max(0,Math.sin(Math.PI*q)),.56);
+ const aftBlend=Math.max(0,Math.min(1,(q-.79)/.21));
+ const aftSmooth=aftBlend*aftBlend*(3-2*aftBlend);
+ const shoulder=raw*(1-aftSmooth)+.62*aftSmooth;
+ const belly=.92+.12*Math.sin(Math.PI*q);
+ const foreShoulder=.78+.22*Math.max(0,Math.min(1,q/.34));
+ const counter=.98+.02*Math.max(0,Math.min(1,(1-q)*5));
+ return d.beamUnits*.5*shoulder*belly*foreShoulder*counter;
 }
 function hullPoint(d,t,a){
  const v=1-Math.pow(Math.abs(Math.sin(a)),1.38),deck=deckY(d,t),keel=keelY(d,t);
