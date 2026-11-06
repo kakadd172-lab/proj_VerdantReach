@@ -9,17 +9,17 @@ import { createShipContext, finishShipModel } from '../shared/ship-editor-kit.js
 export const BarqueDefinition = defineVesselSpec({
   id: 'barque',
   design: {
-    id: 'barque', label: 'Atlantic barque', era: 'Late 18th century onward',
-    hullLength: 29.8, beam: 8.9, draft: 3.5, freeboard: 1.8,
+    id: 'barque', label: 'Atlantic barque', era: 'Mid-19th century trade',
+    hullLength: 39.93, beam: 8.84, draft: 3.5, freeboard: 1.8,
     rig: 'At least three masts; fore and main square, mizzen fore-and-aft.',
-    hullProfile: 'Long cargo hull, full midbody, low working deck and rounded counter.',
-    reference: 'Endeavour (1768) reference dimensions: 29.8 m × 8.9 m. This reconstruction uses the defining three-mast barque sail division.',
-    sources: [{ label: 'Deutsches Historisches Museum — Barque / Endeavour', url: 'https://www.dhm.de/mediathek/en/web/full/ship-types/milestones-in-the-history-of-european-shipbuilding/15-barque/' }],
+    hullProfile: 'Long three-masted cargo hull, full but fine-ended midbody, restrained sheer, short forecastle and rounded counter stern.',
+    reference: 'Based on the three-masted barque Ravensworth (built 1856): 131 ft length × 29 ft beam (39.93 × 8.84 m), 508 gross tons. Its fore and main masts carried square sails and its mizzen was fore-and-aft rigged.',
+    sources: [{ label: 'Royal Museums Greenwich — Ravensworth (1856), three-masted barque', url: 'https://www.rmg.co.uk/collections/objects/rmgc-object-66014' }, { label: 'Royal Museums Greenwich — Cargo vessel; barque (circa 1880)', url: 'https://www.rmg.co.uk/collections/objects/rmgc-object-67057' }],
     hull: { fullness: 0.72, entry: 0.62, stern: 'counter', sternWidth: 0.35, tumblehome: 0.08, sheer: 0.12, bowRise: 0.24, sternRise: 0.28, keelDepth: 0.1, deckCamber: 0.13 },
     sternwork: 'low-cabin',
     sternTiers: [{"w":0.42,"d":0.12,"h":1.3}], bowwork: 'bowsprit',
     keelDetails: {"pointOffset":0.06,"minimumRadius":0.08,"radiusFactor":0.018,"stemPosts":true,"label":"keelson-and-keel"},
-    rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, sailingSpeed: 7.8, handling: 0.82,
+    rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, modelScaleNote: 'Length and beam follow the documented Ravensworth (1856); draft, sheer offsets, framing and mast heights are reconstruction estimates.', sailingSpeed: 7.8, handling: 0.82,
     masts: [
       { id: 'fore', z: -0.29, height: 24.6, rig: 'square', squares: 3 },
       { id: 'main', z: -0.02, height: 27.5, rig: 'square', squares: 3 },
