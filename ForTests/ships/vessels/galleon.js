@@ -9,15 +9,15 @@ import { createShipContext, finishShipModel } from '../shared/ship-editor-kit.js
 export const GalleonDefinition = defineVesselSpec({
   id: 'galleon',
   design: {
-    id: 'galleon', label: 'Iberian merchant galleon', era: '16th–17th century',
-    hullLength: 30.5, beam: 10.0, draft: 4.1, freeboard: 2.25,
-    rig: 'Three masts: square fore and main, lateen mizzen, bowsprit and spritsail.',
-    hullProfile: 'Elongated ocean hull, lowered forecastle, pronounced beakhead and stepped sterncastle.',
-    reference: 'Santa Maria del Pilar (c. 1535) reference: 30.5 m × 10 m. San Salvador replica measurements provide a second three-mast early-galleon comparison.',
+    id: 'galleon', label: 'Iberian ocean-going galleon', era: 'Mid-to-late 16th century reconstruction',
+    hullLength: 34.0, beam: 8.5, draft: 4.4, freeboard: 2.55,
+    rig: 'Three-masted early Iberian galleon: square courses, topsails and topgallants on fore and main; lateen mizzen; bowsprit and stay sails.',
+    hullProfile: 'Slender early Iberian galleon reconstruction (about 4:1 length-to-beam), bluff lower bow, fine aft run, pronounced tumblehome, raised foredeck and an aft-projecting tapered sterncastle.',
+    reference: 'Game-scale early Iberian galleon reconstruction using a c.1550 galleon length-to-beam proportion of about 4:1 as a typological guide. Overall dimensions are design estimates, not measured plans for a named surviving ship. Stern profile informed by period galleon reconstructions.',
     sources: [{ label: 'Deutsches Historisches Museum — Galleon', url: 'https://www.dhm.de/mediathek/en/ship-types/milestones-in-the-history-of-european-shipbuilding/08-galleon/' }, { label: 'The Mariners’ Museum — Galleon development and rig', url: 'https://exploration.marinersmuseum.org/watercraft/galleon/' }, { label: 'Maritime Museum of San Diego — San Salvador dimensions and sail plan', url: 'https://sdmaritime.org/visit/the-ships/san-salvador/' }],
-    hull: { fullness: 0.78, entry: 0.63, stern: 'transom', sternWidth: 0.38, tumblehome: 0.12, sheer: 0.16, bowRise: 0.31, sternRise: 0.48, keelDepth: 0.13, deckCamber: 0.16 },
+    hull: { fullness: 0.74, entry: 0.58, stern: 'transom', sternWidth: 0.37, tumblehome: 0.19, sheer: 0.24, bowRise: 0.43, sternRise: 0.62, keelDepth: 0.24, deckCamber: 0.19 },
     sternwork: 'galleon-castle',
-    sternTiers: [{"w":0.58,"d":0.16,"h":2.15},{"w":0.44,"d":0.135,"h":1.55},{"w":0.32,"d":0.11,"h":1.2}], bowwork: 'beakhead',
+    sternTiers: [{"w":0.76,"d":0.20,"h":2.15},{"w":0.61,"d":0.16,"h":1.8},{"w":0.45,"d":0.13,"h":1.55}], bowwork: 'beakhead',
     keelDetails: {"pointOffset":0.06,"minimumRadius":0.08,"radiusFactor":0.018,"stemPosts":true,"label":"keelson-and-keel"},
     rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, sailingSpeed: 6.2, handling: 0.58,
     masts: [
@@ -27,71 +27,476 @@ export const GalleonDefinition = defineVesselSpec({
     ],
     headsails: 2, oars: false,
   },
-  structure: { frameCount: 36, beamStation: .51, forebody: .86, aftbody: .91, foreTip: .003, aftTip: .14, bottomFlat: .39, bilge: .24, flare: .12, tumble: .12, sheer: 1.2, lowerMastRatio: .64, shroudPairs: 3, ratlines: 10, yardSpread: 1.04 },
+  structure: { frameCount: 48, beamStation: .51, forebody: .82, aftbody: .84, foreTip: .003, aftTip: .11, bottomFlat: .34, bilge: .23, flare: .11, tumble: .18, sheer: 1.25, lowerMastRatio: .63, shroudPairs: 4, ratlines: 12, yardSpread: 1.02 },
 });
 
 
 import * as THREE from 'three';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 
-function deckY(d,t){const q=Math.max(0,Math.min(1,t)),edge=Math.abs(2*q-1);const sheer=Math.pow(edge,1.05),bow=Math.pow(Math.max(0,1-2*q),1.08),stern=Math.pow(Math.max(0,2*q-1),1.02);return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*sheer*d.structure.sheer+d.hull.bowRise*d.deckHeightUnits*bow+d.hull.sternRise*d.deckHeightUnits*stern;}
-function keelY(d,t){const q=Math.max(0,Math.min(1,t)),mid=Math.pow(Math.max(0,Math.sin(Math.PI*q)),0.62);const depth=0.83+(1-0.83)*mid+d.hull.keelDepth*0.08*mid*(1-mid);return -d.draftUnits*Math.min(1,depth);}
-function deckBreadthRatio(d){return Math.max(.58,Math.min(.99,0.87-d.hull.tumblehome*0.27-d.structure.tumble*.25-0.01+d.structure.flare*0.32));}
-function halfBreadth(d,t){const mid=Math.max(0,Math.sin(Math.PI*t)),belly=.88+.18*Math.sin(Math.PI*t*.9),beak=.77+.23*Math.min(1,t*3.1),transom=.9+.1*Math.min(1,(1-t)*4);return d.beamUnits*.5*Math.pow(mid,.61)*belly*beak*transom;}
-function hullPoint(d,t,a){const v=1-Math.pow(Math.max(0,Math.sin(a)),1.38),deck=deckY(d,t),keel=keelY(d,t);const transition=0.64,lowerT=Math.max(0,Math.min(1,v/transition)),upperT=Math.max(0,Math.min(1,(v-transition)/(1-transition)));const lower=0.055+(1-0.055)*Math.pow(Math.sin(lowerT*Math.PI*.5),0.48)*(1+(d.structure.bilge||0)*.18*Math.sin(Math.PI*lowerT));const smooth=upperT*upperT*(3-2*upperT);const deckRatio=Math.max(.58,Math.min(.99,0.87-d.hull.tumblehome*0.27-d.structure.tumble*.25-0.01+d.structure.flare*0.32));const upper=1+(deckRatio-1)*Math.pow(smooth,0.98);const section=v<=transition?lower:upper;return V(Math.cos(a)*halfBreadth(d,t)*section,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);}
+function deckY(d,t){
+ const q=Math.max(0,Math.min(1,t));
+ const edge=Math.pow(Math.abs(2*q-1),.92);
+ const bow=Math.pow(Math.max(0,1-q/.34),1.55);
+ const stern=Math.pow(Math.max(0,(q-.70)/.30),1.28);
+ const waveSheer=.018*Math.sin(Math.PI*q);
+ return d.deckHeightUnits
+  +d.hull.sheer*d.deckHeightUnits*edge*d.structure.sheer
+  +d.hull.bowRise*d.deckHeightUnits*bow
+  +d.hull.sternRise*d.deckHeightUnits*stern
+  +waveSheer*d.deckHeightUnits;
+}
+function keelY(d,t){
+ const q=Math.max(0,Math.min(1,t));
+ const mid=Math.pow(Math.max(0,Math.sin(Math.PI*q)),.72);
+ const endDepth=.62+.06*q;
+ const depth=endDepth+(1-endDepth)*mid;
+ return -d.draftUnits*Math.min(1,depth);
+}
+function deckBreadthRatio(d){
+ return Math.max(.56,Math.min(.96,.865-d.hull.tumblehome*.42-d.structure.tumble*.26-.012+d.structure.flare*.20));
+}
+function halfBreadth(d,t){
+ const q=Math.max(0,Math.min(1,t));
+ const raw=Math.pow(Math.max(0,Math.sin(Math.PI*q)),.56);
+ const aftBlend=Math.max(0,Math.min(1,(q-.79)/.21));
+ const aftSmooth=aftBlend*aftBlend*(3-2*aftBlend);
+ const shoulder=raw*(1-aftSmooth)+.62*aftSmooth;
+ const belly=.92+.12*Math.sin(Math.PI*q);
+ const foreShoulder=.78+.22*Math.max(0,Math.min(1,q/.34));
+ const counter=.98+.02*Math.max(0,Math.min(1,(1-q)*5));
+ return d.beamUnits*.5*shoulder*belly*foreShoulder*counter;
+}
+function hullPoint(d,t,a){
+ const v=1-Math.pow(Math.abs(Math.sin(a)),1.38),deck=deckY(d,t),keel=keelY(d,t);
+ const transition=.64,lowerT=Math.max(0,Math.min(1,v/transition)),upperT=Math.max(0,Math.min(1,(v-transition)/(1-transition)));
+ const lower=.045+.955*Math.pow(Math.sin(lowerT*Math.PI*.5),.48)*(1+(d.structure.bilge||0)*.2*Math.sin(Math.PI*lowerT));
+ const smooth=upperT*upperT*(3-2*upperT);
+ const deckRatio=deckBreadthRatio(d);
+ const upper=1+(deckRatio-1)*Math.pow(smooth,.98);
+ const section=v<=transition?lower:upper;
+ return V(Math.cos(a)*halfBreadth(d,t)*section,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);
+}
+function hullPointAtV(d,t,v,side=1){
+ const sine=Math.pow(Math.max(0,Math.min(1,1-v)),1/1.38);
+ const angle=Math.asin(Math.min(1,sine));
+ return hullPoint(d,t,side<0?Math.PI-angle:angle);
+}
+function buildKeelMember(d,ctx,parent,name,widthFactor,height,offsetY,material){
+ const {THREE,mesh}=ctx,stations=72,ring=8,positions=[],indices=[];
+ const profile=[[-.5,-.22],[-.36,-.5],[.36,-.5],[.5,-.22],[.5,.22],[.36,.5],[-.36,.5],[-.5,.22]];
+ for(let i=0;i<=stations;i++){
+  const q=i/stations,t=.012+.976*q,taper=.18+.82*Math.pow(Math.max(0,Math.sin(Math.PI*q)),.38);
+  const width=d.beamUnits*widthFactor*taper*(.94+.06*Math.sin(Math.PI*q)),thick=height*taper;
+  const cy=keelY(d,t)+offsetY,z=(t-.5)*d.hullLengthUnits;
+  for(const [x,y] of profile)positions.push(x*width,cy+y*thick,z);
+ }
+ for(let i=0;i<stations;i++)for(let j=0;j<ring;j++){
+  const a=i*ring+j,b=i*ring+(j+1)%ring;
+  indices.push(a,a+ring,b,b,a+ring,(i+1)*ring+(j+1)%ring);
+ }
+ for(const i of [0,stations]){
+  const q=i/stations,t=.012+.976*q,c=positions.length/3;
+  positions.push(0,keelY(d,t)+offsetY,(t-.5)*d.hullLengthUnits);
+  for(let j=0;j<ring;j++)indices.push(c,i*ring+j,i*ring+(j+1)%ring);
+ }
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+ geometry.setIndex(indices);geometry.computeVertexNormals();
+ mesh(parent,geometry,material,name);
+}
+function buildKeelStructure(d,ctx){
+ const {part,tube,materials,V}=ctx;
+ const keel=part('keel');
+ buildKeelMember(d,ctx,keel,'galleon-continuous-keel',.072,.42,-.18,materials.trim);
+ const shoe=part('keel-shoe',keel);
+ buildKeelMember(d,ctx,shoe,'galleon-false-keel-shoe',.043,.2,-.49,materials.lower);
+ const keelson=part('keelson');
+ buildKeelMember(d,ctx,keelson,'galleon-internal-keelson',.062,.25,.22,materials.plank);
+ const stem=part('stem'),fore=[],aft=[];
+ for(let i=0;i<=18;i++){
+  const q=i/18,t=.085*(1-q),y=keelY(d,.085)*(1-q)+(deckY(d,.005)+.42)*q;
+  fore.push(V(0,y,(t-.5)*d.hullLengthUnits-q*1.35));
+  const ta=.895+.098*q,ya=keelY(d,.895)*(1-q)+(deckY(d,.995)+.2)*q;
+  aft.push(V(0,ya,(ta-.5)*d.hullLengthUnits+q*.26));
+ }
+ tube(stem,fore,d.beamUnits*.019,materials.trim,'curved-forward-stem-post',36);
+ tube(stem,aft,d.beamUnits*.02,materials.trim,'raked-aft-stern-post',36);
+}
 function buildHull(d,ctx){
- const {THREE,part,mesh,materials,V}=ctx,hullGroup=part('hull'),stations=104,rings=36,positions=[],indices=[];
- for(let i=0;i<=stations;i++){const t=i/stations;for(let j=0;j<=rings;j++){const q=hullPoint(d,t,j/rings*Math.PI*2);positions.push(q.x,q.y,q.z);}}
+ const {THREE,part,mesh,materials}=ctx,stations=120,rings=48,positions=[],indices=[];
+ const hullGroup=part('hull');
+ for(let i=0;i<=stations;i++){
+  const t=i/stations;
+  for(let j=0;j<=rings;j++){
+   const q=hullPoint(d,t,j/rings*Math.PI*2);
+   positions.push(q.x,q.y,q.z);
+  }
+ }
  const stride=rings+1;
- for(let i=0;i<stations;i++)for(let j=0;j<rings;j++){const a=i*stride+j;indices.push(a,a+stride,a+1,a+1,a+stride,a+stride+1);}
- for(const i of [0,stations]){const t=i/stations,c=positions.length/3;positions.push(0,(deckY(d,t)+keelY(d,t))*.5,(t-.5)*d.hullLengthUnits);for(let j=0;j<rings;j++){const a=i*stride+j;indices.push(c,a,a+1);}}
- const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
- mesh(hullGroup,geometry,materials.hull,'galleon-individual-hull-loft');
- const deck=part('deck'),along=76,across=20,pos=[],faces=[];
- for(let i=0;i<=along;i++){const t=i/along,half=halfBreadth(d,t)*deckBreadthRatio(d);for(let j=0;j<=across;j++){const u=j/across*2-1;pos.push(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u),(t-.5)*d.hullLengthUnits);}}
- for(let i=0;i<along;i++)for(let j=0;j<across;j++){const u=(j+.5)/across*2-1;const a=i*(across+1)+j;faces.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);}
- const deckGeo=new THREE.BufferGeometry();deckGeo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));deckGeo.setIndex(faces);deckGeo.computeVertexNormals();mesh(deck,deckGeo,materials.deck,'galleon-independent-deck-plan');
- const keel=part('keel'),keelLine=[];for(let i=0;i<=26;i++){const t=i/26;keelLine.push(V(0,keelY(d,t)-d.keelDetails.pointOffset,(t-.5)*d.hullLengthUnits));}
- ctx.tube(keel,keelLine,Math.max(d.keelDetails.minimumRadius,d.beamUnits*d.keelDetails.radiusFactor),materials.trim,d.keelDetails.label,64);
- const stem=part('stem');if(d.keelDetails.stemPosts){ctx.beam(stem,V(0,keelY(d,.012),-d.hullLengthUnits*.5),V(0,deckY(d,.012)+.2,-d.hullLengthUnits*.5),Math.max(.08,d.beamUnits*.023),materials.trim,'galleon-stem-post');
- ctx.beam(stem,V(0,keelY(d,.985),d.hullLengthUnits*.49),V(0,deckY(d,.985)+.18,d.hullLengthUnits*.49),d.beamUnits*.024,materials.trim,'aft-stern-post');}
+ for(let i=0;i<stations;i++)for(let j=0;j<rings;j++){
+  const a=i*stride+j;
+  indices.push(a,a+stride,a+1,a+1,a+stride,a+stride+1);
+ }
+ for(const i of [0,stations]){
+  const t=i/stations,c=positions.length/3;
+  positions.push(0,(deckY(d,t)+keelY(d,t))*.5,(t-.5)*d.hullLengthUnits);
+  for(let j=0;j<rings;j++){
+   const a=i*stride+j;
+   indices.push(c,a,a+1);
+  }
+ }
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+ geometry.setIndex(indices);geometry.computeVertexNormals();
+ mesh(hullGroup,geometry,materials.hull,'galleon-curved-transom-hull-shell');
+ const deck=part('deck'),along=88,across=24,pos=[],faces=[];
+ for(let i=0;i<=along;i++){
+  const t=i/along,half=halfBreadth(d,t)*deckBreadthRatio(d);
+  for(let j=0;j<=across;j++){
+   const u=j/across*2-1;
+   pos.push(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u),(t-.5)*d.hullLengthUnits);
+  }
+ }
+ for(let i=0;i<along;i++)for(let j=0;j<across;j++){
+  const a=i*(across+1)+j;
+  faces.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);
+ }
+ const deckGeo=new THREE.BufferGeometry();
+ deckGeo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+ deckGeo.setIndex(faces);deckGeo.computeVertexNormals();
+ mesh(deck,deckGeo,materials.deck,'galleon-cambered-main-deck');
+ buildKeelStructure(d,ctx);
 }
 function buildFramesAndPlanking(d,ctx){
- const {part,tube,materials,V}=ctx;
- for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
-  const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'galleon-frame-rising',pieces);
+ const {part,beam,tube,materials,V}=ctx;
+ const frames=part('frame-set');
+ for(let i=0;i<d.structure.frameCount;i++){
+  const t=.022+.956*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0'),frames),line=[];
+  for(let j=0;j<=52;j++)line.push(hullPoint(d,t,j/52*Math.PI*2));
+  tube(frame,line,Math.max(.032,d.beamUnits*.0055),materials.trim,'galleon-oak-frame',58);
  }
- const strakes=part('hull-strakes'),rows=8;
- for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
-  for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
-  tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'galleon-strake-'+side+'-'+row,72);
+ const strakes=part('hull-strakes'),rows=12;
+ for(const side of [-1,1])for(let row=0;row<rows;row++){
+  const v=.12+row*.069,points=[];
+  for(let i=0;i<=88;i++){
+   const t=.018+.964*i/88,p=hullPointAtV(d,t,v,side);
+   p.y+=.018;points.push(p);
+  }
+  tube(strakes,points,Math.max(.014,d.beamUnits*.0026),row<2?materials.lower:materials.plank,'galleon-longitudinal-plank-seam-'+side+'-'+row,92);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'galleon-deck-seam-'+line,48);}
-}
-function buildStern(d,ctx){
- const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.355,deck=deckY(d,.94),tiers=d.sternTiers||[];
- tiers.forEach((tier,index)=>{const tierGroup=part('stern-tier-'+(index+1),stern),width=d.beamUnits*tier.w*(1-index*.055),depth=d.hullLengthUnits*tier.d*(1-index*.035),height=tier.h*(4/3),body=box(tierGroup,width,height,depth,materials.hull,'galleon-stern-castle-tier');body.position.set(0,deck+tiers.slice(0,index).reduce((sum,item)=>sum+item.h*(4/3)+.08,0)+height*.5,baseZ+index*depth*.22);const cap=box(tierGroup,width*1.04,.11,depth*1.04,materials.trim,'castle-tier-cap');cap.position.set(0,body.position.y+height*.53,body.position.z);const count=Math.max(2,Math.round(width/1.3));for(let n=0;n<count;n++){const x=-width*.34+width*.68*n/Math.max(1,count-1),y=body.position.y+height*.12,z=body.position.z+depth*.52,pane=box(windows,Math.max(.22,width*.065),Math.max(.24,height*.19),.035,materials.glass,'stern-window');pane.position.set(x,y,z);}for(const side of [-1,1]){const rx=side*width*.53,ry=body.position.y+height*.5;beam(gallery,V(rx,ry,body.position.z-depth*.48),V(rx,ry,body.position.z+depth*.48),.045,materials.trim,'stern-balustrade');for(let j=0;j<4;j++){const zz=body.position.z-depth*.42+j*depth*.28;beam(gallery,V(rx,ry-.42,zz),V(rx,ry+.03,zz),.025,materials.trim,'stern-baluster');}}});
-}
-function buildBow(d,ctx){const {part,beam,box,materials,V}=ctx,bow=part('bowworks'),bowsprit=part('bowsprit'),base=deckY(d,.045)+d.deckHeightUnits*.18,tip=-d.hullLengthUnits*.5;
-const beakhead=part('galleon-beakhead',bow),length=d.beamUnits*.78;beam(beakhead,V(0,base,tip+d.hullLengthUnits*.08),V(0,base+d.deckHeightUnits*.42,tip-length),d.beamUnits*.04,materials.trim,'beakhead-stem');const platform=box(beakhead,d.beamUnits*.34,.14,length*.82,materials.deck,'beakhead-platform');platform.position.set(0,base+d.deckHeightUnits*.24,tip-length*.52);for(const side of [-1,1])beam(beakhead,V(0,base+d.deckHeightUnits*.24,tip-length*.9),V(side*d.beamUnits*.19,base+d.deckHeightUnits*.2,tip),.035,materials.trim,'beakhead-cheek');
-if(d.headsails>0){const lashing=part('bowsprit-gammoning',bow);beam(lashing,V(0,base+.12,tip+d.hullLengthUnits*.08),V(0,base+d.deckHeightUnits*.28,tip-d.beamUnits*.5),.026,materials.rope,'gammoning-line');}}
-function buildRudderAndHelm(d,ctx){const {part,box,beam,materials,V}=ctx,rudder=part('rudder'),config=d.rudderDetails,stern=d.hullLengthUnits*.47;rudder.position.set(0,0,stern+config.pivotOffset);const width=d.beamUnits*config.breadthFactor*1,height=d.draftUnits*config.depthFactor,blade=box(rudder,width,height,.22,materials.trim,'galleon-rudder-blade');blade.position.set(0,-d.draftUnits*config.yFactor,0);beam(rudder,V(0,-d.draftUnits*.4,-.02),V(0,deckY(d,.97)+.22,0),Math.max(.045,d.beamUnits*.014),materials.trim,'rudder-stock');const helm=part('helm'),wheel=part('helm-wheel'),y=deckY(d,.83),z=d.hullLengthUnits*.31;beam(helm,V(0,y+.18,z),V(0,y+.9,z),.065,materials.trim,'helm-post');const ring=ctx.mesh(wheel,new ctx.THREE.TorusGeometry(.44,.045,8,20),materials.trim,'helm-wheel-ring');ring.position.set(0,y+1.02,z);for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(wheel,V(0,y+1.02,z),V(Math.cos(a)*.44,y+1.02+Math.sin(a)*.44,z),.022,materials.trim,'helm-spoke');}}
-function buildRailingsAndEquipment(d,ctx){
- const {part,beam,tube,box,materials,V}=ctx,rail=part('railings'),port=part('railings-port',rail),starboard=part('railings-starboard',rail);
- for(const [side,group] of [[-1,port],[1,starboard]]){const points=[];for(let i=0;i<=42;i++){const t=.08+.84*i/42,x=side*halfBreadth(d,t)*.88,y=deckY(d,t)+.56,z=(t-.5)*d.hullLengthUnits;points.push(V(x,y,z));if(i%4===0)beam(group,V(x,y-.48,z),V(x,y+.02,z),.035,materials.trim,'rail-post-'+i);}tube(group,points,.052,materials.trim,'galleon-gunwale-rail',64);}
- const fittings=part('deck-fittings');
- for(let h=0;h<2;h++){const t=.32+h*.13,z=(t-.5)*d.hullLengthUnits,group=part('cargo-hatch-'+h,fittings),size=d.beamUnits*.2,cover=box(group,size,.12,size*.84,materials.plank,'hatch-cover');cover.position.set(0,deckY(d,t)+.12,z);}
- for(let level=0;level<2;level++)for(let side of [-1,1])for(let i=0;i<12;i++){const t=.14+i/Math.max(1,12-1)*.72,x=side*halfBreadth(d,t)*.8,z=(t-.5)*d.hullLengthUnits,y=deckY(d,t)-.36-level*d.deckHeightUnits*.24,portHole=box(fittings,.34,.28,.08,materials.lower,'gunport-'+level+'-'+side+'-'+i);portHole.position.set(x,y,z);const cannon=part('deck-gun-'+level+'-'+side+'-'+i,fittings);beam(cannon,V(x,y+.02,z),V(x+side*.48,y+.02,z),.068,materials.iron,'cannon-barrel',12);for(let wheel=0;wheel<2;wheel++){const w=ctx.mesh(cannon,new ctx.THREE.CylinderGeometry(.1,.1,.055,10),materials.trim,'gun-carriage-wheel');w.rotation.z=Math.PI/2;w.position.set(x+side*.15,y-.12,z+(wheel-.5)*.2);}}
- 
+ const wales=part('hull-wales');
+ for(const side of [-1,1]){
+  for(const item of [{v:.73,r:.085,m:materials.trim,label:'lower'},{v:.84,r:.07,m:materials.lower,label:'upper'},{v:.91,r:.045,m:materials.brass,label:'decorative'}]){
+   const points=[];
+   for(let i=0;i<=88;i++){
+    const t=.035+.93*i/88,p=hullPointAtV(d,t,item.v,side);
+    p.y+=.045;points.push(p);
+   }
+   tube(wales,points,item.r,item.m,'galleon-'+item.label+'-wale-'+side,92);
+  }
+ }
+ const seams=part('deck-planks');
+ for(let line=-10;line<=10;line++){
+  const u=line/11,points=[];
+  for(let i=0;i<=52;i++){
+   const t=.035+.93*i/52,half=halfBreadth(d,t)*deckBreadthRatio(d);
+   points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));
+  }
+  tube(seams,points,.012,materials.plank,'galleon-deck-plank-seam-'+line,56);
+ }
 }
 
-function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
- const {part,mesh,materials,THREE}=ctx;
+function buildStern(d,ctx){
+ const {THREE,part,mesh,box,beam,tube,materials,V}=ctx;
+ const stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern);
+ const tiers=d.sternTiers||[],baseDeck=deckY(d,.9)+.16;
+ let bottomY=baseDeck,baseZ=d.hullLengthUnits*.325;
+ function addQuad(parent,name,points,material){
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(points.flat(),3));
+  geometry.setIndex([0,1,2,0,2,3]);geometry.computeVertexNormals();
+  return mesh(parent,geometry,material,name);
+ }
+ function addSternDeck(parent,name,width,depth,y,centerZ,material,camber=.1){
+  const across=18,along=8,positions=[],indices=[];
+  for(let row=0;row<=along;row++){
+   const q=row/along,edgeTaper=.985+.015*q,half=width*.5*edgeTaper;
+   for(let col=0;col<=across;col++){
+    const u=col/across*2-1;
+    const z=centerZ+(q-.5)*depth;
+    const crown=camber*(1-u*u)+.025*Math.sin(Math.PI*q);
+    positions.push(u*half,y+crown,z);
+   }
+  }
+  for(let row=0;row<along;row++)for(let col=0;col<across;col++){
+   const a=row*(across+1)+col;
+   indices.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geometry.setIndex(indices);geometry.computeVertexNormals();
+  return mesh(parent,geometry,material,name);
+ }
+ function addCurvedTransom(parent,name,width,topWidth,height,lowY,aftZ,bulge){
+  const across=28,rows=6,positions=[],indices=[];
+  for(let row=0;row<=rows;row++){
+   const v=row/rows;
+   for(let col=0;col<=across;col++){
+    const u=col/across*2-1,x=u*(width*.5*(1-(1-topWidth/width)*v));
+    const y=lowY+height*v,z=aftZ+bulge*(1-u*u)-.08*v;
+    positions.push(x,y,z);
+   }
+  }
+  for(let row=0;row<rows;row++)for(let col=0;col<across;col++){
+   const a=row*(across+1)+col;
+   indices.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geometry.setIndex(indices);geometry.computeVertexNormals();
+  mesh(parent,geometry,materials.hull,name);
+ }
+ tiers.forEach((tier,index)=>{
+  const tierGroup=part('stern-tier-'+(index+1),stern);
+  const width=d.beamUnits*tier.w,topWidth=width*(.91-index*.012),depth=d.hullLengthUnits*tier.d,height=tier.h*(4/3);
+  const foreZ=baseZ-depth*.5,aftZ=baseZ+depth*.5,topY=bottomY+height,bulge=.24-index*.035;
+  addSternDeck(tierGroup,'sterncastle-tier-floor',width+.28,depth+.3,bottomY,baseZ,materials.deck,.1);
+  addCurvedTransom(tierGroup,'curved-transom-wall-'+(index+1),width,topWidth,height,bottomY,aftZ,bulge);
+  const sideGroup=part('stern-tier-side-walls-'+(index+1),tierGroup);
+  for(const side of [-1,1]){
+   addQuad(sideGroup,'stern-quarter-wall-'+side,[
+    [side*width*.5,bottomY,foreZ],
+    [side*width*.5,bottomY,aftZ],
+    [side*topWidth*.5,topY,aftZ-.1],
+    [side*topWidth*.5,topY,foreZ+.16]
+   ],materials.hull);
+   addQuad(sideGroup,'stern-forward-wall-'+side,[
+    [side*width*.5,bottomY,foreZ],
+    [0,bottomY,foreZ-.08],
+    [0,topY,foreZ+.08],
+    [side*topWidth*.5,topY,foreZ+.16]
+   ],materials.hull);
+  }
+  addSternDeck(tierGroup,'sterncastle-upper-deck',topWidth+.38,depth+.38,topY+.04,baseZ+.04,materials.deck,.14);
+  const transomTrim=part('stern-transom-trim-'+(index+1),tierGroup);
+  for(const y of [bottomY+.12,topY-.07]){
+   const points=[];
+   for(let i=0;i<=22;i++){
+    const u=-1+2*i/22,x=u*width*.5*(y<bottomY+height*.5?1:.94);
+    points.push(V(x,y,aftZ+bulge*(1-u*u)+.025));
+   }
+   tube(transomTrim,points,.045,materials.brass,'gilded-transom-moulding',24);
+  }
+  const tierWindows=part('stern-windows-tier-'+(index+1),windows);
+  const count=Math.max(3,5-index),windowW=width/(count+1)*.48,windowH=height*.38,windowY=bottomY+height*.55;
+  const sideWindows=part('stern-side-windows-tier-'+(index+1),windows);
+  for(const side of [-1,1])for(let paneIndex=0;paneIndex<3;paneIndex++){
+   const z=foreZ+depth*(.25+paneIndex*.22),x=side*(width*.485),y=bottomY+height*.49;
+   const pane=box(sideWindows,.055,.42,.32,materials.glass,'quarter-gallery-side-window');
+   pane.position.set(x,y,z);
+   for(const yy of [-.24,.24]){
+    beam(sideWindows,V(x+side*.04,y+yy,z-.19),V(x+side*.04,y+yy,z+.19),.026,materials.brass,'side-window-horizontal-trim');
+   }
+   for(const zz of [-.19,.19]){
+    beam(sideWindows,V(x+side*.04,y-.24,z+zz),V(x+side*.04,y+.24,z+zz),.026,materials.brass,'side-window-vertical-trim');
+   }
+  }
+  for(let n=0;n<count;n++){
+   const x=-width*.35+width*.7*n/Math.max(1,count-1);
+   const z=aftZ+bulge*(1-Math.pow(x/(width*.5),2))+.065;
+   const pane=box(tierWindows,windowW,windowH,.065,materials.glass,'arched-stern-window-pane');
+   pane.position.set(x,windowY,z);
+   const frame=part('stern-window-frame-'+(index+1)+'-'+(n+1),tierWindows);
+   const left=x-windowW*.55,right=x+windowW*.55,low=windowY-windowH*.5,high=windowY+windowH*.42;
+   beam(frame,V(left,low,z+.055),V(right,low,z+.055),.032,materials.brass,'window-sill');
+   beam(frame,V(left,low,z+.055),V(left,high,z+.055),.032,materials.brass,'window-left-jamb');
+   beam(frame,V(right,low,z+.055),V(right,high,z+.055),.032,materials.brass,'window-right-jamb');
+   const arch=[];
+   for(let k=0;k<=10;k++){
+    const a=Math.PI-k*Math.PI/10;
+    arch.push(V(x+Math.cos(a)*windowW*.55,high+Math.sin(a)*windowW*.23,z+.055));
+   }
+   tube(frame,arch,.035,materials.brass,'arched-window-head',14);
+   beam(frame,V(x,low+.06,z+.065),V(x,high-.02,z+.065),.018,materials.trim,'window-mullion');
+   beam(frame,V(left+.03,windowY,z+.065),V(right-.03,windowY,z+.065),.018,materials.trim,'window-crossbar');
+  }
+  const galleryTier=part('stern-gallery-tier-'+(index+1),gallery);
+  addSternDeck(galleryTier,'stern-balcony-walkway',width*.97,depth*.19,topY+.18,aftZ+depth*.115,materials.deck,.05);
+  const railY=topY+.82,railPoints=[];
+  for(let i=0;i<=16;i++){
+   const u=-1+2*i/16,x=u*width*.47;
+   const z=aftZ+depth*.2+bulge*(1-u*u);
+   railPoints.push(V(x,railY,z));
+   if(i%2===0)beam(galleryTier,V(x,topY+.25,z),V(x,railY,z),.034,materials.brass,'gallery-baluster');
+  }
+  tube(galleryTier,railPoints,.052,materials.trim,'curved-stern-gallery-handrail',36);
+  for(const side of [-1,1]){
+   const quarter=part('quarter-gallery-'+(index+1)+'-'+side,galleryTier);
+   const wing=box(quarter,.72,.12,depth*.48,materials.deck,'projecting-quarter-gallery');
+   wing.position.set(side*(width*.5+.28),topY+.22,baseZ+depth*.08);
+   for(let j=0;j<=4;j++){
+    const z=baseZ-depth*.12+j*depth*.12,x=side*(width*.5+.62);
+    beam(quarter,V(x,topY+.28,z),V(x,topY+.78,z),.032,materials.brass,'quarter-gallery-baluster');
+   }
+   tube(quarter,[
+    V(side*(width*.5+.62),topY+.78,baseZ-depth*.12),
+    V(side*(width*.5+.62),topY+.78,baseZ+depth*.36)
+   ],.045,materials.trim,'quarter-gallery-rail',18);
+   beam(quarter,V(side*width*.48,topY-.08,baseZ),V(side*(width*.5+.28),topY+.12,baseZ+depth*.18),.075,materials.trim,'gallery-support-knee');
+  }
+  if(index===0){
+   const ornament=part('stern-escutcheon',stern);
+   const medallion=mesh(ornament,new THREE.CylinderGeometry(.38,.38,.075,24),materials.brass,'gilded-stern-medallion');
+   medallion.rotation.x=Math.PI/2;medallion.position.set(0,bottomY+height*.18,aftZ+bulge+.09);
+   const ring=mesh(ornament,new THREE.TorusGeometry(.46,.045,8,28),materials.trim,'stern-medallion-ring');
+   ring.rotation.x=Math.PI/2;ring.position.set(0,bottomY+height*.18,aftZ+bulge+.14);
+   for(let ray=0;ray<8;ray++){
+    const a=ray*Math.PI/4;
+    beam(ornament,V(Math.cos(a)*.18,bottomY+height*.18+Math.sin(a)*.18,aftZ+bulge+.18),
+      V(Math.cos(a)*.31,bottomY+height*.18+Math.sin(a)*.31,aftZ+bulge+.18),.018,materials.trim,'stern-ornament-ray');
+   }
+  }
+  if(index===tiers.length-1){
+   const lanterns=part('stern-lanterns',stern);
+   for(const side of [-1,1]){
+    const x=side*topWidth*.43,z=aftZ+bulge*.55+.24,y=topY+.42;
+    const glass=box(lanterns,.32,.48,.32,materials.glass,'stern-lantern-glass');
+    glass.position.set(x,y,z);
+    for(const yy of [y-.26,y+.26]){const cap=box(lanterns,.4,.055,.4,materials.brass,'stern-lantern-cap');cap.position.set(x,yy,z);}
+    for(const xx of [-1,1]){
+     const post=box(lanterns,.035,.5,.035,materials.trim,'stern-lantern-frame');
+     post.position.set(x+xx*.17,y,z);
+    }
+   }
+  }
+  bottomY=topY+.2;
+  baseZ+=depth*.075;
+ });
+}
+
+function buildBow(d,ctx){
+ const {part,beam,tube,box,materials,V,THREE}=ctx;
+ const bow=part('bowworks'),bowsprit=part('bowsprit');
+ const tip=-d.hullLengthUnits*.5,base=deckY(d,.045)+d.deckHeightUnits*.16;
+ const platformLength=d.hullLengthUnits*.17,forecastle=part('raised-forecastle',bow);
+ const stations=18,across=18,pos=[],faces=[];
+ for(let i=0;i<=stations;i++){
+  const q=i/stations,t=.025+q*.17,half=halfBreadth(d,t)*deckBreadthRatio(d)*.97;
+  for(let j=0;j<=across;j++){
+   const u=j/across*2-1;
+   pos.push(u*half,deckY(d,t)+.72+d.hull.deckCamber*d.deckHeightUnits*(1-u*u),(t-.5)*d.hullLengthUnits);
+  }
+ }
+ for(let i=0;i<stations;i++)for(let j=0;j<across;j++){
+  const a=i*(across+1)+j;
+  faces.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);
+ }
+ const forecastleGeo=new THREE.BufferGeometry();
+ forecastleGeo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+ forecastleGeo.setIndex(faces);forecastleGeo.computeVertexNormals();
+ ctx.mesh(forecastle,forecastleGeo,materials.deck,'raised-forecastle-deck');
+ const bulwarks=part('forecastle-bulwarks',bow);
+ for(const side of [-1,1]){
+  const top=[],lower=[];
+  for(let i=0;i<=20;i++){
+   const t=.035+.145*i/20,x=side*halfBreadth(d,t)*deckBreadthRatio(d)*.97;
+   const z=(t-.5)*d.hullLengthUnits,y=deckY(d,t)+.72;
+   lower.push(V(x,y,z));top.push(V(x,y+.58,z));
+   if(i%2===0)beam(bulwarks,lower[lower.length-1],top[top.length-1],.045,materials.trim,'forecastle-bulwark-stanchion');
+  }
+  tube(bulwarks,top,.055,materials.trim,'forecastle-top-rail',32);
+  tube(bulwarks,lower,.04,materials.trim,'forecastle-sheer-rail',32);
+ }
+ const beakhead=part('galleon-beakhead',bow),length=d.beamUnits*.9;
+ beam(beakhead,V(0,base,tip+d.hullLengthUnits*.055),V(0,base+d.deckHeightUnits*.35,tip-length),d.beamUnits*.035,materials.trim,'beakhead-stem');
+ const grating=box(beakhead,d.beamUnits*.39,.13,length*.82,materials.deck,'beakhead-grating-platform');
+ grating.position.set(0,base+d.deckHeightUnits*.19,tip-length*.47);
+ for(const side of [-1,1]){
+  beam(beakhead,V(0,base+d.deckHeightUnits*.19,tip-length*.9),V(side*d.beamUnits*.22,base+d.deckHeightUnits*.19,tip),.055,materials.trim,'beakhead-cheek');
+  beam(beakhead,V(side*d.beamUnits*.16,base+d.deckHeightUnits*.19,tip-length*.82),V(side*d.beamUnits*.16,base+d.deckHeightUnits*.38,tip-length*.08),.035,materials.brass,'beakhead-headrail');
+ }
+ const bowspritBase=V(0,base+d.deckHeightUnits*.22,tip+d.beamUnits*.13);
+ const bowspritTip=V(0,base+d.deckHeightUnits*.68,tip-d.beamUnits*1.05);
+ beam(bowsprit,bowspritBase,bowspritTip,Math.max(.11,d.beamUnits*.027),materials.trim,'main-bowsprit',12);
+ const jibboomBase=bowspritBase.clone().lerp(bowspritTip,.66),jibboomTip=bowspritTip.clone().add(V(0,.12,-d.beamUnits*.72));
+ beam(bowsprit,jibboomBase,jibboomTip,Math.max(.07,d.beamUnits*.016),materials.trim,'jib-boom-extension',10);
+ const cap=box(bowsprit,d.beamUnits*.12,.18,.3,materials.brass,'bowsprit-cap');
+ cap.position.copy(bowspritBase);
+ const spritsail=part('spritsail-yard',bowsprit),yardY=bowspritBase.y+.32,yardZ=tip-d.beamUnits*.28;
+ beam(spritsail,V(-d.beamUnits*.48,yardY,yardZ),V(d.beamUnits*.48,yardY,yardZ),.055,materials.trim,'spritsail-yard',12);
+ const stays=part('bowsprit-standing-rigging',bowsprit);
+ tube(stays,[bowspritTip,V(0,deckY(d,.25)+.3,-d.hullLengthUnits*.23),V(0,deckY(d,.48)+.3,-d.hullLengthUnits*.025)],.022,materials.rope,'bowsprit-forestay',34);
+ tube(stays,[jibboomTip,V(0,deckY(d,.18)+.35,-d.hullLengthUnits*.31),V(0,deckY(d,.42)+.4,-d.hullLengthUnits*.08)],.016,materials.rope,'jib-boom-stay',30);
+ const bowspritCollar=part('bowsprit-gammoning',bow);
+ for(let i=0;i<5;i++){
+  const f=i/4,p=bowspritBase.clone().lerp(bowspritTip,.08+f*.08);
+  tube(bowspritCollar,[
+   V(-.16,p.y-.12,p.z-.09),V(-.08,p.y+.12,p.z+.09),
+   V(.08,p.y+.12,p.z-.09),V(.16,p.y-.12,p.z+.09)
+  ],.014,materials.rope,'bowsprit-gammoning-turn',16);
+ }
+ const figurehead=part('galleon-figurehead',bow);
+ const pedestal=box(figurehead,.42,.34,.62,materials.brass,'figurehead-pedestal');
+ pedestal.position.set(0,base+.08,tip-.12);
+ const finial=ctx.mesh(figurehead,new THREE.SphereGeometry(.19,12,10),materials.brass,'figurehead-finial');
+ finial.position.set(0,base+.52,tip-.23);
+}
+
+function buildRudderAndHelm(d,ctx){const {part,box,beam,materials,V}=ctx,rudder=part('rudder'),config=d.rudderDetails,stern=d.hullLengthUnits*.47;rudder.position.set(0,0,stern+config.pivotOffset);const width=d.beamUnits*config.breadthFactor*1,height=d.draftUnits*config.depthFactor,blade=box(rudder,width,height,.22,materials.trim,'galleon-rudder-blade');blade.position.set(0,-d.draftUnits*config.yFactor,0);beam(rudder,V(0,-d.draftUnits*.4,-.02),V(0,deckY(d,.97)+.22,0),Math.max(.045,d.beamUnits*.014),materials.trim,'rudder-stock');const helm=part('helm'),wheel=part('helm-wheel'),y=deckY(d,.83),z=d.hullLengthUnits*.31;beam(helm,V(0,y+.18,z),V(0,y+.9,z),.065,materials.trim,'helm-post');const ring=ctx.mesh(wheel,new ctx.THREE.TorusGeometry(.44,.045,8,20),materials.trim,'helm-wheel-ring');ring.position.set(0,y+1.02,z);for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(wheel,V(0,y+1.02,z),V(Math.cos(a)*.44,y+1.02+Math.sin(a)*.44,z),.022,materials.trim,'helm-spoke');}}
+function buildRailingsAndEquipment(d,ctx){
+ const {part,beam,tube,box,materials,V}=ctx;
+ const rail=part('railings'),port=part('railings-port',rail),starboard=part('railings-starboard',rail);
+ for(const [side,group] of [[-1,port],[1,starboard]]){
+  const top=[],inner=[];
+  for(let i=0;i<=52;i++){
+   const t=.065+.87*i/52,edge=halfBreadth(d,t)*deckBreadthRatio(d)*.965;
+   const x=side*edge,y=deckY(d,t)+.62,z=(t-.5)*d.hullLengthUnits;
+   top.push(V(x,y,z));inner.push(V(x-side*.04,y-.5,z));
+   if(i%2===0)beam(group,V(x-side*.025,y-.55,z),V(x,y,z),.034,materials.trim,'main-deck-rail-stanchion');
+  }
+  tube(group,top,.06,materials.trim,'main-deck-gunwale-rail',74);
+  tube(group,inner,.035,materials.brass,'lower-rail-moulding',74);
+ }
+ const bulwarks=part('main-deck-bulwarks');
+ for(const side of [-1,1]){
+  for(let i=0;i<36;i++){
+   const t=.12+i*.76/35,edge=halfBreadth(d,t)*deckBreadthRatio(d)*.94;
+   const x=side*edge,z=(t-.5)*d.hullLengthUnits,y=deckY(d,t)+.16;
+   const panel=box(bulwarks,.1,.34,Math.max(.2,d.hullLengthUnits*.025),materials.hull,'bulwark-plank');
+   panel.position.set(x,y,z);
+  }
+ }
+ const fittings=part('deck-fittings');
+ for(let h=0;h<3;h++){
+  const t=.3+h*.12,z=(t-.5)*d.hullLengthUnits,group=part('cargo-hatch-'+h,fittings),size=d.beamUnits*(h===0?.23:.16);
+  const cover=box(group,size,.12,size*.82,materials.plank,'planked-cargo-hatch');
+  cover.position.set(0,deckY(d,t)+.14,z);
+  for(const side of [-1,1]){
+   beam(group,V(side*size*.5,deckY(d,t)+.19,z-size*.42),V(side*size*.5,deckY(d,t)+.19,z+size*.42),.025,materials.trim,'hatch-coaming');
+  }
+ }
+
+ const companionways=part('quarterdeck-companionways');
+ for(const side of [-1,1]){
+  const stair=part('sterncastle-stairs-'+side,companionways);
+  for(let step=0;step<8;step++){
+   const f=step/7,y=deckY(d,.76)+.18+f*1.2,z=d.hullLengthUnits*(.25+f*.105),x=side*d.beamUnits*.28;
+   const tread=box(stair,.7,.12,.42,materials.deck,'quarterdeck-stair-tread');
+   tread.position.set(x,y,z);
+   const riser=box(stair,.7,.22,.08,materials.trim,'quarterdeck-stair-riser');
+   riser.position.set(x,y-.13,z-.17);
+  }
+ }
+}
+
+function buildCanvasSail(ctx,name,mastId,corners,fullness=.11,parent=ctx.root,axis='z'){
+ const {part,mesh,tube,materials,THREE}=ctx;
  const control=part(name,parent);
  control.userData.sailControl={mastId,clothPart:'cloth-'+name};
  const cloth=part('cloth-'+name,control);
  const points=corners.map(point=>point?.isVector3?point.clone():V(...point));
- const rows=20,columns=22,positions=[],indices=[];
+ const rows=26,columns=32,positions=[],indices=[];
  for(let row=0;row<=rows;row++){
   const v=row/rows;
   for(let column=0;column<=columns;column++){
@@ -99,12 +504,13 @@ function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,a
    const lower=points[0].clone().lerp(points[3],u);
    const upper=points[1].clone().lerp(points[2],u);
    const point=lower.lerp(upper,v);
-   const chord=Math.pow(Math.max(0,Math.sin(Math.PI*u)),1.28);
-   const vertical=Math.pow(Math.max(0,Math.sin(Math.PI*v)),1.08);
-   const bias=1+0.24*(u-.5)*2;
+   const chord=Math.pow(Math.max(0,Math.sin(Math.PI*u)),.82);
+   const vertical=Math.pow(Math.max(0,Math.sin(Math.PI*v)),.88);
+   const bias=1+.12*(2*u-1);
    const belly=fullness*chord*vertical*bias;
-   const twist=0.0384*Math.sin(Math.PI*u)*Math.sin(Math.PI*v)*(v-.5);
-   if(axis==='x'){point.x+=belly;point.z+=twist;}else{point.z+=belly;point.x+=twist;}
+   const twist=.026*Math.sin(Math.PI*u)*Math.sin(Math.PI*v)*(v-.5);
+   if(axis==='x'){point.x+=belly;point.z+=twist;}
+   else{point.z+=belly;point.x+=twist;}
    positions.push(point.x,point.y,point.z);
   }
  }
@@ -116,60 +522,167 @@ function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,a
  const geometry=new THREE.BufferGeometry();
  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
  geometry.setIndex(indices);geometry.computeVertexNormals();
- mesh(cloth,geometry,materials.sail,'galleon-individually-shaped-cloth');
+ mesh(cloth,geometry,materials.sail,'galleon-full-curved-canvas');
+ const seamGroup=part('sail-seams-'+name,control);
+ for(let uIndex=1;uIndex<=5;uIndex++){
+  const u=uIndex/6,line=[];
+  for(let k=0;k<=20;k++){
+   const v=k/20,low=points[0].clone().lerp(points[3],u),high=points[1].clone().lerp(points[2],u);
+   const p=low.lerp(high,v);
+   if(axis==='x')p.x+=.012;else p.z+=.012;
+   line.push(p);
+  }
+  tube(seamGroup,line,.009,materials.sailShade,'vertical-canvas-panel-seam',22);
+ }
+ for(const v of [.28,.56,.82]){
+  const line=[];
+  for(let k=0;k<=28;k++){
+   const u=k/28,low=points[0].clone().lerp(points[3],u),high=points[1].clone().lerp(points[2],u);
+   const p=low.lerp(high,v);
+   if(axis==='x')p.x+=.016;else p.z+=.016;
+   line.push(p);
+  }
+  tube(seamGroup,line,.008,materials.sailShade,'horizontal-canvas-panel-seam',30);
+ }
+ const boltRope=part('sail-bolt-rope-'+name,control),edge=points.map(p=>p.clone());
+ edge.push(points[0].clone());
+ tube(boltRope,edge,.025,materials.rope,'reinforced-sail-perimeter',100);
  return control;
 }
 
-
 function buildRig(d,ctx){
- const {part,beam,tube,materials,V}=ctx,head=part('head-sails');
+ const {part,beam,tube,materials,V,THREE}=ctx;
+ const head=part('head-sails');
+ const mastPositions=Object.fromEntries(d.masts.map(m=>[m.id,m.z*d.hullLengthUnits]));
  for(const mast of d.masts){
-  const z=mast.z*d.hullLengthUnits,baseY=deckY(d,.5+mast.z*.45)+.12,topY=baseY+mast.height*(4/3),group=part('mast-'+mast.id);
+  const z=mastPositions[mast.id],baseT=.5+mast.z*.45,baseY=deckY(d,baseT)+.16;
+  const totalHeight=mast.height*1.22,lowerHeight=totalHeight*.64,topmastHeight=totalHeight-lowerHeight;
+  const topY=baseY+totalHeight,group=part('mast-'+mast.id);
   group.position.set(0,baseY,z);group.userData.mastControl={mastId:mast.id};
-  const lowerHeight=(topY-baseY)*(d.structure.lowerMastRatio??.64),radius=d.beamUnits*(mast.rig==='junk'?.027:.018)*1.18;
-  const lower=part('mast-lower-'+mast.id,group),topmast=part('mast-topmast-'+mast.id,group),step=part('mast-step-'+mast.id);
-  beam(step,V(-.33,baseY-.18,z),V(.33,baseY-.18,z),.11,materials.trim,'mast-step-crossbeam');
-  beam(lower,V(0,0,0),V(0,lowerHeight,0),Math.max(.12,radius),materials.trim,'lower-mast');
-  beam(topmast,V(0,lowerHeight-.12,0),V(0,topY-baseY,0),Math.max(.075,radius*.7),materials.trim,'topmast');
-  if(mast.rig==='junk'){
-   const yard=part('junk-yard-'+mast.id,group),span=d.hullLengthUnits*(mast.span??.72)*.36;
-   beam(yard,V(0,topY-baseY-.12,-.08),V(0,topY-baseY-.2,span),Math.max(.08,radius*1.3),materials.trim,'junk-lug-yard');
-   buildCanvasSail(ctx,'sail-'+mast.id+'-junk',mast.id,[V(0,.2,0),V(0,topY-baseY-.22,-.06),V(0,topY-baseY-.3,span),V(0,.2,span)],.13,group,'x');
-   const battens=part('junk-battens-'+mast.id,group);
-   for(let i=1;i<=7;i++){const f=i/8,y=.2+(topY-baseY-.45)*f,reach=span*(1-.07*f),batten=part('batten-'+mast.id+'-'+i,battens);beam(batten,V(0,y,0),V(0,y-.04,reach),Math.max(.025,radius*.3),materials.trim,'bamboo-batten');}
-   const sheets=part('junk-sheets-'+mast.id,group);tube(sheets,[V(.12,.35,span*.2),V(.22,.28,span*.7),V(.16,.25,span)],.016,materials.rope,'junk-sheet-lines',22);continue;
+  const radius=d.beamUnits*(mast.id==='main'?.021:mast.id==='fore'?.019:.016);
+  const step=part('mast-step-'+mast.id);
+  beam(step,V(-.46,baseY-.24,z),V(.46,baseY-.24,z),.14,materials.trim,'mast-partner-crossbeam');
+  beam(step,V(-.37,baseY-.26,z-.18),V(-.37,baseY-.26,z+.18),.12,materials.trim,'mast-partner-side');
+  beam(step,V(.37,baseY-.26,z-.18),V(.37,baseY-.26,z+.18),.12,materials.trim,'mast-partner-side');
+  const lower=part('mast-lower-'+mast.id,group),topmast=part('mast-topmast-'+mast.id,group);
+  beam(lower,V(0,0,0),V(0,lowerHeight,0),radius,materials.trim,'tapered-lower-mast');
+  beam(topmast,V(0,lowerHeight-.1,0),V(0,totalHeight,0),radius*.62,materials.trim,'topmast');
+  const cap=part('mast-cap-'+mast.id,group);
+  const capDisk=ctx.mesh(cap,new THREE.CylinderGeometry(radius*1.45,radius*1.55,.22,12),materials.trim,'mast-cap-collar');
+  capDisk.position.y=lowerHeight-.12;
+  const truck=part('mast-truck-'+mast.id,group);
+  const truckBox=ctx.box(truck,radius*1.65,.34,radius*1.65,materials.trim,'masthead-truck');
+  truckBox.position.y=totalHeight+.02;
+  const platformY=lowerHeight*.91;
+  const top=part('mast-platform-'+mast.id,group);
+  const topDeck=ctx.box(top,d.beamUnits*.33,.13,d.beamUnits*.25,materials.deck,'fighting-top-platform');
+  topDeck.position.y=platformY;
+  for(const side of [-1,1]){
+   beam(top,V(side*d.beamUnits*.165,platformY,0),V(side*d.beamUnits*.165,platformY+.54,0),.035,materials.trim,'fighting-top-stanchion');
+   beam(top,V(side*d.beamUnits*.165,platformY+.54,-d.beamUnits*.12),V(side*d.beamUnits*.165,platformY+.54,d.beamUnits*.12),.025,materials.trim,'fighting-top-rail');
   }
-  const standing=part('standing-rigging-'+mast.id),shrouds=part('shrouds-'+mast.id,standing),ratlines=part('ratlines-'+mast.id,standing),stays=part('mast-stays-'+mast.id,standing),running=part('running-rigging-'+mast.id),braces=part('running-braces-'+mast.id,running);
-  const railX=halfBreadth(d,.5+mast.z*.2)*.82,pairs=d.structure.shroudPairs??2;
-  for(let side of [-1,1])for(let pair=0;pair<pairs;pair++){const spread=pairs<=1?0:pair/(pairs-1)-.5,attachZ=z+spread*d.beamUnits*.25;
-   tube(shrouds,[V(side*.08,topY-baseY-.1,0),V(side*.21,lowerHeight*.58,spread*d.beamUnits*.08),V(side*railX,deckY(d,.5+mast.z*.45)-baseY+.28,attachZ-z)],.019,materials.rope,'standing-shroud-'+side+'-'+pair,20);}
-  for(let r=0;r<(d.structure.ratlines??8);r++){const y=lowerHeight*(r+1)/((d.structure.ratlines??8)+1),half=railX*.5;beam(ratlines,V(-half,y,0),V(half,y,0),.012,materials.rope,'ratline-'+r);}
-  tube(stays,[V(0,topY-baseY,0),V(0,.18,-d.hullLengthUnits*.43-z)],.018,materials.rope,'mast-stay',26);
-  for(let side of [-1,1])tube(braces,[V(0,topY-baseY*.12,0),V(side*d.beamUnits*.42,topY-baseY*.14,d.hullLengthUnits*.055)],.014,materials.rope,'yard-brace-'+side,20);
-  if(mast.rig==='square'||mast.rig==='brigantine'){
-   if((mast.rig==='square'&&mast.squares>0)||mast.rig==='brigantine'){const platform=part('mast-platform-'+mast.id,group),disk=ctx.mesh(platform,new ctx.THREE.CylinderGeometry(.56,.64,.12,12),materials.trim,'top-platform');disk.position.set(0,lowerHeight*.84,0);}
-   const levels=mast.rig==='square'?['course','topsail','topgallant'].slice(0,mast.squares??2):['topsail'];
-   levels.forEach((level,index)=>{const width=d.beamUnits*(1.48-index*.13)*d.structure.yardSpread*1.18,y0=lowerHeight*.3+index*lowerHeight*.2,y1=Math.min(topY-baseY-.45,y0+lowerHeight*.19),yard=part('yard-'+mast.id+'-'+level,group);
-    beam(yard,V(-width*.5,y1,0),V(width*.5,y1,0),Math.max(.045,radius*.7),materials.trim,'square-yard');
-    buildCanvasSail(ctx,'sail-'+mast.id+'-'+level,mast.id,[V(-width*.48,y0,0),V(-width*.43,y1,0),V(width*.43,y1,0),V(width*.48,y0,0)],.08+index*.012,group);
-    const sheets=part('sheets-'+mast.id+'-'+level,group);for(let side of [-1,1])beam(sheets,V(side*width*.45,y0,0),V(side*width*.45,y0-.28,.18),.016,materials.rope,'sail-sheet');
-   });
+  const standing=part('standing-rigging-'+mast.id),shrouds=part('shrouds-'+mast.id,standing);
+  const ratlines=part('ratlines-'+mast.id,standing),stays=part('mast-stays-'+mast.id,standing);
+  const running=part('running-rigging-'+mast.id),braces=part('running-braces-'+mast.id,running);
+  const railX=halfBreadth(d,baseT)*.88,pairs=d.structure.shroudPairs??4;
+  const spread=Math.max(1.2,d.beamUnits*.22);
+  for(const side of [-1,1]){
+   const shroudAnchors=[];
+   for(let pair=0;pair<pairs;pair++){
+    const f=pairs===1?0:pair/(pairs-1)-.5;
+    const anchorT=Math.max(.08,Math.min(.94,baseT+f*.08));
+    const anchorZ=(anchorT-.5)*d.hullLengthUnits;
+    const anchorX=side*halfBreadth(d,anchorT)*.91;
+    const anchorY=deckY(d,anchorT)+.25;
+    const points=[
+     V(side*radius*.8,baseY+totalHeight*.99,z),
+     V(side*(radius+spread*.18),baseY+lowerHeight*.7,z+f*spread*.18),
+     V(anchorX,anchorY,anchorZ)
+    ];
+    tube(shrouds,points,.021,materials.rope,'standing-shroud-'+side+'-'+pair,28);
+    shroudAnchors.push({x:anchorX,y:anchorY,z:anchorZ});
+   }
+   for(let r=1;r<=12;r++){
+    const h=lowerHeight*r/13;
+    const a=shroudAnchors[0],b=shroudAnchors[shroudAnchors.length-1];
+    const u=h/lowerHeight;
+    const za=a.z+(z-a.z)*u,zb=b.z+(z-b.z)*u;
+    const xa=a.x+(side*radius*.8-a.x)*u,xb=b.x+(side*radius*.8-b.x)*u;
+    tube(ratlines,[V(xa,h+baseY,za),V(xb,h+baseY,zb)],.012,materials.rope,'shroud-ratline-'+side+'-'+r,12);
+   }
   }
-  if(mast.rig==='gaff'||mast.rig==='trysail'||mast.rig==='brigantine'||mast.spanker){
-   const type=mast.rig==='trysail'?'trysail':mast.spanker?'spanker':'gaff',run=d.hullLengthUnits*(mast.span??.38),low=lowerHeight*.14,high=lowerHeight*.82,gaff=part('gaff-spar-'+mast.id,group),boom=part('boom-'+mast.id,group);
-   beam(gaff,V(0,high,-.12),V(0,high+.08,run),.062,materials.trim,'gaff-spar');beam(boom,V(0,low,0),V(0,low,run*1.02),.068,materials.trim,'boom-spar');
-   buildCanvasSail(ctx,'sail-'+mast.id+'-'+type,mast.id,[V(0,low,0),V(0,high,-.12),V(0,high+.08,run),V(0,low,run*1.02)],.095,group,'x');
+  const forestayTarget=V(0,deckY(d,.075)+.28,-d.hullLengthUnits*.52-d.beamUnits*.52);
+  tube(stays,[V(0,topY,z),V(0,baseY+lowerHeight*.82,z-d.hullLengthUnits*.08),forestayTarget],.025,materials.rope,'heavy-forestay',46);
+  const aftTarget=V(0,deckY(d,.94)+.25,(.94-.5)*d.hullLengthUnits);
+  tube(stays,[V(0,topY,z),V(0,baseY+lowerHeight*.72,z+d.hullLengthUnits*.1),aftTarget],.022,materials.rope,'aft-backstay',38);
+  const mainMast=mast.id==='main',foreMast=mast.id==='fore';
+  if(mast.rig==='square'){
+   const levels=[
+    {id:'course',low:.03,high:.41,span:mainMast?1.52:1.4,full:.15},
+    {id:'topsail',low:.46,high:.74,span:mainMast?1.25:1.15,full:.12},
+    {id:'topgallant',low:.79,high:.985,span:mainMast?1.02:.94,full:.09}
+   ];
+   for(const [index,level] of levels.entries()){
+    const yard=part('yard-'+mast.id+'-'+level.id,group);
+    const yardSpan=d.beamUnits*level.span*d.structure.yardSpread;
+    const y0=totalHeight*level.low,y1=totalHeight*level.high;
+    const half=yardSpan*.5;
+    beam(yard,V(-half,y1,0),V(half,y1,0),Math.max(.055,radius*.52),materials.trim,'square-yard-'+level.id,12);
+    beam(yard,V(-half*.97,y1,0),V(-half*.97,y1+.14,0),.035,materials.trim,'yardarm-lift-cleat');
+    beam(yard,V(half*.97,y1,0),V(half*.97,y1+.14,0),.035,materials.trim,'yardarm-lift-cleat');
+    buildCanvasSail(ctx,'sail-'+mast.id+'-'+level.id,mast.id,[
+     V(-half*.94,y0,0),V(-half,y1,0),V(half,y1,0),V(half*.94,y0,0)
+    ],level.full,group);
+    const sheets=part('sheets-'+mast.id+'-'+level.id,group);
+    for(const side of [-1,1]){
+     tube(sheets,[V(side*half*.94,y0,0),V(side*half*.98,y0-.42,.06),V(side*half*.98,y0-.7,.12)],.018,materials.rope,'sail-sheet',18);
+     tube(braces,[V(side*half,y1,0),V(side*half*.33,y1+.38,-d.beamUnits*.18)],.017,materials.rope,'yard-lift',18);
+    }
+    const reef=part('reef-points-'+mast.id+'-'+level.id,group);
+    for(let reefRow=1;reefRow<=2;reefRow++){
+     const y=y0+(y1-y0)*reefRow/3;
+     for(let tie=0;tie<9;tie++){
+      const x=-half*.72+half*1.44*tie/8;
+      beam(reef,V(x,y-.11,-.03),V(x,y+.11,-.03),.012,materials.rope,'reef-point');
+     }
+    }
+   }
+   const topsailLift=part('yard-lifts-'+mast.id,group);
+   tube(topsailLift,[V(-d.beamUnits*.52,totalHeight*.35,0),V(-d.beamUnits*.41,totalHeight*.51,0),V(-d.beamUnits*.31,totalHeight*.67,0)],.016,materials.rope,'mast-yard-lift',24);
+   tube(topsailLift,[V(d.beamUnits*.52,totalHeight*.35,0),V(d.beamUnits*.41,totalHeight*.51,0),V(d.beamUnits*.31,totalHeight*.67,0)],.016,materials.rope,'mast-yard-lift',24);
   }else if(mast.rig==='lateen'){
-   const span=d.hullLengthUnits*(mast.span??.42)*.65,yard=part('lateen-yard-'+mast.id,group);
-   beam(yard,V(0,topY-baseY-.3,-span*.45),V(0,.3,span),.075,materials.trim,'lateen-yard');
-   buildCanvasSail(ctx,'sail-'+mast.id+'-lateen',mast.id,[V(0,.25,0),V(0,topY-baseY-.3,-span*.45),V(0,.3,span),V(0,.2,span*.92)],.1,group,'x');
+   const span=d.hullLengthUnits*.57,lateen=part('lateen-yard-'+mast.id,group);
+   const peak=V(0,totalHeight*.97,-span*.43),heel=V(0,totalHeight*.2,span*.77);
+   beam(lateen,peak,heel,Math.max(.075,radius*.74),materials.trim,'long-diagonal-lateen-antenna',14);
+   const sail=part('lateen-rig-details-'+mast.id,group);
+   const footA=V(0,totalHeight*.13,span*.1),footB=V(0,totalHeight*.16,span*.78);
+   buildCanvasSail(ctx,'sail-'+mast.id+'-lateen',mast.id,[footA,peak.clone(),heel.clone(),footB],.16,group,'x');
+   tube(sail,[peak.clone(),V(0,totalHeight*.58,span*.05),footA.clone()],.018,materials.rope,'lateen-luff-rope',32);
+   tube(sail,[heel.clone(),footB.clone()],.018,materials.rope,'lateen-foot-rope',24);
+   tube(braces,[V(0,totalHeight*.8,0),V(0,totalHeight*.7,span*.46)],.016,materials.rope,'lateen-sheet',26);
   }
+  const pennant=part('mast-pennant-'+mast.id,group);
+  const pennantCloth=ctx.mesh(pennant,new THREE.BufferGeometry(),materials.flag,'mast-top-pennant');
+  const pennantPoints=[
+   V(0,totalHeight+.12,0),V(0,totalHeight+.12,-d.beamUnits*.72),
+   V(0,totalHeight-.48,-d.beamUnits*.68)
+  ];
+  const pennantGeom=new THREE.BufferGeometry();
+  pennantGeom.setAttribute('position',new THREE.Float32BufferAttribute(pennantPoints.flatMap(p=>[p.x,p.y,p.z]),3));
+  pennantGeom.setIndex([0,1,2]);pennantGeom.computeVertexNormals();
+  pennantCloth.geometry.dispose();pennantCloth.geometry=pennantGeom;
  }
- for(let i=0;i<d.headsails;i++){const f=(i+1)/(d.headsails+1),fore=d.masts[0],foreTop=deckY(d,.35)+fore.height*(4/3),bowZ=-d.hullLengthUnits*.5-d.beamUnits*.72,aftZ=-d.hullLengthUnits*(.43-f*.12),low=deckY(d,.04)+.3+i*.1;
-  const control=part('sail-head-'+(i+1),head);control.userData.sailControl={mastId:fore.id,clothPart:'cloth-sail-head-'+(i+1)};const cloth=part('cloth-sail-head-'+(i+1),control);
-  const geom=new ctx.THREE.BufferGeometry();geom.setAttribute('position',new ctx.THREE.Float32BufferAttribute([0,0,0,0,foreTop*(1-f*.08)-low,aftZ-bowZ,0,foreTop*.66-low,-d.beamUnits*.1],3));geom.setIndex([0,1,2]);geom.computeVertexNormals();ctx.mesh(cloth,geom,materials.sail,'triangular-head-sail');
+ for(let i=0;i<d.headsails;i++){
+  const mast=d.masts[0],mastZ=mast.z*d.hullLengthUnits,foreTop=deckY(d,.5+mast.z*.45)+mast.height*1.22;
+  const bowZ=-d.hullLengthUnits*.5-d.beamUnits*.75,headZ=mastZ-d.hullLengthUnits*.09;
+  const low=deckY(d,.05)+.55,scale=i===0?1:.73,offset=i===0?0:.13;
+  const tack=V(0,low+offset,bowZ+ i*d.beamUnits*.42);
+  const headPoint=V(0,foreTop*scale,headZ);
+  const clew=V(0,low+1.05+offset,mastZ-d.hullLengthUnits*(.18+i*.07));
+  buildCanvasSail(ctx,'sail-head-'+(i+1),mast.id,[tack,headPoint,clew,clew.clone().lerp(tack,.7)],.08,ctx.root,'x');
  }
 }
+
 function buildAnchors(d,ctx){
  const {part,beam,tube,materials,V}=ctx,anchors=part('anchors');
  for(const side of [-1,1]){

@@ -66,10 +66,23 @@ try{
   await page.waitForFunction(()=>document.querySelector('#description')?.textContent?.toLowerCase().includes('galleon'));
   const galleonStatus=await page.locator('#status').innerText();
   assert.ok(galleonStatus.startsWith('Loaded '),'Galleon did not load: '+galleonStatus);
-  // Preserve the actual successful Galleon render as a CI artifact for visual review.
-  await delay(800);
+  // Capture clean Galleon views without the editor's transform gizmo obscuring the model.
+  await page.locator('#part-select').evaluate(element=>{
+    element.value='';
+    element.dispatchEvent(new Event('change',{bubbles:true}));
+  });
+  await delay(500);
   await page.locator('#viewport canvas').screenshot({path:join(projectDir,'galleon-preview.png')});
-  console.log('Galleon viewport screenshot saved: galleon-preview.png');
+  const cameraPanel=page.locator('details.section-card').filter({hasText:'Viewport & camera'});
+  await cameraPanel.locator('summary').click();
+  await page.locator('[data-camera="side"]').click();
+  await delay(350);
+  await page.locator('#viewport canvas').screenshot({path:join(projectDir,'galleon-side.png')});
+  await page.locator('[data-camera="stern"]').click();
+  await delay(350);
+  await page.locator('#viewport canvas').screenshot({path:join(projectDir,'galleon-stern.png')});
+  await cameraPanel.locator('summary').click();
+  console.log('Galleon three-quarter, side and stern screenshots saved.');
   await page.locator('#ship-select').selectOption('sloop');
 
   await page.locator('[data-mode="rotate"]').click();

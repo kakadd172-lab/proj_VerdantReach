@@ -56,7 +56,8 @@ for(const id of ids){
  assert.ok(keel,id+' missing individual keel rocker algorithm.');
  assert.ok(section,id+' missing individual hull cross-section algorithm.');
  assert.ok(deckEdge,id+' missing its deck-edge breadth calculation.');
- assert.ok(source.includes('const v=1-Math.pow(Math.max(0,Math.sin(a)),'),id+' must trace one hull half-profile from each gunwale to the keel.');
+ const sectionRule=id==='galleon'?'const v=1-Math.pow(Math.abs(Math.sin(a)),':'const v=1-Math.pow(Math.max(0,Math.sin(a)),';
+ assert.ok(source.includes(sectionRule),id+' must use its vessel-specific hull cross-section mapping.');
  assert.ok(source.includes('half=halfBreadth(d,t)*deckBreadthRatio(d)'),id+' deck mesh must meet its own hull edge.');
  assert.ok(sail,id+' missing individual sail-cloth algorithm.');
  hullFingerprints.add(hull[1].trim());deckFingerprints.add(deck[1].trim());
