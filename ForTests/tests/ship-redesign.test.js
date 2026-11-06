@@ -87,6 +87,29 @@ test('historical reference variants stay within their intended length-to-beam en
   }
 });
 
+
+test('named historical reference anchors match their selected vessel variants', () => {
+  const frigate = getShipDesign('frigate');
+  assert.ok(Math.abs(frigate.hullLength - 30.8) < 0.01);
+  assert.ok(Math.abs(frigate.beam - 8.4) < 0.01);
+
+  const caravel = getShipDesign('caravel');
+  assert.equal(caravel.masts.length, 4);
+  assert.equal(caravel.masts[0].rig, 'square');
+  assert.equal(caravel.masts[1].rig, 'square');
+  assert.equal(caravel.masts[2].rig, 'lateen');
+  assert.equal(caravel.masts[3].rig, 'lateen');
+
+  const barque = getShipDesign('barque');
+  assert.ok(Math.abs(barque.hullLength - 39.93) < 0.02);
+  assert.ok(Math.abs(barque.beam - 8.84) < 0.02);
+  assert.equal(barque.masts.length, 3);
+  assert.equal(barque.masts[2].rig, 'gaff');
+
+  const pinnace = getShipDesign('pinnace');
+  assert.ok(Math.abs(pinnace.hullLength - 9.75) < 0.01);
+});
+
 test('each vessel has an independent design, structure profile and generator', () => {
   for (const id of ids) {
     const design = getShipDesign(id);
