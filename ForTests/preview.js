@@ -745,6 +745,11 @@ async function loadImportedShip(type,preferredPart='',reframe=true,skipSync=fals
     }
     ship=loaded.root;
     activeImportedAsset=loaded.asset||asset;
+    ship.updateMatrixWorld(true);
+    const measuredBounds=new THREE.Box3().setFromObject(ship);
+    const measuredSize=measuredBounds.getSize(new THREE.Vector3());
+    const dimensions=activeImportedAsset.dimensions||{};
+    if(!(Number(dimensions.length)>0))activeImportedAsset.dimensions={...dimensions,length:measuredSize.z,beam:measuredSize.x,height:measuredSize.y,draft:null};
     scene.add(ship);
     const savedState=importedStateById[type];
     if(savedState)ship.userData.applyShipState(savedState);
