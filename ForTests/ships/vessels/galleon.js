@@ -305,10 +305,10 @@ function buildStern(d,ctx){
  }
  tiers.forEach((tier,index)=>{
   const tierGroup=part('stern-tier-'+(index+1),stern);
-  const width=d.beamUnits*tier.w,topWidth=width*(index===0?.78:.82);
+  const width=d.beamUnits*tier.w,topWidth=width*(index===0?.72:.76);
   const depth=d.hullLengthUnits*tier.d,height=tier.h*(4/3);
   const foreZ=tierCenterZ-depth*.5,aftZ=tierCenterZ+depth*.5;
-  const aftOverhang=.52+index*.13,topForeZ=foreZ+.10,topAftZ=aftZ+aftOverhang;
+  const aftOverhang=.92+index*.16,topForeZ=foreZ+.10,topAftZ=aftZ+aftOverhang;
   const topCenterZ=(topForeZ+topAftZ)*.5,topDepth=topAftZ-topForeZ;
   const topY=bottomY+height,bulge=.44-index*.045;
   addSternDeck(tierGroup,'sterncastle-tier-floor',width+.28,depth+.3,bottomY,tierCenterZ,materials.deck,.12);
@@ -404,7 +404,11 @@ function buildStern(d,ctx){
     }
    }
   }
-  bottomY=topY+.20;tierCenterZ=topCenterZ+.12;
+  bottomY=topY+.20;
+  const nextTier=tiers[index+1];
+  tierCenterZ=nextTier
+   ? topAftZ-(d.hullLengthUnits*nextTier.d)*.46+.18
+   : topCenterZ+.12;
  });
 }
 
