@@ -63,6 +63,47 @@ The old `ship-model-builder.js` and `hull-math.js` shared geometry engine files
 have been removed. The ship registry in `ships/index.js` only registers the
 sixteen generator modules and exposes the editor API.
 
+
+## Proportion refinement
+
+Each module now owns four independent hull-shape functions:
+
+- `halfBreadth()` controls the longitudinal run of the waterline and the
+  distribution of beam from bow through midbody to stern.
+- `hullPoint()` controls the vessel's vertical cross-section, bilge fullness,
+  deck-edge breadth, flare and tumblehome.
+- `deckY()` controls that vessel's sheer and its separate bow and stern rise.
+- `keelY()` controls the rocker and how the keel approaches the ends; the
+  deepest midbody section reaches the stated design draft.
+
+The profiles are deliberately not shared presets. A fluit keeps a fuller lower
+body and a narrower upper deck; a xebec remains long and fine; a junk carries
+a broader, flatter lower section; and the pinnace remains a small open tender.
+The rig and fitting functions also remain inside the corresponding vessel file.
+
+### Reference policy
+
+Dimensions copied from a named museum model or documented vessel are identified
+in that vessel's `reference` and `sources` fields. A type-wide reconstruction
+or an unpreserved hull/rig offset is marked as an estimate. Ratios are checked
+against the selected reference variant, not treated as universal rules for
+every ship carrying the same historical name.
+
+Examples used in this refinement include:
+
+- The Dutch frigate `'t Hart`: 30.8 m length and 8.4 m beam, from the
+  archaeological study of the wreck identification.
+- The early fluit `Witte Swaen` (1636): estimated 32.75 m length and 6.7 m
+  breadth, with a notably long, narrow hull; kept distinct from later, broader
+  fluit forms.
+- A circa-1490 Portuguese caravel model at Royal Museums Greenwich: 65 ft by
+  23 ft, illustrated as a four-masted redonda form.
+- The 1838 William Symonds 32-foot pinnace design: used as the tender's length
+  reference, while the remaining dimensions are explicitly reconstructed.
+
+These references constrain scale and silhouette; they are not claims that a
+parametric mesh is a traced original lines plan.
+
 ## Editor capabilities
 
 - Preview all 16 independently generated vessel models.
@@ -85,8 +126,8 @@ Requires Node.js 22+, npm, and a WebGL-capable browser.
 ```powershell
 cd D:\Projects\VerdantReach
 git fetch origin
-git switch --track -c chatgpt-v0.8.7-independent-vessel-generators origin/chatgpt-v0.8.7-independent-vessel-generators
-git pull --ff-only origin chatgpt-v0.8.7-independent-vessel-generators
+git switch --track -c chatgpt-v0.8.7-vessel-proportion-refinement origin/chatgpt-v0.8.7-vessel-proportion-refinement
+git pull --ff-only origin chatgpt-v0.8.7-vessel-proportion-refinement
 cd ForTests
 npm install
 npm run check:modules
