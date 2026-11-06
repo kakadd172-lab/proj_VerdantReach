@@ -1,19 +1,19 @@
-# Verdant Reach — Standalone Modular Ship Design Studio
+# Verdant Reach — Independent Ship Design Studio
 
-The ForTests studio now owns a standalone fleet of 16 independently authored
-vessel modules under `ships/vessels/`. Every vessel file owns its complete
-ship-specific design specification, hull form, structural and framing
-parameters, stern and keel details, rudder profile, mast arrangement, rigging
-plan, and individual model/generator functions.
+This workspace is deliberately isolated under `ForTests/`. The main game and
+its ship implementation are not changed by this refactor.
 
-The four previous top-level adapter files are no longer required or present:
-`ship-designs.js`, `ship-structures.js`,
-`ship-hull-parameterization.js`, and `ship-models.js`.
+All 16 vessel types now generate their geometry independently. Each file in
+`ships/vessels/` owns its own hull breadth and cross-section mathematics,
+surface loft, deck plan, framing/planking, stern, bow, rudder/helm, railings,
+anchors, deck fittings, and rig/sail construction. A vessel does not pass its
+specification into a generic ship geometry engine.
 
 ## Layout
 
 ```text
 ForTests/
+├── index.html
 ├── preview.js
 ├── tests/
 ├── ships/
@@ -21,8 +21,7 @@ ForTests/
 │   ├── README.md
 │   ├── shared/
 │   │   ├── vessel-definition.js
-│   │   ├── ship-model-builder.js
-│   │   └── hull-math.js
+│   │   └── ship-editor-kit.js
 │   └── vessels/
 │       ├── sloop.js
 │       ├── schooner.js
@@ -43,50 +42,41 @@ ForTests/
 └── ...
 ```
 
-## Per-vessel ownership
+## Per-vessel generation
 
-Each file in `ships/vessels/` contains its own immutable base definition.
-That includes historical reference notes and dimensions, hull fullness and
-entry, sheer and keel shape, beam stations and frame profile, stern tiers,
-keel/rudder proportions, mast positions and heights, rig types, sail counts,
-and ship-specific options. It exports a separately named `create<Name>Model()`
-and `generate<Name>()` entry point.
+Each vessel module contains its historical/reference notes, dimensions,
+hull/structure proportions, and complete geometry-generation functions. The
+sixteen hull breadth algorithms are separately authored; hull section math,
+stern treatment, bow arrangement, rig layout, and fittings are local to each
+vessel file. To change a galleon, edit `ships/vessels/galleon.js`; that does
+not route through a central hull or ship builder.
 
-The shared `ships/shared/ship-model-builder.js` is a generic geometry engine:
-it contains reusable routines for lofted hulls, decks, framing, planking,
-stern/bow structures, masts, yards, rigging, sails, deck fittings and the
-editable component API. It receives a complete vessel definition; it does not
-look up ship designs by ID and contains no central vessel catalogue. Geometry
-choices that differ by ship are data in that ship's own module.
+The shared directory is intentionally limited to support code:
 
-`ships/shared/hull-math.js` contains ship-agnostic parametric hull math.
-`ships/shared/vessel-definition.js` validates per-vessel definitions, derives
-common display metadata, and maintains editor-only parameter overrides.
-`ships/index.js` only registers the individual modules and exposes the editor
-API; it does not hold the fleet's design data.
+- `vessel-definition.js` validates immutable ship specifications and applies
+  editor-only dimension/structure overrides.
+- `ship-editor-kit.js` provides low-level Three.js primitives/materials,
+  editable component state, animation hooks, summary metadata, and resource
+  disposal. It contains no hull, deck, stern, bow, or rig generation routine.
 
-The ForTests runtime does not import the main game's per-vessel sources. The
-actual game remains unchanged; this is an independent editor/test collection.
+The old `ship-model-builder.js` and `hull-math.js` shared geometry engine files
+have been removed. The ship registry in `ships/index.js` only registers the
+sixteen generator modules and exposes the editor API.
 
 ## Editor capabilities
 
-- Preview all 16 vessel modules from their independent vessel files.
-- Inspect the editable component hierarchy, mesh counts, materials and transformed bounds.
-- Move, rotate and scale parts with TransformControls or precise numeric inputs.
-- Use Local/World transform space, snapping, camera presets, component focus and fullscreen viewport mode.
+- Preview all 16 independently generated vessel models.
+- Inspect editable components, mesh counts, materials, transformed bounds,
+  hull dimensions and model metadata.
+- Move, rotate and scale parts with TransformControls or numeric inputs.
+- Use local/world transform space, snapping, camera presets, component focus,
+  and fullscreen viewport mode.
 - Search, hide/show, isolate, detach/relink and reset components.
-- Undo/Redo across vessel changes, imported configurations, parameter edits and component transforms.
-- Adjust each vessel's own hull and structural parameters.
-- Inspect hull cross-sections with a movable clipping plane.
-- Measure point-to-point spans directly on the 3D model.
-- Compare the principal dimensions of two vessels side by side.
-- Save local overrides to `design-overrides.json`, import a JSON backup, or export JSON.
-- Capture the viewport as a PNG image.
-- Inspect wireframe, grid and shadow modes.
-
-The editor uses a calmer, collapsible workspace layout. The game title screen also
-has a responsive comfort-focused redesign; the Survival/Creative selectors,
-seed entry, saved-world library and existing start actions remain intact.
+- Undo/redo edits, imports, design overrides and transforms.
+- Tune each vessel's dimensions and structure independently.
+- Inspect hull cross-sections, measure spans, and compare two ship dimensions.
+- Save/import/export JSON designs and capture the viewport as a PNG.
+- Toggle wireframe, grid and shadows.
 
 ## Setup
 
@@ -95,8 +85,8 @@ Requires Node.js 22+, npm, and a WebGL-capable browser.
 ```powershell
 cd D:\Projects\VerdantReach
 git fetch origin
-git switch --track -c chatgpt-v0.8.6-editor-menu-refresh origin/chatgpt-v0.8.6-editor-menu-refresh
-git pull --ff-only origin chatgpt-v0.8.6-editor-menu-refresh
+git switch --track -c chatgpt-v0.8.7-independent-vessel-generators origin/chatgpt-v0.8.7-independent-vessel-generators
+git pull --ff-only origin chatgpt-v0.8.7-independent-vessel-generators
 cd ForTests
 npm install
 npm run check:modules
@@ -107,7 +97,5 @@ npm run smoke
 npm run dev
 ```
 
-Open `http://127.0.0.1:5174/`.
-
-Experiments are saved in `design-overrides.json`; they do not rewrite a
-vessel's base definition unless you deliberately edit and promote that file.
+Open `http://127.0.0.1:5174/`. Experiments are saved in
+`design-overrides.json`; they do not rewrite the base vessel definition.

@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
 import {
@@ -6,12 +7,12 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.6';
+} from '../ships/index.js?v=0.8.7';
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
 test('the editor uses 16 self-contained ForTests vessel modules', () => {
-  assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.6');
+  assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.7');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.6');
   assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.6');
   assert.equal(ids.length, 16);
@@ -25,6 +26,38 @@ test('the editor uses 16 self-contained ForTests vessel modules', () => {
     assert.equal(typeof module.generate, 'function', id + ' dedicated generator entry point');
     assert.equal(module.editorModulePath, 'ForTests/ships/vessels/' + id + '.js');
     assert.equal(typeof SHIP_GENERATORS[id], 'function', id + ' registered generator');
+  }
+});
+
+
+test('each vessel owns its own geometry-generation algorithms', () => {
+  const sources = new Map(ids.map((id) => [
+    id,
+    readFileSync(new URL('../ships/vessels/' + id + '.js', import.meta.url), 'utf8'),
+  ]));
+  const hullAlgorithms = [];
+  for (const [id, source] of sources) {
+    for (const required of [
+      'function halfBreadth(', 'function hullPoint(', 'function buildHull(',
+      'function buildFramesAndPlanking(', 'function buildStern(', 'function buildBow(',
+      'function buildRudderAndHelm(', 'function buildRailingsAndEquipment(',
+      'function buildAnchors(', 'function buildRig(', 'function generate',
+    ]) assert.ok(source.includes(required), id + ' must own ' + required);
+    assert.ok(source.includes('createShipContext('), id + ' must construct its own context');
+    assert.ok(source.includes('finishShipModel('), id + ' must finish through editor support');
+    assert.ok(!/createVesselModel|createShipModelFromVessel|ship-model-builder|hull-math/.test(source),
+      id + ' still calls the old shared geometry engine');
+    const match = source.match(/function halfBreadth\(d,t\)\s*\{([\s\S]*?)\}/);
+    assert.ok(match, id + ' has a readable local hull breadth function');
+    hullAlgorithms.push(match[1].trim());
+  }
+  assert.equal(new Set(hullAlgorithms).size, 16, 'All 16 ships must have different hull breadth algorithms');
+
+  const kit = readFileSync(new URL('../ships/shared/ship-editor-kit.js', import.meta.url), 'utf8');
+  assert.ok(kit.includes('createShipContext'));
+  assert.ok(kit.includes('finishShipModel'));
+  for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildRig(']) {
+    assert.ok(!kit.includes(geometryRoutine), 'Editor kit must not contain vessel geometry: ' + geometryRoutine);
   }
 });
 
@@ -69,6 +102,9 @@ test('all 16 independent ForTests generators build separate editable models', ()
       assert.ok(ship.userData.getPart('hull'), id + ' hull');
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
+      for (const partName of getShipDesign(id).partNames) {
+        assert.ok(ship.userData.getPart(partName), id + ' missing editable component ' + partName);
+      }
       assert.equal(typeof ship.userData.getPartTransform, 'function');
       assert.equal(typeof ship.userData.applyShipState, 'function');
       assert.equal(typeof ship.userData.getShipState, 'function');
