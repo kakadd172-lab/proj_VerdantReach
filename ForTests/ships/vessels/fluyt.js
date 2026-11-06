@@ -13,13 +13,13 @@ export const FluytDefinition = defineVesselSpec({
     hullLength: 30.7, beam: 7.2, draft: 2.5, freeboard: 1.75,
     rig: 'Two masts: a square-rigged mainmast and a lateen mizzen, with a spritsail; rig details varied by period.',
     hullProfile: 'Bulbous capacious lower hull, pinched-in upper deck, round stern and no high forecastle.',
-    reference: 'Zeehaen (1639) model: 30.7 m × 7.2 m; the German Historical Museum notes a long, shallow-draft, bulbous hull narrowing toward the deck.',
-    sources: [{ label: 'Deutsches Historisches Museum — Fluyt', url: 'https://www.dhm.de/mediathek/en/ship-types/milestones-in-the-history-of-european-shipbuilding/09-fluyt/' }, { label: 'The Mariners’ Museum — Fluit cargo vessel', url: 'https://exploration.marinersmuseum.org/watercraft/fluit/' }],
+    reference: 'The 1636 wreck Witte Swaen is an early fluit with estimated length 32.75 ± 2% m and breadth 6.7 ± 2% m (ratio about 4.88 ± 0.14); it is narrower and finer-ended than several later fluit examples.',
+    sources: [{ label: 'Archaeological survey — Witte Swaen (1636), 2024', url: 'https://doi.org/10.1080/10572414.2024.2413068' }, { label: 'Deutsches Historisches Museum — Fluyt', url: 'https://www.dhm.de/mediathek/en/ship-types/milestones-in-the-history-of-european-shipbuilding/09-fluyt/' }],
     hull: { fullness: 0.96, entry: 0.5, stern: 'round', sternWidth: 0.26, tumblehome: 0.25, sheer: 0.08, bowRise: 0.18, sternRise: 0.17, keelDepth: 0.04, deckCamber: 0.12 },
     sternwork: 'fluyt-roundhouse',
     sternTiers: [{"w":0.52,"d":0.15,"h":1.55},{"w":0.35,"d":0.12,"h":0.85}], bowwork: 'spritsail-platform',
     keelDetails: {"pointOffset":0.06,"minimumRadius":0.08,"radiusFactor":0.018,"stemPosts":true,"label":"keelson-and-keel"},
-    rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, sailingSpeed: 5.8, handling: 0.62,
+    rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, modelScaleNote: 'This generator retains the Zeehaen museum-model scale (30.7 × 7.2 m); Witte Swaen is a separate early-fluit archaeological reference used to shape the hull and stern.', sailingSpeed: 5.8, handling: 0.62,
     masts: [
       { id: 'main', z: -0.055, height: 22.5, rig: 'square', squares: 2 },
       { id: 'mizzen', z: 0.29, height: 15.4, rig: 'lateen', span: 0.26, squares: 0 },
@@ -33,10 +33,10 @@ export const FluytDefinition = defineVesselSpec({
 import * as THREE from 'three';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 
-function deckY(d,t){const edge=Math.pow(Math.abs(t-.5)*2,1.35),rise=t<.5?d.hull.bowRise:d.hull.sternRise;return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*edge+rise*d.deckHeightUnits*Math.pow(edge,1.12)*d.structure.sheer;}
-function keelY(d,t){const mid=Math.pow(Math.max(0,Math.sin(Math.PI*t)),.72);return -d.draftUnits*.48-d.hull.keelDepth*d.draftUnits*mid;}
+function deckY(d,t){const q=Math.max(0,Math.min(1,t)),edge=Math.abs(2*q-1);const sheer=Math.pow(edge,1.55),bow=Math.pow(Math.max(0,1-2*q),1.34),stern=Math.pow(Math.max(0,2*q-1),1.28);return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*sheer*d.structure.sheer+d.hull.bowRise*d.deckHeightUnits*bow+d.hull.sternRise*d.deckHeightUnits*stern;}
+function keelY(d,t){const q=Math.max(0,Math.min(1,t)),mid=Math.pow(Math.max(0,Math.sin(Math.PI*q)),0.38);const depth=0.9+(1-0.9)*mid+d.hull.keelDepth*0.08*mid*(1-mid);return -d.draftUnits*Math.min(1,depth);}
 function halfBreadth(d,t){const mid=Math.max(0,Math.sin(Math.PI*t)),bulge=1+.18*Math.exp(-Math.pow((t-.5)*3.5,2)),entry=.72+.28*Math.min(1,t*3.5),run=.88+.12*Math.min(1,(1-t)*3);return d.beamUnits*.5*Math.pow(mid,.48)*bulge*entry*run;}
-function hullPoint(d,t,a){const v=(Math.sin(a)+1)*.5,deck=deckY(d,t),keel=keelY(d,t);const floor=.66+.34*Math.pow(Math.max(0,v),.38),pinch=v>.55?1-d.structure.tumble*(v-.55)/.45:1,round=1+.22*Math.sin(Math.PI*v);return V(Math.cos(a)*halfBreadth(d,t)*floor*pinch*round,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);}
+function hullPoint(d,t,a){const v=(Math.sin(a)+1)*.5,deck=deckY(d,t),keel=keelY(d,t);const transition=0.68,lowerT=Math.max(0,Math.min(1,v/transition)),upperT=Math.max(0,Math.min(1,(v-transition)/(1-transition)));const lower=0.1+(1-0.1)*Math.pow(Math.sin(lowerT*Math.PI*.5),0.32)*(1+(d.structure.bilge||0)*.18*Math.sin(Math.PI*lowerT));const smooth=upperT*upperT*(3-2*upperT);const deckRatio=Math.max(.58,Math.min(.99,0.96-d.hull.tumblehome*0.4-d.structure.tumble*.25-0.005+d.structure.flare*0.1));const upper=1+(deckRatio-1)*Math.pow(smooth,1.12);const section=v<=transition?lower:upper;return V(Math.cos(a)*halfBreadth(d,t)*section,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);}
 function buildHull(d,ctx){
  const {THREE,part,mesh,materials,V}=ctx,hullGroup=part('hull'),stations=104,rings=36,positions=[],indices=[];
  for(let i=0;i<=stations;i++){const t=i/stations;for(let j=0;j<=rings;j++){const q=hullPoint(d,t,j/rings*Math.PI*2);positions.push(q.x,q.y,q.z);}}
@@ -144,7 +144,7 @@ function buildRig(d,ctx){
   if(mast.rig==='square'||mast.rig==='brigantine'){
    if((mast.rig==='square'&&mast.squares>0)||mast.rig==='brigantine'){const platform=part('mast-platform-'+mast.id,group),disk=ctx.mesh(platform,new ctx.THREE.CylinderGeometry(.56,.64,.12,12),materials.trim,'top-platform');disk.position.set(0,lowerHeight*.84,0);}
    const levels=mast.rig==='square'?['course','topsail','topgallant'].slice(0,mast.squares??2):['topsail'];
-   levels.forEach((level,index)=>{const width=d.beamUnits*(.58+index*.07)*d.structure.yardSpread*1,y0=lowerHeight*.3+index*lowerHeight*.2,y1=Math.min(topY-baseY-.45,y0+lowerHeight*.19),yard=part('yard-'+mast.id+'-'+level,group);
+   levels.forEach((level,index)=>{const width=d.beamUnits*(1.48-index*.13)*d.structure.yardSpread*1,y0=lowerHeight*.3+index*lowerHeight*.2,y1=Math.min(topY-baseY-.45,y0+lowerHeight*.19),yard=part('yard-'+mast.id+'-'+level,group);
     beam(yard,V(-width*.5,y1,0),V(width*.5,y1,0),Math.max(.045,radius*.7),materials.trim,'square-yard');
     buildCanvasSail(ctx,'sail-'+mast.id+'-'+level,mast.id,[V(-width*.48,y0,0),V(-width*.43,y1,0),V(width*.43,y1,0),V(width*.48,y0,0)],.08+index*.012,group);
     const sheets=part('sheets-'+mast.id+'-'+level,group);for(let side of [-1,1])beam(sheets,V(side*width*.45,y0,0),V(side*width*.45,y0-.28,.18),.016,materials.rope,'sail-sheet');
