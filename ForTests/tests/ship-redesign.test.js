@@ -47,9 +47,11 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     assert.ok(source.includes('finishShipModel('), id + ' must finish through editor support');
     assert.ok(!/createVesselModel|createShipModelFromVessel|ship-model-builder|hull-math/.test(source),
       id + ' still calls the old shared geometry engine');
-    const match = source.match(/function halfBreadth\(d,t\)\s*\{([\s\S]*?)\}/);
-    assert.ok(match, id + ' has a readable local hull breadth function');
-    hullAlgorithms.push(match[1].trim());
+    for (const name of Object.keys(algorithms)) {
+      const match = source.match(new RegExp('function ' + name + '\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\}'));
+      assert.ok(match, id + ' has a readable local ' + name + ' function');
+      algorithms[name].push(match[1].trim());
+    }
   }
   for (const [name, bodies] of Object.entries(algorithms)) {
     assert.equal(new Set(bodies).size, 16, 'All 16 ships must have their own ' + name + ' algorithm');
