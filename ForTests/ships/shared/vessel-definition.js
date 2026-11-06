@@ -2,8 +2,7 @@
  * Common APIs for independent ForTests ship definitions.
  * No vessel catalogue is stored here; the definitions live in vessels/<id>.js.
  */
-import { createShipModelFromVessel } from './ship-model-builder.js';
-export const SHIP_CATALOGUE_VERSION='0.8.6';
+export const SHIP_CATALOGUE_VERSION='0.8.7';
 export const SHIP_DESIGN_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
 export const SHIP_STRUCTURE_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
 export const SHIP_MODEL_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
@@ -73,11 +72,4 @@ export function setDesignOverrideForSpec(spec,patch={}){if(!spec?.id)return fals
 export function setStructureOverrideForSpec(spec,patch={}){if(!spec?.id)return false;if(!patch||typeof patch!=='object'||Array.isArray(patch))throw new TypeError('Structure overrides must be an object.');if(Object.keys(patch).length)structureOverrides.set(spec.id,clone(patch));else structureOverrides.delete(spec.id);return true;}
 export const resetDesignOverrideForSpec=spec=>setDesignOverrideForSpec(spec,{});
 export const resetStructureOverrideForSpec=spec=>setStructureOverrideForSpec(spec,{});
-export function createVesselModel(spec,transforms={},saved={}){
- const vessel=getResolvedVesselDefinition(spec);if(!vessel)throw new Error('Invalid vessel specification.');
- const ship=createShipModelFromVessel(vessel);
- const partTransforms=transforms&&Object.keys(transforms).length?transforms:(saved?.partTransforms||{});
- const state={...(saved&&typeof saved==='object'?saved:{}),partTransforms};
- if(Object.keys(partTransforms).length||Object.keys(state.hiddenParts||{}).length||(state.unlinkedParts||[]).length||Object.keys(state.sailTrim||{}).length||Object.keys(state.sailDeployment||{}).length||Object.keys(state.mastLean||{}).length||Number(state.rudderAngle))ship.userData.applyShipState(state);
- return ship;
-}
+export const resolveVesselForGeneration = getResolvedVesselDefinition;
