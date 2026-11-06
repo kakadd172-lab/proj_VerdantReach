@@ -199,9 +199,144 @@ function buildFramesAndPlanking(d,ctx){
 }
 
 function buildStern(d,ctx){
- const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.355,deck=deckY(d,.94),tiers=d.sternTiers||[];
- tiers.forEach((tier,index)=>{const tierGroup=part('stern-tier-'+(index+1),stern),width=d.beamUnits*tier.w*(1-index*.055),depth=d.hullLengthUnits*tier.d*(1-index*.035),height=tier.h*(4/3),body=box(tierGroup,width,height,depth,materials.hull,'galleon-stern-castle-tier');body.position.set(0,deck+tiers.slice(0,index).reduce((sum,item)=>sum+item.h*(4/3)+.08,0)+height*.5,baseZ+index*depth*.22);const cap=box(tierGroup,width*1.04,.11,depth*1.04,materials.trim,'castle-tier-cap');cap.position.set(0,body.position.y+height*.53,body.position.z);const count=Math.max(2,Math.round(width/1.3));for(let n=0;n<count;n++){const x=-width*.34+width*.68*n/Math.max(1,count-1),y=body.position.y+height*.12,z=body.position.z+depth*.52,pane=box(windows,Math.max(.22,width*.065),Math.max(.24,height*.19),.035,materials.glass,'stern-window');pane.position.set(x,y,z);}for(const side of [-1,1]){const rx=side*width*.53,ry=body.position.y+height*.5;beam(gallery,V(rx,ry,body.position.z-depth*.48),V(rx,ry,body.position.z+depth*.48),.045,materials.trim,'stern-balustrade');for(let j=0;j<4;j++){const zz=body.position.z-depth*.42+j*depth*.28;beam(gallery,V(rx,ry-.42,zz),V(rx,ry+.03,zz),.025,materials.trim,'stern-baluster');}}});
+ const {THREE,part,mesh,box,beam,tube,materials,V}=ctx;
+ const stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern);
+ const tiers=d.sternTiers||[],baseDeck=deckY(d,.9)+.16;
+ let bottomY=baseDeck,baseZ=d.hullLengthUnits*.325;
+ function addQuad(parent,name,points,material){
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(points.flat(),3));
+  geometry.setIndex([0,1,2,0,2,3]);geometry.computeVertexNormals();
+  return mesh(parent,geometry,material,name);
+ }
+ function addCurvedTransom(parent,name,width,topWidth,height,lowY,aftZ,bulge){
+  const across=28,rows=6,positions=[],indices=[];
+  for(let row=0;row<=rows;row++){
+   const v=row/rows;
+   for(let col=0;col<=across;col++){
+    const u=col/across*2-1,x=u*(width*.5*(1-(1-topWidth/width)*v));
+    const y=lowY+height*v,z=aftZ+bulge*(1-u*u)-.08*v;
+    positions.push(x,y,z);
+   }
+  }
+  for(let row=0;row<rows;row++)for(let col=0;col<across;col++){
+   const a=row*(across+1)+col;
+   indices.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geometry.setIndex(indices);geometry.computeVertexNormals();
+  mesh(parent,geometry,materials.hull,name);
+ }
+ tiers.forEach((tier,index)=>{
+  const tierGroup=part('stern-tier-'+(index+1),stern);
+  const width=d.beamUnits*tier.w,topWidth=width*(.91-index*.012),depth=d.hullLengthUnits*tier.d,height=tier.h*(4/3);
+  const foreZ=baseZ-depth*.5,aftZ=baseZ+depth*.5,topY=bottomY+height,bulge=.24-index*.035;
+  const floor=box(tierGroup,width+.28,.16,depth+.3,materials.deck,'sterncastle-tier-floor');
+  floor.position.set(0,bottomY,baseZ);
+  addCurvedTransom(tierGroup,'curved-transom-wall-'+(index+1),width,topWidth,height,bottomY,aftZ,bulge);
+  const sideGroup=part('stern-tier-side-walls-'+(index+1),tierGroup);
+  for(const side of [-1,1]){
+   addQuad(sideGroup,'stern-quarter-wall-'+side,[
+    [side*width*.5,bottomY,foreZ],
+    [side*width*.5,bottomY,aftZ],
+    [side*topWidth*.5,topY,aftZ-.1],
+    [side*topWidth*.5,topY,foreZ+.16]
+   ],materials.hull);
+   addQuad(sideGroup,'stern-forward-wall-'+side,[
+    [side*width*.5,bottomY,foreZ],
+    [0,bottomY,foreZ-.08],
+    [0,topY,foreZ+.08],
+    [side*topWidth*.5,topY,foreZ+.16]
+   ],materials.hull);
+  }
+  const cap=box(tierGroup,topWidth+.38,.16,depth+.38,materials.deck,'sterncastle-upper-deck');
+  cap.position.set(0,topY+.08,baseZ+.04);
+  const transomTrim=part('stern-transom-trim-'+(index+1),tierGroup);
+  for(const y of [bottomY+.12,topY-.07]){
+   const points=[];
+   for(let i=0;i<=22;i++){
+    const u=-1+2*i/22,x=u*width*.5*(y<bottomY+height*.5?1:.94);
+    points.push(V(x,y,aftZ+bulge*(1-u*u)+.025));
+   }
+   tube(transomTrim,points,.045,materials.brass,'gilded-transom-moulding',24);
+  }
+  const tierWindows=part('stern-windows-tier-'+(index+1),windows);
+  const count=Math.max(3,5-index),windowW=width/(count+1)*.48,windowH=height*.38,windowY=bottomY+height*.55;
+  for(let n=0;n<count;n++){
+   const x=-width*.35+width*.7*n/Math.max(1,count-1);
+   const z=aftZ+bulge*(1-Math.pow(x/(width*.5),2))+.065;
+   const pane=box(tierWindows,windowW,windowH,.065,materials.glass,'arched-stern-window-pane');
+   pane.position.set(x,windowY,z);
+   const frame=part('stern-window-frame-'+(index+1)+'-'+(n+1),tierWindows);
+   const left=x-windowW*.55,right=x+windowW*.55,low=windowY-windowH*.5,high=windowY+windowH*.42;
+   beam(frame,V(left,low,z+.055),V(right,low,z+.055),.032,materials.brass,'window-sill');
+   beam(frame,V(left,low,z+.055),V(left,high,z+.055),.032,materials.brass,'window-left-jamb');
+   beam(frame,V(right,low,z+.055),V(right,high,z+.055),.032,materials.brass,'window-right-jamb');
+   const arch=[];
+   for(let k=0;k<=10;k++){
+    const a=Math.PI-k*Math.PI/10;
+    arch.push(V(x+Math.cos(a)*windowW*.55,high+Math.sin(a)*windowW*.23,z+.055));
+   }
+   tube(frame,arch,.035,materials.brass,'arched-window-head',14);
+   beam(frame,V(x,low+.06,z+.065),V(x,high-.02,z+.065),.018,materials.trim,'window-mullion');
+   beam(frame,V(left+.03,windowY,z+.065),V(right-.03,windowY,z+.065),.018,materials.trim,'window-crossbar');
+  }
+  const galleryTier=part('stern-gallery-tier-'+(index+1),gallery);
+  const galleryDeck=box(galleryTier,width*.97,.13,depth*.19,materials.deck,'stern-balcony-walkway');
+  galleryDeck.position.set(0,topY+.22,aftZ+depth*.115);
+  const railY=topY+.82,railPoints=[];
+  for(let i=0;i<=16;i++){
+   const u=-1+2*i/16,x=u*width*.47;
+   const z=aftZ+depth*.2+bulge*(1-u*u);
+   railPoints.push(V(x,railY,z));
+   if(i%2===0)beam(galleryTier,V(x,topY+.25,z),V(x,railY,z),.034,materials.brass,'gallery-baluster');
+  }
+  tube(galleryTier,railPoints,.052,materials.trim,'curved-stern-gallery-handrail',36);
+  for(const side of [-1,1]){
+   const quarter=part('quarter-gallery-'+(index+1)+'-'+side,galleryTier);
+   const wing=box(quarter,.72,.12,depth*.48,materials.deck,'projecting-quarter-gallery');
+   wing.position.set(side*(width*.5+.28),topY+.22,baseZ+depth*.08);
+   for(let j=0;j<=4;j++){
+    const z=baseZ-depth*.12+j*depth*.12,x=side*(width*.5+.62);
+    beam(quarter,V(x,topY+.28,z),V(x,topY+.78,z),.032,materials.brass,'quarter-gallery-baluster');
+   }
+   tube(quarter,[
+    V(side*(width*.5+.62),topY+.78,baseZ-depth*.12),
+    V(side*(width*.5+.62),topY+.78,baseZ+depth*.36)
+   ],.045,materials.trim,'quarter-gallery-rail',18);
+   beam(quarter,V(side*width*.48,topY-.08,baseZ),V(side*(width*.5+.28),topY+.12,baseZ+depth*.18),.075,materials.trim,'gallery-support-knee');
+  }
+  if(index===0){
+   const ornament=part('stern-escutcheon',stern);
+   const medallion=mesh(ornament,new THREE.CylinderGeometry(.38,.38,.075,24),materials.brass,'gilded-stern-medallion');
+   medallion.rotation.x=Math.PI/2;medallion.position.set(0,bottomY+height*.18,aftZ+bulge+.09);
+   const ring=mesh(ornament,new THREE.TorusGeometry(.46,.045,8,28),materials.trim,'stern-medallion-ring');
+   ring.rotation.x=Math.PI/2;ring.position.set(0,bottomY+height*.18,aftZ+bulge+.14);
+   for(let ray=0;ray<8;ray++){
+    const a=ray*Math.PI/4;
+    beam(ornament,V(Math.cos(a)*.18,bottomY+height*.18+Math.sin(a)*.18,aftZ+bulge+.18),
+      V(Math.cos(a)*.31,bottomY+height*.18+Math.sin(a)*.31,aftZ+bulge+.18),.018,materials.trim,'stern-ornament-ray');
+   }
+  }
+  if(index===tiers.length-1){
+   const lanterns=part('stern-lanterns',stern);
+   for(const side of [-1,1]){
+    const x=side*topWidth*.43,z=aftZ+bulge*.55+.24,y=topY+.42;
+    const glass=box(lanterns,.32,.48,.32,materials.glass,'stern-lantern-glass');
+    glass.position.set(x,y,z);
+    for(const yy of [y-.26,y+.26]){const cap=box(lanterns,.4,.055,.4,materials.brass,'stern-lantern-cap');cap.position.set(x,yy,z);}
+    for(const xx of [-1,1]){
+     const post=box(lanterns,.035,.5,.035,materials.trim,'stern-lantern-frame');
+     post.position.set(x+xx*.17,y,z);
+    }
+   }
+  }
+  bottomY=topY+.2;
+  baseZ+=depth*.075;
+ });
 }
+
 function buildBow(d,ctx){const {part,beam,box,materials,V}=ctx,bow=part('bowworks'),bowsprit=part('bowsprit'),base=deckY(d,.045)+d.deckHeightUnits*.18,tip=-d.hullLengthUnits*.5;
 const beakhead=part('galleon-beakhead',bow),length=d.beamUnits*.78;beam(beakhead,V(0,base,tip+d.hullLengthUnits*.08),V(0,base+d.deckHeightUnits*.42,tip-length),d.beamUnits*.04,materials.trim,'beakhead-stem');const platform=box(beakhead,d.beamUnits*.34,.14,length*.82,materials.deck,'beakhead-platform');platform.position.set(0,base+d.deckHeightUnits*.24,tip-length*.52);for(const side of [-1,1])beam(beakhead,V(0,base+d.deckHeightUnits*.24,tip-length*.9),V(side*d.beamUnits*.19,base+d.deckHeightUnits*.2,tip),.035,materials.trim,'beakhead-cheek');
 if(d.headsails>0){const lashing=part('bowsprit-gammoning',bow);beam(lashing,V(0,base+.12,tip+d.hullLengthUnits*.08),V(0,base+d.deckHeightUnits*.28,tip-d.beamUnits*.5),.026,materials.rope,'gammoning-line');}}
