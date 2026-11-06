@@ -11,7 +11,7 @@ export const IMPORTED_VESSELS = [
     dimensions: { length: 9.667, beam: 2.909, height: 13.404, draft: null },
     forwardAxis: '+Z in source; normalized to the studio forward axis',
     sources: [
-      { name: 'Sailing yacht hull, 9.6 m, navy', url: 'https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-sailing-ya-9e76ddc3', model: 'https://cdn.3dassets.dev/assets/38303/v1/model.glb' },
+      { name: 'Sailing yacht hull, 9.6 m, navy', url: 'https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-sailing-ya-91b7ffaa', model: 'https://cdn.3dassets.dev/assets/38303/v1/model.glb' },
       { name: 'Yacht mast with boom and standing rigging', url: 'https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-yacht-mast-c68fd062', model: 'https://cdn.3dassets.dev/assets/38306/v1/model.glb' },
       { name: 'Furled sail set', url: 'https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-furled-sai-4a2de20e', model: 'https://cdn.3dassets.dev/assets/38304/v1/model.glb' },
     ],
@@ -25,7 +25,7 @@ export const IMPORTED_VESSELS = [
       hull.add(loaded[0].scene);
       const mast = new THREE.Group();
       mast.name = 'Mast and standing rigging';
-      mast.position.set(0, 1.45, 0.05);
+      mast.position.set(0, 2.45, 0.05);
       mast.add(loaded[1].scene);
       const sails = new THREE.Group();
       sails.name = 'Furled mainsail and headsail';
@@ -276,7 +276,7 @@ export function createImportedVesselWrapper(THREE_NS, asset, loaded, savedState 
 export async function loadImportedAsset(asset, localFiles = null) {
   if (localFiles) return loadLocalModelFiles(localFiles);
   const loaded = await asset.load();
-  return createImportedVesselWrapper(THREE, asset, loaded);
+  return { asset, root: createImportedVesselWrapper(THREE, asset, loaded) };
 }
 
 export async function loadLocalModelFiles(files) {
