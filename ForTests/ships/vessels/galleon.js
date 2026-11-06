@@ -650,6 +650,7 @@ function buildCanvasSail(ctx,name,mastId,corners,fullness=.28,parent=ctx.root,ax
 
 function buildRig(d,ctx){
  const {part,beam,tube,materials,V,THREE}=ctx;
+ const head=part('head-sails');
 
  function taperedSpar(parent,name,start,end,radiusBase,radiusTip,material,segments=14){
   const direction=end.clone().sub(start),length=direction.length();
@@ -802,7 +803,7 @@ function buildRig(d,ctx){
   const tack=V(0,deckY(d,.04)+.70,-d.hullLengthUnits*.5-d.beamUnits*.31);
   const clew=V(0,deckY(d,.19)+.82,foreZ-d.hullLengthUnits*.06);
   const lower=V(0,deckY(d,.16)+.32,foreZ-d.hullLengthUnits*.09);
-  buildCanvasSail(ctx,'sail-fore-staysail','fore',[tack,head,clew,lower],.18,ctx.root,'x');
+  buildCanvasSail(ctx,'sail-fore-staysail','fore',[tack,head,clew,lower],.18,head,'x');
  }
 }
 
