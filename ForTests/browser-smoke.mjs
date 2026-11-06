@@ -73,12 +73,15 @@ try{
   });
   await delay(500);
   await page.locator('#viewport canvas').screenshot({path:join(projectDir,'galleon-preview.png')});
+  const cameraPanel=page.locator('details.section-card').filter({hasText:'Viewport & camera'});
+  await cameraPanel.locator('summary').click();
   await page.locator('[data-camera="side"]').click();
   await delay(350);
   await page.locator('#viewport canvas').screenshot({path:join(projectDir,'galleon-side.png')});
   await page.locator('[data-camera="stern"]').click();
   await delay(350);
   await page.locator('#viewport canvas').screenshot({path:join(projectDir,'galleon-stern.png')});
+  await cameraPanel.locator('summary').click();
   console.log('Galleon three-quarter, side and stern screenshots saved.');
   await page.locator('#ship-select').selectOption('sloop');
 
