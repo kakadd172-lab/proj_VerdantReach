@@ -66,6 +66,10 @@ try{
   await page.waitForFunction(()=>document.querySelector('#description')?.textContent?.toLowerCase().includes('galleon'));
   const galleonStatus=await page.locator('#status').innerText();
   assert.ok(galleonStatus.startsWith('Loaded '),'Galleon did not load: '+galleonStatus);
+  // Preserve the actual successful Galleon render as a CI artifact for visual review.
+  await delay(800);
+  await page.locator('#viewport canvas').screenshot({path:join(projectDir,'galleon-preview.png')});
+  console.log('Galleon viewport screenshot saved: galleon-preview.png');
   await page.locator('#ship-select').selectOption('sloop');
 
   await page.locator('[data-mode="rotate"]').click();

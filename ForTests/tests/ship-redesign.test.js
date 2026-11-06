@@ -35,7 +35,7 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     id,
     readFileSync(new URL('../ships/vessels/' + id + '.js', import.meta.url), 'utf8'),
   ]));
-  const hullAlgorithms = [];
+  const algorithms = { halfBreadth: [], deckY: [], keelY: [], hullPoint: [], deckBreadthRatio: [] };
   for (const [id, source] of sources) {
     for (const required of [
       'function halfBreadth(', 'function hullPoint(', 'function buildHull(',
@@ -45,13 +45,19 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     ]) assert.ok(source.includes(required), id + ' must own ' + required);
     assert.ok(source.includes('createShipContext('), id + ' must construct its own context');
     assert.ok(source.includes('finishShipModel('), id + ' must finish through editor support');
+    assert.ok(source.includes('const v=1-Math.pow(Math.max(0,Math.sin(a)),'), id + ' hull section must trace one keel-to-gunwale half-profile on each side.');
+    assert.ok(source.includes('half=halfBreadth(d,t)*deckBreadthRatio(d)'), id + ' deck must meet its own hull edge.');
     assert.ok(!/createVesselModel|createShipModelFromVessel|ship-model-builder|hull-math/.test(source),
       id + ' still calls the old shared geometry engine');
-    const match = source.match(/function halfBreadth\(d,t\)\s*\{([\s\S]*?)\}/);
-    assert.ok(match, id + ' has a readable local hull breadth function');
-    hullAlgorithms.push(match[1].trim());
+    for (const name of Object.keys(algorithms)) {
+      const match = source.match(new RegExp('function ' + name + '\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\}'));
+      assert.ok(match, id + ' has a readable local ' + name + ' function');
+      algorithms[name].push(match[1].trim());
+    }
   }
-  assert.equal(new Set(hullAlgorithms).size, 16, 'All 16 ships must have different hull breadth algorithms');
+  for (const [name, bodies] of Object.entries(algorithms)) {
+    assert.equal(new Set(bodies).size, 16, 'All 16 ships must have their own ' + name + ' algorithm');
+  }
 
   const kit = readFileSync(new URL('../ships/shared/ship-editor-kit.js', import.meta.url), 'utf8');
   assert.ok(kit.includes('createShipContext'));
@@ -59,6 +65,54 @@ test('each vessel owns its own geometry-generation algorithms', () => {
   for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildCanvasSail(', 'function buildRig(']) {
     assert.ok(!kit.includes(geometryRoutine), 'Editor kit must not contain vessel geometry: ' + geometryRoutine);
   }
+});
+
+
+test('historical reference variants stay within their intended length-to-beam envelopes', () => {
+  const ranges = {
+    sloop: [3.8, 4.1], schooner: [3.3, 3.8], brigantine: [3.3, 3.8],
+    brig: [3.2, 3.7], snow: [3.4, 3.9], cutter: [3.1, 3.5],
+    frigate: [3.4, 3.8], barque: [4.4, 4.7], caravel: [2.6, 3.1],
+    carrack: [2.9, 3.3], galleon: [2.8, 3.3], fluyt: [4.7, 5.1],
+    xebec: [4.0, 4.8], junk: [3.6, 4.2], 'first-rate': [3.4, 3.8],
+    pinnace: [3.4, 4.0],
+  };
+  for (const [id, [minimum, maximum]] of Object.entries(ranges)) {
+    const design = getShipDesign(id);
+    assert.ok(
+      design.lengthBeamRatio >= minimum && design.lengthBeamRatio <= maximum,
+      id + ' length-to-beam ratio ' + design.lengthBeamRatio.toFixed(3) +
+        ' is outside the intended ' + minimum + '–' + maximum + ' envelope',
+    );
+  }
+});
+
+
+test('named historical reference anchors match their selected vessel variants', () => {
+  const frigate = getShipDesign('frigate');
+  assert.ok(Math.abs(frigate.hullLength - 30.8) < 0.01);
+  assert.ok(Math.abs(frigate.beam - 8.4) < 0.01);
+
+  const caravel = getShipDesign('caravel');
+  assert.equal(caravel.masts.length, 4);
+  assert.equal(caravel.masts[0].rig, 'square');
+  assert.equal(caravel.masts[1].rig, 'square');
+  assert.equal(caravel.masts[2].rig, 'lateen');
+  assert.equal(caravel.masts[3].rig, 'lateen');
+
+  const barque = getShipDesign('barque');
+  assert.ok(Math.abs(barque.hullLength - 39.93) < 0.02);
+  assert.ok(Math.abs(barque.beam - 8.84) < 0.02);
+  assert.equal(barque.masts.length, 3);
+  assert.equal(barque.masts[2].rig, 'gaff');
+
+  const fluyt = getShipDesign('fluyt');
+  assert.ok(Math.abs(fluyt.hullLength - 32.75) < 0.02);
+  assert.ok(Math.abs(fluyt.beam - 6.7) < 0.02);
+  assert.equal(fluyt.masts.length, 3);
+
+  const pinnace = getShipDesign('pinnace');
+  assert.ok(Math.abs(pinnace.hullLength - 9.75) < 0.01);
 });
 
 test('each vessel has an independent design, structure profile and generator', () => {

@@ -10,20 +10,21 @@ export const CaravelDefinition = defineVesselSpec({
   id: 'caravel',
   design: {
     id: 'caravel', label: 'Atlantic caravel redonda', era: '15th–16th century',
-    hullLength: 20.5, beam: 7.0, draft: 2.4, freeboard: 1.6,
-    rig: 'Three masts: square foremast with lateen sails aft; lateen-only variants also existed.',
+    hullLength: 19.81, beam: 7.01, draft: 2.4, freeboard: 1.6,
+    rig: 'Four-masted late-15th-century Portuguese redonda reconstruction: square forward sails and lateen sails aft.',
     hullProfile: 'Rounded carvel-built hull, deep bow flare, modest freeboard and narrow transom.',
-    reference: 'Caravel c. 1450 model at the German Historical Museum: 20.5 m × 7.0 m. The museum describes two- or three-mast variants with square fore and lateen aft sails.',
-    sources: [{ label: 'Deutsches Historisches Museum — Caravel', url: 'https://www.dhm.de/mediathek/en/ship-types/milestones-in-the-history-of-european-shipbuilding/05-caravel/' }, { label: 'The Mariners’ Museum — Caravel', url: 'https://exploration.marinersmuseum.org/watercraft/caravel/' }],
+    reference: 'The Royal Museums Greenwich catalogue describes a later Portuguese caravel model (circa 1490) at 65 ft × 23 ft (19.81 × 7.01 m), with four masts, square forward canvas and lateen sails aft. This is a museum interpretation, not a surviving original lines plan.',
+    sources: [{ label: 'Royal Museums Greenwich — Portuguese caravel (circa 1490)', url: 'https://www.rmg.co.uk/collections/objects/rmgc-object-66267' }, { label: 'Royal Museums Greenwich — Matthew caravel reconstruction', url: 'https://www.rmg.co.uk/collections/objects/rmgc-object-386365' }],
     hull: { fullness: 0.65, entry: 0.6, stern: 'round', sternWidth: 0.18, tumblehome: 0.08, sheer: 0.15, bowRise: 0.34, sternRise: 0.24, keelDepth: 0.14, deckCamber: 0.14 },
     sternwork: 'quarterdeck',
     sternTiers: [{"w":0.5,"d":0.145,"h":1.7},{"w":0.37,"d":0.12,"h":0.9}], bowwork: 'short-bowsprit',
     keelDetails: {"pointOffset":0.06,"minimumRadius":0.08,"radiusFactor":0.018,"stemPosts":true,"label":"keelson-and-keel"},
-    rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, sailingSpeed: 8.5, handling: 1.08,
+    rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, modelScaleNote: 'Length and beam follow the Royal Museums Greenwich 65 × 23 ft Portuguese caravel model; the four-mast redonda rig is one late-15th-century interpretation, not a universal caravel standard.', sailingSpeed: 8.5, handling: 1.08,
     masts: [
-      { id: 'fore', z: -0.29, height: 15.9, rig: 'square', squares: 2 },
-      { id: 'main', z: -0.015, height: 18.2, rig: 'lateen', span: 0.46, squares: 0 },
-      { id: 'mizzen', z: 0.28, height: 14.4, rig: 'lateen', span: 0.38, squares: 0 },
+      { id: 'fore', z: -0.31, height: 15.9, rig: 'square', squares: 2 },
+      { id: 'main', z: -0.085, height: 18.2, rig: 'square', squares: 2 },
+      { id: 'mizzen', z: 0.17, height: 14.4, rig: 'lateen', span: 0.38, squares: 0 },
+      { id: 'bonaventure', z: 0.34, height: 11.8, rig: 'lateen', span: 0.30, squares: 0 },
     ],
     headsails: 1, oars: false,
   },
@@ -34,10 +35,11 @@ export const CaravelDefinition = defineVesselSpec({
 import * as THREE from 'three';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 
-function deckY(d,t){const edge=Math.pow(Math.abs(t-.5)*2,1.35),rise=t<.5?d.hull.bowRise:d.hull.sternRise;return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*edge+rise*d.deckHeightUnits*Math.pow(edge,1.12)*d.structure.sheer;}
-function keelY(d,t){const mid=Math.pow(Math.max(0,Math.sin(Math.PI*t)),.72);return -d.draftUnits*.48-d.hull.keelDepth*d.draftUnits*mid;}
+function deckY(d,t){const q=Math.max(0,Math.min(1,t)),edge=Math.abs(2*q-1);const sheer=Math.pow(edge,1.05),bow=Math.pow(Math.max(0,1-2*q),1.18),stern=Math.pow(Math.max(0,2*q-1),1.4);return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*sheer*d.structure.sheer+d.hull.bowRise*d.deckHeightUnits*bow+d.hull.sternRise*d.deckHeightUnits*stern;}
+function keelY(d,t){const q=Math.max(0,Math.min(1,t)),mid=Math.pow(Math.max(0,Math.sin(Math.PI*q)),0.84);const depth=0.78+(1-0.78)*mid+d.hull.keelDepth*0.07*mid*(1-mid);return -d.draftUnits*Math.min(1,depth);}
+function deckBreadthRatio(d){return Math.max(.58,Math.min(.99,0.88-d.hull.tumblehome*0.34-d.structure.tumble*.25-0.015+d.structure.flare*0.3));}
 function halfBreadth(d,t){const mid=Math.max(0,Math.sin(Math.PI*t)),fore=.9+.1*Math.pow(t,.8),aft=.82+.18*Math.pow(1-t,.6);return d.beamUnits*.5*Math.pow(mid,.83)*fore*aft*(1+.04*Math.sin(3*Math.PI*t));}
-function hullPoint(d,t,a){const v=(Math.sin(a)+1)*.5,deck=deckY(d,t),keel=keelY(d,t);const section=Math.pow(Math.max(.02,1-Math.pow(Math.abs(2*v-1),2.45)),.52),bilge=1+.16*Math.sin(Math.PI*v),tumble=1-d.hull.tumblehome*Math.max(0,(v-.7)/.3);return V(Math.cos(a)*halfBreadth(d,t)*section*bilge*tumble,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);}
+function hullPoint(d,t,a){const v=1-Math.pow(Math.max(0,Math.sin(a)),1.42),deck=deckY(d,t),keel=keelY(d,t);const transition=0.63,lowerT=Math.max(0,Math.min(1,v/transition)),upperT=Math.max(0,Math.min(1,(v-transition)/(1-transition)));const lower=0.04+(1-0.04)*Math.pow(Math.sin(lowerT*Math.PI*.5),0.5)*(1+(d.structure.bilge||0)*.18*Math.sin(Math.PI*lowerT));const smooth=upperT*upperT*(3-2*upperT);const deckRatio=Math.max(.58,Math.min(.99,0.88-d.hull.tumblehome*0.34-d.structure.tumble*.25-0.015+d.structure.flare*0.3));const upper=1+(deckRatio-1)*Math.pow(smooth,1);const section=v<=transition?lower:upper;return V(Math.cos(a)*halfBreadth(d,t)*section,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);}
 function buildHull(d,ctx){
  const {THREE,part,mesh,materials,V}=ctx,hullGroup=part('hull'),stations=92,rings=36,positions=[],indices=[];
  for(let i=0;i<=stations;i++){const t=i/stations;for(let j=0;j<=rings;j++){const q=hullPoint(d,t,j/rings*Math.PI*2);positions.push(q.x,q.y,q.z);}}
@@ -47,7 +49,7 @@ function buildHull(d,ctx){
  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
  mesh(hullGroup,geometry,materials.hull,'caravel-individual-hull-loft');
  const deck=part('deck'),along=76,across=20,pos=[],faces=[];
- for(let i=0;i<=along;i++){const t=i/along,half=halfBreadth(d,t)*0.93;for(let j=0;j<=across;j++){const u=j/across*2-1;pos.push(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u),(t-.5)*d.hullLengthUnits);}}
+ for(let i=0;i<=along;i++){const t=i/along,half=halfBreadth(d,t)*deckBreadthRatio(d);for(let j=0;j<=across;j++){const u=j/across*2-1;pos.push(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u),(t-.5)*d.hullLengthUnits);}}
  for(let i=0;i<along;i++)for(let j=0;j<across;j++){const u=(j+.5)/across*2-1;const a=i*(across+1)+j;faces.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);}
  const deckGeo=new THREE.BufferGeometry();deckGeo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));deckGeo.setIndex(faces);deckGeo.computeVertexNormals();mesh(deck,deckGeo,materials.deck,'caravel-independent-deck-plan');
  const keel=part('keel'),keelLine=[];for(let i=0;i<=26;i++){const t=i/26;keelLine.push(V(0,keelY(d,t)-d.keelDetails.pointOffset,(t-.5)*d.hullLengthUnits));}
@@ -148,7 +150,7 @@ function buildRig(d,ctx){
   if(mast.rig==='square'||mast.rig==='brigantine'){
    if((mast.rig==='square'&&mast.squares>0)||mast.rig==='brigantine'){const platform=part('mast-platform-'+mast.id,group),disk=ctx.mesh(platform,new ctx.THREE.CylinderGeometry(.56,.64,.12,12),materials.trim,'top-platform');disk.position.set(0,lowerHeight*.84,0);}
    const levels=mast.rig==='square'?['course','topsail','topgallant'].slice(0,mast.squares??2):['topsail'];
-   levels.forEach((level,index)=>{const width=d.beamUnits*(.58+index*.07)*d.structure.yardSpread*1,y0=lowerHeight*.3+index*lowerHeight*.2,y1=Math.min(topY-baseY-.45,y0+lowerHeight*.19),yard=part('yard-'+mast.id+'-'+level,group);
+   levels.forEach((level,index)=>{const width=d.beamUnits*(1.48-index*.13)*d.structure.yardSpread*1,y0=lowerHeight*.3+index*lowerHeight*.2,y1=Math.min(topY-baseY-.45,y0+lowerHeight*.19),yard=part('yard-'+mast.id+'-'+level,group);
     beam(yard,V(-width*.5,y1,0),V(width*.5,y1,0),Math.max(.045,radius*.7),materials.trim,'square-yard');
     buildCanvasSail(ctx,'sail-'+mast.id+'-'+level,mast.id,[V(-width*.48,y0,0),V(-width*.43,y1,0),V(width*.43,y1,0),V(width*.48,y0,0)],.08+index*.012,group);
     const sheets=part('sheets-'+mast.id+'-'+level,group);for(let side of [-1,1])beam(sheets,V(side*width*.45,y0,0),V(side*width*.45,y0-.28,.18),.016,materials.rope,'sail-sheet');

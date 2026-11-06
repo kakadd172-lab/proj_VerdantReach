@@ -13,13 +13,13 @@ export const CutterDefinition = defineVesselSpec({
     hullLength: 16.8, beam: 5.1, draft: 2.0, freeboard: 1.35,
     rig: 'Single tall gaff mast with a large headsail spread from a long bowsprit.',
     hullProfile: 'Fine entry, full forefoot, low freeboard, compact counter stern.',
-    reference: 'Representative cutter reconstruction; dimensions and mast height are game-design estimates for a period coastal vessel.',
-    sources: [{ label: 'Royal Museums Greenwich — historical cutter collection records', url: 'https://www.rmg.co.uk/collections/objects/search/main' }],
+    reference: 'The Royal Museums Greenwich collection preserves an 1780 cutter drawing with body plan, sternboard detail, sheer lines and longitudinal half-breadth. The 16.8 × 5.1 m dimensions used here remain a representative reconstruction, not a transcription of that unnamed plan.',
+    sources: [{ label: 'Royal Museums Greenwich — Cutter (1780), technical drawing CCB0493', url: 'https://www.rmg.co.uk/collections/objects/rmgc-object-458456' }],
     hull: { fullness: 0.6, entry: 0.72, stern: 'counter', sternWidth: 0.27, tumblehome: 0.04, sheer: 0.11, bowRise: 0.22, sternRise: 0.22, keelDepth: 0.08, deckCamber: 0.1 },
     sternwork: 'low-cabin',
     sternTiers: [{"w":0.42,"d":0.12,"h":1.3}], bowwork: 'long-bowsprit',
     keelDetails: {"pointOffset":0.06,"minimumRadius":0.08,"radiusFactor":0.018,"stemPosts":true,"label":"keelson-and-keel"},
-    rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, sailingSpeed: 9.6, handling: 1.42,
+    rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, modelScaleNote: 'The 1780 cutter plan informs the body, sheer and half-breadth character; this generator’s dimensions and mast height are explicitly estimated.', sailingSpeed: 9.6, handling: 1.42,
     masts: [{ id: 'single', z: -0.03, height: 16.1, rig: 'gaff', span: 0.5, squares: 0 }],
     headsails: 4, oars: false,
   },
@@ -30,10 +30,11 @@ export const CutterDefinition = defineVesselSpec({
 import * as THREE from 'three';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 
-function deckY(d,t){const edge=Math.pow(Math.abs(t-.5)*2,1.35),rise=t<.5?d.hull.bowRise:d.hull.sternRise;return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*edge+rise*d.deckHeightUnits*Math.pow(edge,1.12)*d.structure.sheer;}
-function keelY(d,t){const mid=Math.pow(Math.max(0,Math.sin(Math.PI*t)),.72);return -d.draftUnits*.48-d.hull.keelDepth*d.draftUnits*mid;}
+function deckY(d,t){const q=Math.max(0,Math.min(1,t)),edge=Math.abs(2*q-1);const sheer=Math.pow(edge,1.84),bow=Math.pow(Math.max(0,1-2*q),1.1),stern=Math.pow(Math.max(0,2*q-1),1.16);return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*sheer*d.structure.sheer+d.hull.bowRise*d.deckHeightUnits*bow+d.hull.sternRise*d.deckHeightUnits*stern;}
+function keelY(d,t){const q=Math.max(0,Math.min(1,t)),mid=Math.pow(Math.max(0,Math.sin(Math.PI*q)),0.98);const depth=0.7+(1-0.7)*mid+d.hull.keelDepth*0.05*mid*(1-mid);return -d.draftUnits*Math.min(1,depth);}
+function deckBreadthRatio(d){return Math.max(.58,Math.min(.99,0.9-d.hull.tumblehome*0.34-d.structure.tumble*.25-0+d.structure.flare*0.2));}
 function halfBreadth(d,t){const mid=Math.max(0,Math.sin(Math.PI*t)),bow=1-.42*Math.pow(1-t,1.35);return d.beamUnits*.5*Math.pow(mid,.88)*bow*(.96+.04*t);}
-function hullPoint(d,t,a){const v=(Math.sin(a)+1)*.5,deck=deckY(d,t),keel=keelY(d,t);const section=Math.pow(Math.max(.015,1-Math.pow(Math.abs(2*v-1),2.1)),.58),flare=1+d.structure.flare*Math.pow(v,1.6),bilge=1-.06*Math.sin(Math.PI*v);return V(Math.cos(a)*halfBreadth(d,t)*section*flare*bilge,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);}
+function hullPoint(d,t,a){const v=1-Math.pow(Math.max(0,Math.sin(a)),1.82),deck=deckY(d,t),keel=keelY(d,t);const transition=0.6,lowerT=Math.max(0,Math.min(1,v/transition)),upperT=Math.max(0,Math.min(1,(v-transition)/(1-transition)));const lower=0.01+(1-0.01)*Math.pow(Math.sin(lowerT*Math.PI*.5),0.62)*(1+(d.structure.bilge||0)*.18*Math.sin(Math.PI*lowerT));const smooth=upperT*upperT*(3-2*upperT);const deckRatio=Math.max(.58,Math.min(.99,0.9-d.hull.tumblehome*0.34-d.structure.tumble*.25-0+d.structure.flare*0.2));const upper=1+(deckRatio-1)*Math.pow(smooth,1.05);const section=v<=transition?lower:upper;return V(Math.cos(a)*halfBreadth(d,t)*section,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);}
 function buildHull(d,ctx){
  const {THREE,part,mesh,materials,V}=ctx,hullGroup=part('hull'),stations=84,rings=36,positions=[],indices=[];
  for(let i=0;i<=stations;i++){const t=i/stations;for(let j=0;j<=rings;j++){const q=hullPoint(d,t,j/rings*Math.PI*2);positions.push(q.x,q.y,q.z);}}
@@ -43,7 +44,7 @@ function buildHull(d,ctx){
  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
  mesh(hullGroup,geometry,materials.hull,'cutter-individual-hull-loft');
  const deck=part('deck'),along=76,across=20,pos=[],faces=[];
- for(let i=0;i<=along;i++){const t=i/along,half=halfBreadth(d,t)*0.93;for(let j=0;j<=across;j++){const u=j/across*2-1;pos.push(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u),(t-.5)*d.hullLengthUnits);}}
+ for(let i=0;i<=along;i++){const t=i/along,half=halfBreadth(d,t)*deckBreadthRatio(d);for(let j=0;j<=across;j++){const u=j/across*2-1;pos.push(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u),(t-.5)*d.hullLengthUnits);}}
  for(let i=0;i<along;i++)for(let j=0;j<across;j++){const u=(j+.5)/across*2-1;const a=i*(across+1)+j;faces.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);}
  const deckGeo=new THREE.BufferGeometry();deckGeo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));deckGeo.setIndex(faces);deckGeo.computeVertexNormals();mesh(deck,deckGeo,materials.deck,'cutter-independent-deck-plan');
  const keel=part('keel'),keelLine=[];for(let i=0;i<=26;i++){const t=i/26;keelLine.push(V(0,keelY(d,t)-d.keelDetails.pointOffset,(t-.5)*d.hullLengthUnits));}
@@ -144,7 +145,7 @@ function buildRig(d,ctx){
   if(mast.rig==='square'||mast.rig==='brigantine'){
    if((mast.rig==='square'&&mast.squares>0)||mast.rig==='brigantine'){const platform=part('mast-platform-'+mast.id,group),disk=ctx.mesh(platform,new ctx.THREE.CylinderGeometry(.56,.64,.12,12),materials.trim,'top-platform');disk.position.set(0,lowerHeight*.84,0);}
    const levels=mast.rig==='square'?['course','topsail','topgallant'].slice(0,mast.squares??2):['topsail'];
-   levels.forEach((level,index)=>{const width=d.beamUnits*(.58+index*.07)*d.structure.yardSpread*1,y0=lowerHeight*.3+index*lowerHeight*.2,y1=Math.min(topY-baseY-.45,y0+lowerHeight*.19),yard=part('yard-'+mast.id+'-'+level,group);
+   levels.forEach((level,index)=>{const width=d.beamUnits*(1.55-index*.16)*d.structure.yardSpread*1,y0=lowerHeight*.3+index*lowerHeight*.2,y1=Math.min(topY-baseY-.45,y0+lowerHeight*.19),yard=part('yard-'+mast.id+'-'+level,group);
     beam(yard,V(-width*.5,y1,0),V(width*.5,y1,0),Math.max(.045,radius*.7),materials.trim,'square-yard');
     buildCanvasSail(ctx,'sail-'+mast.id+'-'+level,mast.id,[V(-width*.48,y0,0),V(-width*.43,y1,0),V(width*.43,y1,0),V(width*.48,y0,0)],.08+index*.012,group);
     const sheets=part('sheets-'+mast.id+'-'+level,group);for(let side of [-1,1])beam(sheets,V(side*width*.45,y0,0),V(side*width*.45,y0-.28,.18),.016,materials.rope,'sail-sheet');

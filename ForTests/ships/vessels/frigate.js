@@ -10,16 +10,16 @@ export const FrigateDefinition = defineVesselSpec({
   id: 'frigate',
   design: {
     id: 'frigate', label: '18th-century frigate', era: '18th century',
-    hullLength: 31.0, beam: 6.9, draft: 3.5, freeboard: 2.05,
+    hullLength: 30.8, beam: 8.4, draft: 3.5, freeboard: 2.05,
     rig: 'Three full-rigged masts; low continuous upper profile rather than tall end-castles.',
-    hullProfile: 'Long fine hull, low quarterdeck, pronounced tumblehome and restrained stern gallery.',
-    reference: 'La Renommée (1744) model dimensions: 31.0 m × 6.9 m; three-masted full-rigged arrangement follows the German Historical Museum summary.',
-    sources: [{ label: 'Deutsches Historisches Museum — Frigate', url: 'https://www.dhm.de/mediathek/en/web/ship-types/milestones-in-the-history-of-european-shipbuilding/12-frigate/' }],
+    hullProfile: 'V-shaped lower body, fine entrance, square counter and a distinctly raked sternpost; a speed-oriented 18th-century Dutch frigate form.',
+    reference: 'Anchored to the documented Dutch frigate ’t Hart at 30.8 m length and 8.4 m beam; 18th-century Dutch frigates averaged a length-to-beam ratio near 3.4:1. This is one reference form, not a universal frigate size.',
+    sources: [{ label: 'Journal of Maritime Archaeology — Frigate ’t Hart (2025)', url: 'https://link.springer.com/article/10.1007/s11457-025-09458-2' }],
     hull: { fullness: 0.62, entry: 0.78, stern: 'counter', sternWidth: 0.3, tumblehome: 0.17, sheer: 0.09, bowRise: 0.21, sternRise: 0.18, keelDepth: 0.1, deckCamber: 0.12 },
     sternwork: 'low-quarter',
     sternTiers: [{"w":0.48,"d":0.14,"h":1.2},{"w":0.35,"d":0.1,"h":0.6}], bowwork: 'bowsprit',
     keelDetails: {"pointOffset":0.06,"minimumRadius":0.08,"radiusFactor":0.018,"stemPosts":true,"label":"keelson-and-keel"},
-    rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, sailingSpeed: 9.2, handling: 0.76,
+    rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, modelScaleNote: 'Length and beam are anchored to the documented frigate ’t Hart (30.8 × 8.4 m); detailed underwater offsets and rig heights remain reconstruction estimates.', sailingSpeed: 9.2, handling: 0.76,
     masts: [
       { id: 'fore', z: -0.29, height: 28.2, rig: 'square', squares: 3 },
       { id: 'main', z: -0.015, height: 31.0, rig: 'square', squares: 3 },
@@ -34,10 +34,11 @@ export const FrigateDefinition = defineVesselSpec({
 import * as THREE from 'three';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 
-function deckY(d,t){const edge=Math.pow(Math.abs(t-.5)*2,1.35),rise=t<.5?d.hull.bowRise:d.hull.sternRise;return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*edge+rise*d.deckHeightUnits*Math.pow(edge,1.12)*d.structure.sheer;}
-function keelY(d,t){const mid=Math.pow(Math.max(0,Math.sin(Math.PI*t)),.72);return -d.draftUnits*.48-d.hull.keelDepth*d.draftUnits*mid;}
+function deckY(d,t){const q=Math.max(0,Math.min(1,t)),edge=Math.abs(2*q-1);const sheer=Math.pow(edge,1.25),bow=Math.pow(Math.max(0,1-2*q),1.1),stern=Math.pow(Math.max(0,2*q-1),1.35);return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*sheer*d.structure.sheer+d.hull.bowRise*d.deckHeightUnits*bow+d.hull.sternRise*d.deckHeightUnits*stern;}
+function keelY(d,t){const q=Math.max(0,Math.min(1,t)),mid=Math.pow(Math.max(0,Math.sin(Math.PI*q)),0.7);const depth=0.84+(1-0.84)*mid+d.hull.keelDepth*0.08*mid*(1-mid);return -d.draftUnits*Math.min(1,depth);}
+function deckBreadthRatio(d){return Math.max(.58,Math.min(.99,0.91-d.hull.tumblehome*0.5-d.structure.tumble*.25-0.02+d.structure.flare*0.25));}
 function halfBreadth(d,t){const mid=Math.max(0,Math.sin(Math.PI*t)),run=.83+.17*Math.sin(Math.PI*t*.86),ends=1-.16*Math.pow(Math.abs(2*t-1),3.5);return d.beamUnits*.5*Math.pow(mid,.72)*run*ends;}
-function hullPoint(d,t,a){const v=(Math.sin(a)+1)*.5,deck=deckY(d,t),keel=keelY(d,t);const section=Math.sqrt(Math.max(.02,1-Math.pow(Math.abs(2*v-1),2.6))),tumble=v>.55?1-d.structure.tumble*Math.pow((v-.55)/.45,.8):1,lower=1-.12*Math.pow(1-v,3);return V(Math.cos(a)*halfBreadth(d,t)*section*tumble*lower,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);}
+function hullPoint(d,t,a){const v=1-Math.pow(Math.max(0,Math.sin(a)),1.48),deck=deckY(d,t),keel=keelY(d,t);const transition=0.6,lowerT=Math.max(0,Math.min(1,v/transition)),upperT=Math.max(0,Math.min(1,(v-transition)/(1-transition)));const lower=0.025+(1-0.025)*Math.pow(Math.sin(lowerT*Math.PI*.5),0.6)*(1+(d.structure.bilge||0)*.18*Math.sin(Math.PI*lowerT));const smooth=upperT*upperT*(3-2*upperT);const deckRatio=Math.max(.58,Math.min(.99,0.91-d.hull.tumblehome*0.5-d.structure.tumble*.25-0.02+d.structure.flare*0.25));const upper=1+(deckRatio-1)*Math.pow(smooth,1.28);const section=v<=transition?lower:upper;return V(Math.cos(a)*halfBreadth(d,t)*section,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);}
 function buildHull(d,ctx){
  const {THREE,part,mesh,materials,V}=ctx,hullGroup=part('hull'),stations=104,rings=36,positions=[],indices=[];
  for(let i=0;i<=stations;i++){const t=i/stations;for(let j=0;j<=rings;j++){const q=hullPoint(d,t,j/rings*Math.PI*2);positions.push(q.x,q.y,q.z);}}
@@ -47,7 +48,7 @@ function buildHull(d,ctx){
  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
  mesh(hullGroup,geometry,materials.hull,'frigate-individual-hull-loft');
  const deck=part('deck'),along=76,across=20,pos=[],faces=[];
- for(let i=0;i<=along;i++){const t=i/along,half=halfBreadth(d,t)*0.93;for(let j=0;j<=across;j++){const u=j/across*2-1;pos.push(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u),(t-.5)*d.hullLengthUnits);}}
+ for(let i=0;i<=along;i++){const t=i/along,half=halfBreadth(d,t)*deckBreadthRatio(d);for(let j=0;j<=across;j++){const u=j/across*2-1;pos.push(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u),(t-.5)*d.hullLengthUnits);}}
  for(let i=0;i<along;i++)for(let j=0;j<across;j++){const u=(j+.5)/across*2-1;const a=i*(across+1)+j;faces.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);}
  const deckGeo=new THREE.BufferGeometry();deckGeo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));deckGeo.setIndex(faces);deckGeo.computeVertexNormals();mesh(deck,deckGeo,materials.deck,'frigate-independent-deck-plan');
  const keel=part('keel'),keelLine=[];for(let i=0;i<=26;i++){const t=i/26;keelLine.push(V(0,keelY(d,t)-d.keelDetails.pointOffset,(t-.5)*d.hullLengthUnits));}
@@ -148,7 +149,7 @@ function buildRig(d,ctx){
   if(mast.rig==='square'||mast.rig==='brigantine'){
    if((mast.rig==='square'&&mast.squares>0)||mast.rig==='brigantine'){const platform=part('mast-platform-'+mast.id,group),disk=ctx.mesh(platform,new ctx.THREE.CylinderGeometry(.56,.64,.12,12),materials.trim,'top-platform');disk.position.set(0,lowerHeight*.84,0);}
    const levels=mast.rig==='square'?['course','topsail','topgallant'].slice(0,mast.squares??2):['topsail'];
-   levels.forEach((level,index)=>{const width=d.beamUnits*(.58+index*.07)*d.structure.yardSpread*1,y0=lowerHeight*.3+index*lowerHeight*.2,y1=Math.min(topY-baseY-.45,y0+lowerHeight*.19),yard=part('yard-'+mast.id+'-'+level,group);
+   levels.forEach((level,index)=>{const width=d.beamUnits*(1.48-index*.13)*d.structure.yardSpread*1,y0=lowerHeight*.3+index*lowerHeight*.2,y1=Math.min(topY-baseY-.45,y0+lowerHeight*.19),yard=part('yard-'+mast.id+'-'+level,group);
     beam(yard,V(-width*.5,y1,0),V(width*.5,y1,0),Math.max(.045,radius*.7),materials.trim,'square-yard');
     buildCanvasSail(ctx,'sail-'+mast.id+'-'+level,mast.id,[V(-width*.48,y0,0),V(-width*.43,y1,0),V(width*.43,y1,0),V(width*.48,y0,0)],.08+index*.012,group);
     const sheets=part('sheets-'+mast.id+'-'+level,group);for(let side of [-1,1])beam(sheets,V(side*width*.45,y0,0),V(side*width*.45,y0-.28,.18),.016,materials.rope,'sail-sheet');
