@@ -43,6 +43,7 @@ function keelY(d,t){
  const depth=0.8+(1-0.8)*mid+d.hull.keelDepth*0.08*mid*(1-mid);
  return -d.draftUnits*Math.min(1,depth);
 }
+function deckBreadthRatio(d){return Math.max(.58,Math.min(.99,0.92-d.hull.tumblehome*0.48-d.structure.tumble*.25-0.02+d.structure.flare*0.26));}
 function halfBreadth(d,t){const mid=Math.max(0,Math.sin(Math.PI*t)),body=.87+.15*Math.sin(Math.PI*t*.92),bow=.82+.18*Math.min(1,t*3.8),stern=.92+.08*Math.min(1,(1-t)*4.2);return d.beamUnits*.5*Math.pow(mid,.68)*body*bow*stern;}
 function hullPoint(d,t,a){
  const v=(Math.sin(a)+1)*.5,deck=deckY(d,t),keel=keelY(d,t);
@@ -63,7 +64,7 @@ function buildHull(d,ctx){
  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();
  mesh(hullGroup,geometry,materials.hull,'brigantine-individual-hull-loft');
  const deck=part('deck'),along=76,across=20,pos=[],faces=[];
- for(let i=0;i<=along;i++){const t=i/along,half=halfBreadth(d,t)*0.93;for(let j=0;j<=across;j++){const u=j/across*2-1;pos.push(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u),(t-.5)*d.hullLengthUnits);}}
+ for(let i=0;i<=along;i++){const t=i/along,half=halfBreadth(d,t)*deckBreadthRatio(d);for(let j=0;j<=across;j++){const u=j/across*2-1;pos.push(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u),(t-.5)*d.hullLengthUnits);}}
  for(let i=0;i<along;i++)for(let j=0;j<across;j++){const u=(j+.5)/across*2-1;const a=i*(across+1)+j;faces.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);}
  const deckGeo=new THREE.BufferGeometry();deckGeo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));deckGeo.setIndex(faces);deckGeo.computeVertexNormals();mesh(deck,deckGeo,materials.deck,'brigantine-independent-deck-plan');
  const keel=part('keel'),keelLine=[];for(let i=0;i<=26;i++){const t=i/26;keelLine.push(V(0,keelY(d,t)-d.keelDetails.pointOffset,(t-.5)*d.hullLengthUnits));}
