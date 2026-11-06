@@ -136,14 +136,22 @@ try{
     buffer:makeTestGlb(),
   });
   await page.waitForFunction(()=>{
-    const value=document.querySelector('#status')?.textContent||'';
-    return value.startsWith('Loaded test-imported-sailboat')||value.startsWith('Model import failed:');
+    const selector=document.querySelector('#ship-select');
+    const caption=document.querySelector('#ship-caption')?.textContent||'';
+    const parts=Number(document.querySelector('#parts')?.textContent||0);
+    const status=document.querySelector('#status')?.textContent||'';
+    return selector?.value?.startsWith('imported-local-')
+      && caption.includes('test-imported-sailboat')
+      && parts>0
+      && !status.startsWith('Model import failed:');
   },{timeout:15000}).catch(async error=>{
     const current=await page.locator('#status').innerText();
-    throw new Error('Local GLB import did not settle. Editor status: '+current+' · '+error.message);
+    const selected=await page.locator('#ship-select').inputValue();
+    const caption=await page.locator('#ship-caption').innerText();
+    throw new Error('Local GLB import did not settle. Editor status: '+current+' · selected: '+selected+' · caption: '+caption+' · '+error.message);
   });
   const localImportStatus=await page.locator('#status').innerText();
-  assert.ok(localImportStatus.startsWith('Loaded test-imported-sailboat'),'Local GLB import failed: '+localImportStatus);
+  assert.ok(await page.locator('#ship-select').inputValue().startsWith('imported-local-'),'Local GLB import did not select an imported model. Status: '+localImportStatus);
   assert.ok(Number(await page.locator('#parts').innerText())>0,'Local GLB import did not expose editable parts.');
   assert.ok(await page.locator('#ship-select').inputValue().startsWith('imported-local-'),'Local GLB import did not add a model selector entry.');
   await delay(350);
