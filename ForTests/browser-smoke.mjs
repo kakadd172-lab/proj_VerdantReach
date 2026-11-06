@@ -153,7 +153,7 @@ try{
   const localImportStatus=await page.locator('#status').innerText();
   assert.ok((await page.locator('#ship-select').inputValue()).startsWith('imported-local-'),'Local GLB import did not select an imported model. Status: '+localImportStatus);
   assert.ok(Number(await page.locator('#parts').innerText())>0,'Local GLB import did not expose editable parts.');
-  assert.ok(await page.locator('#ship-select').inputValue().startsWith('imported-local-'),'Local GLB import did not add a model selector entry.');
+  assert.ok((await page.locator('#ship-select').inputValue()).startsWith('imported-local-'),'Local GLB import did not add a model selector entry.');
   await delay(350);
   await page.locator('#viewport canvas').screenshot({path:join(projectDir,'imported-local-preview.png')});
   console.log('Local GLB import passed.');
