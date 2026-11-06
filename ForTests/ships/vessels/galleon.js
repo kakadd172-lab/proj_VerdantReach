@@ -675,7 +675,7 @@ function buildRig(d,ctx){
   taperedSpar(topmast,'tapered-topmast',V(0,lowerHeight-.07,0),V(0,totalHeight,0),radius*.50,radius*.23,materials.trim,14);
 
   // A visible mast partner at deck level prevents the mast from reading as a pole simply planted on deck.
-  const partners=part('mast-partners-'+mast.id,group);
+  const partners=part('mast-step-'+mast.id,group);
   const partner=ctx.box(partners,d.beamUnits*.14,.20,d.beamUnits*.12,materials.trim,'mast-partner-block');
   partner.position.set(0,-.08,0);
   beam(partners,V(-d.beamUnits*.11,-.08,0),V(d.beamUnits*.11,-.08,0),.065,materials.brass,'partner-cross-pin');
