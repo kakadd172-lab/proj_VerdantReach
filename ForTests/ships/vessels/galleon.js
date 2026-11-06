@@ -407,12 +407,60 @@ function buildBow(d,ctx){
 
 function buildRudderAndHelm(d,ctx){const {part,box,beam,materials,V}=ctx,rudder=part('rudder'),config=d.rudderDetails,stern=d.hullLengthUnits*.47;rudder.position.set(0,0,stern+config.pivotOffset);const width=d.beamUnits*config.breadthFactor*1,height=d.draftUnits*config.depthFactor,blade=box(rudder,width,height,.22,materials.trim,'galleon-rudder-blade');blade.position.set(0,-d.draftUnits*config.yFactor,0);beam(rudder,V(0,-d.draftUnits*.4,-.02),V(0,deckY(d,.97)+.22,0),Math.max(.045,d.beamUnits*.014),materials.trim,'rudder-stock');const helm=part('helm'),wheel=part('helm-wheel'),y=deckY(d,.83),z=d.hullLengthUnits*.31;beam(helm,V(0,y+.18,z),V(0,y+.9,z),.065,materials.trim,'helm-post');const ring=ctx.mesh(wheel,new ctx.THREE.TorusGeometry(.44,.045,8,20),materials.trim,'helm-wheel-ring');ring.position.set(0,y+1.02,z);for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(wheel,V(0,y+1.02,z),V(Math.cos(a)*.44,y+1.02+Math.sin(a)*.44,z),.022,materials.trim,'helm-spoke');}}
 function buildRailingsAndEquipment(d,ctx){
- const {part,beam,tube,box,materials,V}=ctx,rail=part('railings'),port=part('railings-port',rail),starboard=part('railings-starboard',rail);
- for(const [side,group] of [[-1,port],[1,starboard]]){const points=[];for(let i=0;i<=42;i++){const t=.08+.84*i/42,x=side*halfBreadth(d,t)*.88,y=deckY(d,t)+.56,z=(t-.5)*d.hullLengthUnits;points.push(V(x,y,z));if(i%4===0)beam(group,V(x,y-.48,z),V(x,y+.02,z),.035,materials.trim,'rail-post-'+i);}tube(group,points,.052,materials.trim,'galleon-gunwale-rail',64);}
+ const {part,beam,tube,box,materials,V}=ctx;
+ const rail=part('railings'),port=part('railings-port',rail),starboard=part('railings-starboard',rail);
+ for(const [side,group] of [[-1,port],[1,starboard]]){
+  const top=[],inner=[];
+  for(let i=0;i<=52;i++){
+   const t=.065+.87*i/52,edge=halfBreadth(d,t)*deckBreadthRatio(d)*.965;
+   const x=side*edge,y=deckY(d,t)+.62,z=(t-.5)*d.hullLengthUnits;
+   top.push(V(x,y,z));inner.push(V(x-side*.04,y-.5,z));
+   if(i%2===0)beam(group,V(x-side*.025,y-.55,z),V(x,y,z),.034,materials.trim,'main-deck-rail-stanchion');
+  }
+  tube(group,top,.06,materials.trim,'main-deck-gunwale-rail',74);
+  tube(group,inner,.035,materials.brass,'lower-rail-moulding',74);
+ }
+ const bulwarks=part('main-deck-bulwarks');
+ for(const side of [-1,1]){
+  for(let i=0;i<36;i++){
+   const t=.12+i*.76/35,edge=halfBreadth(d,t)*deckBreadthRatio(d)*.94;
+   const x=side*edge,z=(t-.5)*d.hullLengthUnits,y=deckY(d,t)+.16;
+   const panel=box(bulwarks,.1,.34,Math.max(.2,d.hullLengthUnits*.025),materials.hull,'bulwark-plank');
+   panel.position.set(x,y,z);
+  }
+ }
  const fittings=part('deck-fittings');
- for(let h=0;h<2;h++){const t=.32+h*.13,z=(t-.5)*d.hullLengthUnits,group=part('cargo-hatch-'+h,fittings),size=d.beamUnits*.2,cover=box(group,size,.12,size*.84,materials.plank,'hatch-cover');cover.position.set(0,deckY(d,t)+.12,z);}
- for(let level=0;level<2;level++)for(let side of [-1,1])for(let i=0;i<12;i++){const t=.14+i/Math.max(1,12-1)*.72,x=side*halfBreadth(d,t)*.8,z=(t-.5)*d.hullLengthUnits,y=deckY(d,t)-.36-level*d.deckHeightUnits*.24,portHole=box(fittings,.34,.28,.08,materials.lower,'gunport-'+level+'-'+side+'-'+i);portHole.position.set(x,y,z);const cannon=part('deck-gun-'+level+'-'+side+'-'+i,fittings);beam(cannon,V(x,y+.02,z),V(x+side*.48,y+.02,z),.068,materials.iron,'cannon-barrel',12);for(let wheel=0;wheel<2;wheel++){const w=ctx.mesh(cannon,new ctx.THREE.CylinderGeometry(.1,.1,.055,10),materials.trim,'gun-carriage-wheel');w.rotation.z=Math.PI/2;w.position.set(x+side*.15,y-.12,z+(wheel-.5)*.2);}}
- 
+ for(let h=0;h<3;h++){
+  const t=.3+h*.12,z=(t-.5)*d.hullLengthUnits,group=part('cargo-hatch-'+h,fittings),size=d.beamUnits*(h===0?.23:.16);
+  const cover=box(group,size,.12,size*.82,materials.plank,'planked-cargo-hatch');
+  cover.position.set(0,deckY(d,t)+.14,z);
+  for(const side of [-1,1]){
+   beam(group,V(side*size*.5,deckY(d,t)+.19,z-size*.42),V(side*size*.5,deckY(d,t)+.19,z+size*.42),.025,materials.trim,'hatch-coaming');
+  }
+ }
+ for(let level=0;level<2;level++)for(let side of [-1,1])for(let i=0;i<12;i++){
+  const t=.14+i/11*.72,x=side*halfBreadth(d,t)*.8,z=(t-.5)*d.hullLengthUnits;
+  const y=deckY(d,t)-.36-level*d.deckHeightUnits*.24;
+  const portHole=box(fittings,.34,.28,.08,materials.lower,'gunport-'+level+'-'+side+'-'+i);
+  portHole.position.set(x,y,z);
+  const cannon=part('deck-gun-'+level+'-'+side+'-'+i,fittings);
+  beam(cannon,V(x,y+.02,z),V(x+side*.48,y+.02,z),.068,materials.iron,'cannon-barrel',12);
+  for(let wheel=0;wheel<2;wheel++){
+   const w=ctx.mesh(cannon,new ctx.THREE.CylinderGeometry(.1,.1,.055,10),materials.trim,'gun-carriage-wheel');
+   w.rotation.z=Math.PI/2;w.position.set(x+side*.15,y-.12,z+(wheel-.5)*.2);
+  }
+ }
+ const companionways=part('quarterdeck-companionways');
+ for(const side of [-1,1]){
+  const stair=part('sterncastle-stairs-'+side,companionways);
+  for(let step=0;step<8;step++){
+   const f=step/7,y=deckY(d,.76)+.18+f*1.2,z=d.hullLengthUnits*(.25+f*.105),x=side*d.beamUnits*.28;
+   const tread=box(stair,.7,.12,.42,materials.deck,'quarterdeck-stair-tread');
+   tread.position.set(x,y,z);
+   const riser=box(stair,.7,.22,.08,materials.trim,'quarterdeck-stair-riser');
+   riser.position.set(x,y-.13,z-.17);
+  }
+ }
 }
 
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.11,parent=ctx.root,axis='z'){
