@@ -55,5 +55,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: galleon-playwright-preview
-          path: ForTests/galleon-preview.png
+          path: |
+            ForTests/galleon-*.png
+            ForTests/imported-*.png
           if-no-files-found: warn
