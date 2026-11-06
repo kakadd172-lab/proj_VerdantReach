@@ -5,7 +5,6 @@
 export const SHIP_CATALOGUE_VERSION='0.8.7';
 export const SHIP_DESIGN_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
 export const SHIP_STRUCTURE_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
-export const SHIP_MODEL_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
 export const WORLD_UNITS_PER_METRE=4/3;
 export const SHIP_PART_BASE_NAMES=Object.freeze([
 'hull','hull-strakes','deck','deck-planks','keel','stem','sternworks','stern-gallery','stern-windows',

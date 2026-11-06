@@ -15,7 +15,7 @@ import Junk from './vessels/junk.js';
 import FirstRate from './vessels/first-rate.js';
 import Pinnace from './vessels/pinnace.js';
 import {SHIP_DESIGN_MODULE_VERSION,SHIP_STRUCTURE_MODULE_VERSION,SHIP_PART_BASE_NAMES,getShipDesignFromSpec,getShipStructureFromSpec,setDesignOverrideForSpec,setStructureOverrideForSpec} from './shared/vessel-definition.js';
-import {SHIP_MODEL_ENGINE_VERSION,disposeShipModel,shipModelSummary as summarizeShipDesign} from './shared/ship-editor-kit.js';
+import {SHIP_EDITOR_KIT_VERSION,disposeShipModel,shipModelSummary as summarizeShipDesign} from './shared/ship-editor-kit.js';
 export const SHIP_MODEL_MODULE_VERSION=SHIP_MODEL_ENGINE_VERSION;
 export const VESSEL_MODULE_LIST=Object.freeze([Sloop,Schooner,Brigantine,Brig,Snow,Cutter,Frigate,Barque,Caravel,Carrack,Galleon,Fluyt,Xebec,Junk,FirstRate,Pinnace]);
 export const VESSEL_MODULES=Object.freeze(Object.fromEntries(VESSEL_MODULE_LIST.map(v=>[v.id,v])));

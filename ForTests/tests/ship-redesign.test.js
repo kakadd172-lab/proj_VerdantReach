@@ -13,8 +13,8 @@ const ids = Object.keys(SHIP_DESIGNS).sort();
 
 test('the editor uses 16 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.7');
-  assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.6');
-  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.6');
+  assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.7');
+  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.7');
   assert.equal(ids.length, 16);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
@@ -41,7 +41,7 @@ test('each vessel owns its own geometry-generation algorithms', () => {
       'function halfBreadth(', 'function hullPoint(', 'function buildHull(',
       'function buildFramesAndPlanking(', 'function buildStern(', 'function buildBow(',
       'function buildRudderAndHelm(', 'function buildRailingsAndEquipment(',
-      'function buildAnchors(', 'function buildRig(', 'function generate',
+      'function buildAnchors(', 'function buildCanvasSail(', 'function ensureSternTierComponents(', 'function buildRig(', 'function generate',
     ]) assert.ok(source.includes(required), id + ' must own ' + required);
     assert.ok(source.includes('createShipContext('), id + ' must construct its own context');
     assert.ok(source.includes('finishShipModel('), id + ' must finish through editor support');
@@ -56,7 +56,7 @@ test('each vessel owns its own geometry-generation algorithms', () => {
   const kit = readFileSync(new URL('../ships/shared/ship-editor-kit.js', import.meta.url), 'utf8');
   assert.ok(kit.includes('createShipContext'));
   assert.ok(kit.includes('finishShipModel'));
-  for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildRig(']) {
+  for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildCanvasSail(', 'function buildRig(']) {
     assert.ok(!kit.includes(geometryRoutine), 'Editor kit must not contain vessel geometry: ' + geometryRoutine);
   }
 });
