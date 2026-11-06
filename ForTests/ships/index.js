@@ -23,7 +23,7 @@ export const VESSEL_IDS=Object.freeze(VESSEL_MODULE_LIST.map(v=>v.id));
 export const VESSEL_SPECS=Object.freeze(Object.fromEntries(VESSEL_MODULE_LIST.map(v=>[v.id,v.definition])));
 export const SHIP_DESIGNS=Object.freeze(Object.fromEntries(VESSEL_MODULE_LIST.map(v=>[v.id,v.design])));
 export const HISTORICAL_SHIP_KINDS=Object.freeze(VESSEL_IDS.map(id=>'ship-'+id));
-export {SHIP_DESIGN_MODULE_VERSION,SHIP_STRUCTURE_MODULE_VERSION,SHIP_PART_BASE_NAMES,SHIP_MODEL_ENGINE_VERSION,disposeShipModel};
+export {SHIP_DESIGN_MODULE_VERSION,SHIP_STRUCTURE_MODULE_VERSION,SHIP_PART_BASE_NAMES,SHIP_EDITOR_KIT_VERSION,disposeShipModel};
 const legacyKindMap=Object.freeze({'sailing-ship':'sloop','large-ship':'galleon'});
 export function getVesselModule(type){return VESSEL_MODULES[String(type??'').replace(/^ship-/,'')]??null;}
 export function getShipGenerator(type){return getVesselModule(type)?.generate??null;}
