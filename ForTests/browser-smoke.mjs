@@ -151,7 +151,7 @@ try{
     throw new Error('Local GLB import did not settle. Editor status: '+current+' · selected: '+selected+' · caption: '+caption+' · '+error.message);
   });
   const localImportStatus=await page.locator('#status').innerText();
-  assert.ok(await page.locator('#ship-select').inputValue().startsWith('imported-local-'),'Local GLB import did not select an imported model. Status: '+localImportStatus);
+  assert.ok((await page.locator('#ship-select').inputValue()).startsWith('imported-local-'),'Local GLB import did not select an imported model. Status: '+localImportStatus);
   assert.ok(Number(await page.locator('#parts').innerText())>0,'Local GLB import did not expose editable parts.');
   assert.ok(await page.locator('#ship-select').inputValue().startsWith('imported-local-'),'Local GLB import did not add a model selector entry.');
   await delay(350);
