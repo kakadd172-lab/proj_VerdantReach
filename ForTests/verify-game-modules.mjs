@@ -41,6 +41,8 @@ for(const id of ids){
  ])assert.ok(source.includes(required),id+' missing its own '+required);
  assert.ok(!/createVesselModel|createShipModelFromVessel|ship-model-builder|hull-math/.test(source),id+' still depends on the old shared geometry path.');
  assert.ok(source.includes("from '../shared/ship-editor-kit.js'"),id+' should only use the low-level editor kit.');
+ assert.ok(source.includes('buildAnchors(ctx.design,ctx)'),id+' must invoke its own anchor builder.');
+ assert.ok(source.includes('buildCanvasSail(ctx,'),id+' must use its local sail builder.');
  assert.ok(registry.includes("./vessels/"+id+".js"),id+' missing from the registry.');
  assert.ok(!source.includes('../V8/')&&!source.includes('V8/verdant-reach'),id+' must not import main-game code.');
  const hull=source.match(/function halfBreadth\(d,t\)\s*\{([\s\S]*?)\}/);

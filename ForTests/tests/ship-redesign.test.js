@@ -41,7 +41,7 @@ test('each vessel owns its own geometry-generation algorithms', () => {
       'function halfBreadth(', 'function hullPoint(', 'function buildHull(',
       'function buildFramesAndPlanking(', 'function buildStern(', 'function buildBow(',
       'function buildRudderAndHelm(', 'function buildRailingsAndEquipment(',
-      'function buildAnchors(', 'function buildCanvasSail(', 'function ensureSternTierComponents(', 'function buildRig(', 'function generate',
+      'function buildAnchors(', 'function buildCanvasSail(', 'buildAnchors(ctx.design,ctx)', 'buildCanvasSail(ctx,', 'function ensureSternTierComponents(', 'function buildRig(', 'function generate',
     ]) assert.ok(source.includes(required), id + ' must own ' + required);
     assert.ok(source.includes('createShipContext('), id + ' must construct its own context');
     assert.ok(source.includes('finishShipModel('), id + ' must finish through editor support');
