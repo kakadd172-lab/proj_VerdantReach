@@ -71,7 +71,12 @@ Each module now owns four independent hull-shape functions:
 - `halfBreadth()` controls the longitudinal run of the waterline and the
   distribution of beam from bow through midbody to stern.
 - `hullPoint()` controls the vessel's vertical cross-section, bilge fullness,
-  deck-edge breadth, flare and tumblehome.
+  deck-edge breadth, flare and tumblehome. Each profile parameterizes its
+  section from the keel centreline to both gunwales, so the top edge reaches
+  the deck rather than pinching to the centreline.
+- `deckBreadthRatio()` returns the exact deck-edge breadth implied by that
+  vessel's own tumblehome and flare; the deck surface uses the same value so
+  the planking and hull shell meet without a generic width multiplier.
 - `deckY()` controls that vessel's sheer and its separate bow and stern rise.
 - `keelY()` controls the rocker and how the keel approaches the ends; the
   deepest midbody section reaches the stated design draft.
@@ -98,6 +103,8 @@ Examples used in this refinement include:
   fluit forms.
 - A circa-1490 Portuguese caravel model at Royal Museums Greenwich: 65 ft by
   23 ft, illustrated as a four-masted redonda form.
+- The 1856 barque `Ravensworth`: 131 ft length by 29 ft beam, with a
+  documented three-masted barque rig.
 - The 1838 William Symonds 32-foot pinnace design: used as the tender's length
   reference, while the remaining dimensions are explicitly reconstructed.
 
