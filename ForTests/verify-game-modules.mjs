@@ -28,7 +28,7 @@ for(const path of ['ship-designs.js','ship-structures.js','ship-hull-parameteriz
 }
 assert.ok(!existsSync(join(shipRoot,'shared','define-vessel.js')),'Unused wrapper helper remains.');
 
-const hullFingerprints=new Set(),sailFingerprints=new Set();
+const hullFingerprints=new Set(),deckFingerprints=new Set(),keelFingerprints=new Set(),sectionFingerprints=new Set(),sailFingerprints=new Set();
 for(const id of ids){
  const path=join(shipRoot,'vessels',id+'.js');assert.ok(existsSync(path),'Missing independent vessel module: '+id);
  const source=readFileSync(path,'utf8');
@@ -52,6 +52,9 @@ for(const id of ids){
  hullFingerprints.add(hull[1].trim());sailFingerprints.add(sail[0].trim());
 }
 assert.equal(hullFingerprints.size,16,'Each vessel must implement a distinct hull breadth function.');
+assert.equal(deckFingerprints.size,16,'Each vessel must implement its own deck sheer function.');
+assert.equal(keelFingerprints.size,16,'Each vessel must implement its own keel rocker function.');
+assert.equal(sectionFingerprints.size,16,'Each vessel must implement its own hull section function.');
 assert.equal(sailFingerprints.size,16,'Each vessel must implement its own sail surface profile.');
 
 const preview=readFileSync(join(here,'preview.js'),'utf8');
