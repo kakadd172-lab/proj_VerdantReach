@@ -1,0 +1,342 @@
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+export const IMPORTED_VESSELS = [
+  {
+    id: 'imported-sailing-sloop',
+    label: 'Cruising sloop · imported CC0 model',
+    category: 'Sailing vessel',
+    license: 'CC0 1.0 Universal',
+    description: 'A 9.6 m cruising-sloop hull combined with a separate deck-stepped mast and stowed sail set. The hull, mast and sails remain separate editable components.',
+    dimensions: { length: 9.667, beam: 2.909, height: 13.404, draft: null },
+    forwardAxis: '+Z in source; normalized to the studio forward axis',
+    sources: [
+      { name: 'Sailing yacht hull, 9.6 m, navy', url: 'https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-sailing-ya-9e76ddc3', model: 'https://cdn.3dassets.dev/assets/38303/v1/model.glb' },
+      { name: 'Yacht mast with boom and standing rigging', url: 'https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-yacht-mast-c68fd062', model: 'https://cdn.3dassets.dev/assets/38306/v1/model.glb' },
+      { name: 'Furled sail set', url: 'https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-furled-sai-4a2de20e', model: 'https://cdn.3dassets.dev/assets/38304/v1/model.glb' },
+    ],
+    async load() {
+      const loader = new GLTFLoader();
+      const loaded = await Promise.all(this.sources.map(source => loader.loadAsync(source.model)));
+      const assembly = new THREE.Group();
+      assembly.name = 'Cruising sloop assembly';
+      const hull = new THREE.Group();
+      hull.name = 'Hull · 9.6 m cruising sloop';
+      hull.add(loaded[0].scene);
+      const mast = new THREE.Group();
+      mast.name = 'Mast and standing rigging';
+      mast.position.set(0, 1.45, 0.05);
+      mast.add(loaded[1].scene);
+      const sails = new THREE.Group();
+      sails.name = 'Furled mainsail and headsail';
+      sails.position.copy(mast.position);
+      sails.add(loaded[2].scene);
+      assembly.add(hull, mast, sails);
+      // Source bow is +Z; Shipyard Studio uses -Z as forward.
+      assembly.rotation.y = Math.PI;
+      return { scene: assembly, resources: [] };
+    },
+  },
+  {
+    id: 'imported-coastal-trawler',
+    label: 'Coastal fishing trawler · imported CC0 model',
+    category: 'Working vessel',
+    license: 'CC0 1.0 Universal',
+    description: 'A complete generic coastal fishing vessel with wheelhouse, open aft deck, stern gantry, net drum, mast and deck equipment.',
+    dimensions: { length: 10.767, beam: 3.649, height: 5.355, draft: null },
+    forwardAxis: '+Z in source; normalized to the studio forward axis',
+    sources: [
+      { name: 'Coastal fishing trawler', url: 'https://3dassets.dev/assets/transport-collection-hd-fishing-trawler-9644a09d', model: 'https://cdn.3dassets.dev/assets/18727/v1/model.glb' },
+    ],
+    async load() {
+      const gltf = await new GLTFLoader().loadAsync(this.sources[0].model);
+      gltf.scene.rotation.y = Math.PI;
+      return { scene: gltf.scene, resources: [] };
+    },
+  },
+  {
+    id: 'imported-motor-cruiser',
+    label: 'Motor cruiser · imported CC0 model',
+    category: 'Leisure vessel',
+    license: 'CC0 1.0 Universal',
+    description: 'A modern 11.5 m leisure cruiser with a hard-chine hull, glazed saloon, teak cockpit, guardrails and flybridge.',
+    dimensions: { length: 11.85, beam: 3.313, height: 4.959, draft: null },
+    forwardAxis: '+Z in source; normalized to the studio forward axis',
+    sources: [
+      { name: 'Motor cruiser with flybridge, 11.5 m, navy', url: 'https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-motor-crui-f58244ee', model: 'https://cdn.3dassets.dev/assets/38308/v1/model.glb' },
+    ],
+    async load() {
+      const gltf = await new GLTFLoader().loadAsync(this.sources[0].model);
+      gltf.scene.rotation.y = Math.PI;
+      return { scene: gltf.scene, resources: [] };
+    },
+  },
+];
+
+export function getImportedVessel(id) {
+  return IMPORTED_VESSELS.find(asset => asset.id === id) || null;
+}
+
+export function createImportedVesselWrapper(THREE_NS, asset, loaded, savedState = {}) {
+  const root = new THREE_NS.Group();
+  root.name = asset.label;
+  root.userData.isImportedModel = true;
+  root.userData.importedAssetId = asset.id;
+  root.userData.importedMetadata = {
+    label: asset.label,
+    category: asset.category,
+    license: asset.license,
+    description: asset.description,
+    dimensions: { ...asset.dimensions },
+    sources: asset.sources.map(source => ({ ...source })),
+  };
+  root.userData.importedResources = [...(loaded.resources || [])];
+
+  const model = loaded.scene;
+  model.name = model.name || 'Imported model';
+  root.add(model);
+
+  const registry = new Map();
+  const original = new Map();
+  const base = new Map();
+  const hiddenParts = {};
+  const unlinkedParts = [];
+  const partTransforms = {};
+  const unlinked = new THREE_NS.Group();
+  unlinked.name = 'unlinked-parts';
+  root.add(unlinked);
+
+  let index = 0;
+  model.traverse(object => {
+    if (object === model) return;
+    if (!object.isMesh && object.children.length === 0) return;
+    const sourceName = (object.name || (object.isMesh ? 'Mesh' : 'Group')).trim();
+    const safeName = sourceName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 34) || 'part';
+    const id = 'imported-' + String(++index).padStart(3, '0') + '-' + safeName;
+    object.userData.sourceName = sourceName;
+    object.name = id;
+    object.userData.shipPart = true;
+    registry.set(id, object);
+    const record = {
+      parent: object.parent,
+      position: object.position.clone(),
+      quaternion: object.quaternion.clone(),
+      rotation: object.rotation.clone(),
+      scale: object.scale.clone(),
+      visible: object.visible,
+    };
+    original.set(id, record);
+    base.set(id, record);
+  });
+
+  if (!registry.size) {
+    const id = 'imported-001-whole-model';
+    registry.set(id, model);
+    const record = {
+      parent: root,
+      position: model.position.clone(),
+      quaternion: model.quaternion.clone(),
+      rotation: model.rotation.clone(),
+      scale: model.scale.clone(),
+      visible: model.visible,
+    };
+    original.set(id, record);
+    base.set(id, record);
+    model.name = id;
+    model.userData.shipPart = true;
+  }
+
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, Number(value) || 0));
+  const api = {
+    partNames: [...registry.keys()],
+    getPart(name) { return registry.get(name) || null; },
+    getPartTransform(name) {
+      const object = registry.get(name), record = base.get(name);
+      if (!object || !record) return null;
+      return {
+        x: object.position.x - record.position.x,
+        y: object.position.y - record.position.y,
+        z: object.position.z - record.position.z,
+        rx: object.rotation.x - record.rotation.x,
+        ry: object.rotation.y - record.rotation.y,
+        rz: object.rotation.z - record.rotation.z,
+        sx: object.scale.x / (record.scale.x || 1),
+        sy: object.scale.y / (record.scale.y || 1),
+        sz: object.scale.z / (record.scale.z || 1),
+      };
+    },
+    setPartTransform(name, transform = {}) {
+      const object = registry.get(name), record = base.get(name);
+      if (!object || !record) return false;
+      const value = {
+        x: clamp(transform.x, -100, 100), y: clamp(transform.y, -100, 100), z: clamp(transform.z, -100, 100),
+        rx: clamp(transform.rx, -Math.PI, Math.PI), ry: clamp(transform.ry, -Math.PI, Math.PI), rz: clamp(transform.rz, -Math.PI, Math.PI),
+        sx: clamp(transform.sx ?? 1, .02, 40), sy: clamp(transform.sy ?? 1, .02, 40), sz: clamp(transform.sz ?? 1, .02, 40),
+      };
+      object.position.copy(record.position).add(new THREE_NS.Vector3(value.x, value.y, value.z));
+      object.rotation.set(record.rotation.x + value.rx, record.rotation.y + value.ry, record.rotation.z + value.rz, 'XYZ');
+      object.scale.set(record.scale.x * value.sx, record.scale.y * value.sy, record.scale.z * value.sz);
+      partTransforms[name] = value;
+      return true;
+    },
+    resetPartTransform(name) {
+      const object = registry.get(name), record = original.get(name);
+      if (!object || !record) return false;
+      if (object.parent !== record.parent) {
+        object.parent?.remove(object);
+        record.parent.add(object);
+      }
+      object.position.copy(record.position);
+      object.quaternion.copy(record.quaternion);
+      object.rotation.copy(record.rotation);
+      object.scale.copy(record.scale);
+      object.visible = record.visible;
+      base.set(name, record);
+      delete partTransforms[name];
+      delete hiddenParts[name];
+      const at = unlinkedParts.indexOf(name);
+      if (at >= 0) unlinkedParts.splice(at, 1);
+      return true;
+    },
+    setPartVisible(name, visible) {
+      const object = registry.get(name);
+      if (!object) return false;
+      object.visible = !!visible;
+      if (object.visible) delete hiddenParts[name];
+      else hiddenParts[name] = true;
+      return true;
+    },
+    detachPart(name) {
+      const object = registry.get(name);
+      if (!object || object.parent === unlinked) return false;
+      root.updateMatrixWorld(true);
+      const world = object.matrixWorld.clone();
+      unlinked.updateMatrixWorld(true);
+      object.parent?.remove(object);
+      unlinked.add(object);
+      unlinked.updateMatrixWorld(true);
+      unlinked.matrixWorld.clone().invert().multiply(world).decompose(object.position, object.quaternion, object.scale);
+      base.set(name, { ...base.get(name), position: object.position.clone(), quaternion: object.quaternion.clone(), rotation: object.rotation.clone(), scale: object.scale.clone() });
+      unlinkedParts.push(name);
+      return true;
+    },
+    relinkPart(name) {
+      const object = registry.get(name), record = original.get(name);
+      if (!object || !record || object.parent !== unlinked) return false;
+      unlinked.updateMatrixWorld(true);
+      const world = object.matrixWorld.clone();
+      record.parent.updateMatrixWorld(true);
+      record.parent.add(object);
+      record.parent.matrixWorld.clone().invert().multiply(world).decompose(object.position, object.quaternion, object.scale);
+      base.set(name, { ...base.get(name), position: object.position.clone(), quaternion: object.quaternion.clone(), rotation: object.rotation.clone(), scale: object.scale.clone() });
+      const at = unlinkedParts.indexOf(name);
+      if (at >= 0) unlinkedParts.splice(at, 1);
+      return true;
+    },
+    getShipState() {
+      const transforms = Object.fromEntries([...registry.keys()]
+        .map(name => [name, api.getPartTransform(name)])
+        .filter(([, value]) => value && Object.values(value).some((v, i) => i < 6 ? Math.abs(v) > 1e-8 : Math.abs(v - 1) > 1e-8)));
+      return { partTransforms: transforms, hiddenParts: { ...hiddenParts }, unlinkedParts: [...unlinkedParts] };
+    },
+    applyShipState(state = {}) {
+      for (const name of state.unlinkedParts || []) api.detachPart(name);
+      for (const [name, transform] of Object.entries(state.partTransforms || {})) api.setPartTransform(name, transform);
+      for (const [name, hidden] of Object.entries(state.hiddenParts || {})) api.setPartVisible(name, !hidden);
+      return true;
+    },
+  };
+
+  root.userData.partNames = api.partNames;
+  root.userData.getPart = api.getPart.bind(api);
+  root.userData.getPartTransform = api.getPartTransform.bind(api);
+  root.userData.setPartTransform = api.setPartTransform.bind(api);
+  root.userData.resetPartTransform = api.resetPartTransform.bind(api);
+  root.userData.setPartVisible = api.setPartVisible.bind(api);
+  root.userData.detachPart = api.detachPart.bind(api);
+  root.userData.relinkPart = api.relinkPart.bind(api);
+  root.userData.getShipState = api.getShipState.bind(api);
+  root.userData.applyShipState = api.applyShipState.bind(api);
+  root.userData.setRudderAngle = () => false;
+  root.userData.setSailTrim = () => false;
+  root.userData.setMastLean = () => false;
+  root.userData.setSailDeployment = () => false;
+  root.userData.vehicle = {
+    mode: 'boat',
+    vesselType: asset.id,
+    label: asset.label,
+    dimensions: { ...asset.dimensions },
+  };
+  if (Object.keys(savedState.partTransforms || {}).length || Object.keys(savedState.hiddenParts || {}).length || (savedState.unlinkedParts || []).length) {
+    api.applyShipState(savedState);
+  }
+  return root;
+}
+
+export async function loadImportedAsset(asset, localFiles = null) {
+  if (localFiles) return loadLocalModelFiles(localFiles);
+  const loaded = await asset.load();
+  return createImportedVesselWrapper(THREE, asset, loaded);
+}
+
+export async function loadLocalModelFiles(files) {
+  const list = Array.from(files || []);
+  if (!list.length) throw new Error('Choose a GLB file or a glTF folder with its texture and binary files.');
+  const main = list.find(file => /\.glb$/i.test(file.name)) || list.find(file => /\.gltf$/i.test(file.name));
+  if (!main) throw new Error('No .glb or .gltf model file was found in the selection.');
+
+  const resources = [];
+  const lookup = new Map();
+  for (const file of list) {
+    const relative = (file.webkitRelativePath || file.name).replace(/\\/g, '/');
+    lookup.set(relative, file);
+    lookup.set(file.name, file);
+  }
+  const manager = new THREE.LoadingManager();
+  manager.setURLModifier(url => {
+    const decoded = decodeURIComponent(url).replace(/\\/g, '/').split('?')[0];
+    const file = lookup.get(decoded) || lookup.get(decoded.split('/').pop());
+    if (!file) return url;
+    const objectUrl = URL.createObjectURL(file);
+    resources.push(objectUrl);
+    return objectUrl;
+  });
+  const loader = new GLTFLoader(manager);
+  try {
+    const ext = main.name.toLowerCase().split('.').pop();
+    const data = ext === 'glb' ? await main.arrayBuffer() : await main.text();
+    const gltf = await loader.parseAsync(data, '');
+    const localAsset = {
+      id: 'imported-local-' + Date.now().toString(36),
+      label: main.name.replace(/\.(glb|gltf)$/i, ''),
+      category: 'Local import',
+      license: 'User-supplied model; verify its licence before redistribution.',
+      description: 'Locally imported glTF model. File materials and embedded textures are preserved where supported.',
+      dimensions: { length: 0, beam: 0, height: 0, draft: null },
+      sources: [],
+    };
+    const root = createImportedVesselWrapper(THREE, localAsset, { scene: gltf.scene, resources });
+    return { asset: localAsset, root };
+  } catch (error) {
+    for (const url of resources) URL.revokeObjectURL(url);
+    throw error;
+  }
+}
+
+export function disposeImportedModel(root) {
+  if (!root) return;
+  const geometries = new Set(), materials = new Set(), textures = new Set();
+  root.traverse(object => {
+    if (object.geometry) geometries.add(object.geometry);
+    const list = Array.isArray(object.material) ? object.material : (object.material ? [object.material] : []);
+    for (const material of list) {
+      materials.add(material);
+      for (const value of Object.values(material)) if (value?.isTexture) textures.add(value);
+    }
+  });
+  for (const geometry of geometries) geometry.dispose();
+  for (const material of materials) material.dispose();
+  for (const texture of textures) texture.dispose();
+  for (const url of root.userData.importedResources || []) URL.revokeObjectURL(url);
+  root.parent?.remove(root);
+}
