@@ -443,12 +443,7 @@ function buildRailingsAndEquipment(d,ctx){
   const y=deckY(d,t)-.36-level*d.deckHeightUnits*.24;
   const portHole=box(fittings,.34,.28,.08,materials.lower,'gunport-'+level+'-'+side+'-'+i);
   portHole.position.set(x,y,z);
-  const cannon=part('deck-gun-'+level+'-'+side+'-'+i,fittings);
-  beam(cannon,V(x,y+.02,z),V(x+side*.48,y+.02,z),.068,materials.iron,'cannon-barrel',12);
-  for(let wheel=0;wheel<2;wheel++){
-   const w=ctx.mesh(cannon,new ctx.THREE.CylinderGeometry(.1,.1,.055,10),materials.trim,'gun-carriage-wheel');
-   w.rotation.z=Math.PI/2;w.position.set(x+side*.15,y-.12,z+(wheel-.5)*.2);
-  }
+  // Keep the hull openings as visual architecture; no functional weapon geometry is generated.
  }
  const companionways=part('quarterdeck-companionways');
  for(const side of [-1,1]){
@@ -547,7 +542,7 @@ function buildRig(d,ctx){
   const truckBox=ctx.box(truck,radius*1.65,.34,radius*1.65,materials.trim,'masthead-truck');
   truckBox.position.y=totalHeight+.02;
   const platformY=lowerHeight*.91;
-  const top=part('fighting-top-'+mast.id,group);
+  const top=part('mast-platform-'+mast.id,group);
   const topDeck=ctx.box(top,d.beamUnits*.33,.13,d.beamUnits*.25,materials.deck,'fighting-top-platform');
   topDeck.position.y=platformY;
   for(const side of [-1,1]){
