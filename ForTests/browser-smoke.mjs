@@ -50,7 +50,7 @@ try{
   },{timeout:30000});
 
   const optionCount=await page.locator('#ship-select option').count();
-  assert.equal(optionCount,16,'Expected all 16 vessel choices in the dropdown.');
+  assert.equal(optionCount,19,'Expected 16 procedural vessels plus 3 imported vessel presets.');
   await page.waitForFunction(()=>{
     const status=document.querySelector('#status')?.textContent||'';
     const parts=Number(document.querySelector('#parts')?.textContent||0);
@@ -70,6 +70,78 @@ try{
   await delay(800);
   await page.locator('#viewport canvas').screenshot({path:join(projectDir,'galleon-preview.png')});
   console.log('Galleon viewport screenshot saved: galleon-preview.png');
+  const importedChecks=[
+    ['imported-sailing-sloop','imported-sloop-preview.png'],
+    ['imported-coastal-trawler','imported-trawler-preview.png'],
+    ['imported-motor-cruiser','imported-motor-cruiser-preview.png'],
+  ];
+  for(const [id,screenshot] of importedChecks){
+    await page.locator('#ship-select').selectOption(id);
+    await page.waitForFunction(expected=>{
+      const status=document.querySelector('#status')?.textContent||'';
+      return status.startsWith('Loaded ')&&status.includes('editable model components.');
+    },{timeout:45000},id);
+    assert.ok(Number(await page.locator('#parts').innerText())>0,id+' registered no editable model parts.');
+    assert.ok(await page.locator('#part-select option').count()>0,id+' did not populate its component list.');
+    await delay(450);
+    await page.locator('#viewport canvas').screenshot({path:join(projectDir,screenshot)});
+    console.log(id+' loaded with '+await page.locator('#parts').innerText()+' editable model components.');
+  }
+
+  // Exercise the local GLB import path using a tiny valid glTF 2.0 binary.
+  function makeTestGlb(){
+    const positions=Buffer.alloc(72);
+    const vertices=[
+      [-1,0,-2],[1,0,-2],[0,2,-2],
+      [-1,0,2],[1,0,2],[0,2,2],
+    ];
+    let offset=0;
+    for(const vertex of vertices)for(const value of vertex){positions.writeFloatLE(value,offset);offset+=4;}
+    const indices=Buffer.alloc(12);
+    [0,1,2,3,5,4].forEach((value,i)=>indices.writeUInt16LE(value,i*2));
+    const binary=Buffer.concat([positions,indices]);
+    const gltf={
+      asset:{version:'2.0',generator:'Verdant Reach imported-model smoke test'},
+      scene:0,
+      scenes:[{nodes:[0]}],
+      nodes:[{name:'Test sailboat hull',mesh:0}],
+      meshes:[{name:'Test hull',primitives:[{attributes:{POSITION:0},indices:1}]}],
+      buffers:[{byteLength:binary.length}],
+      bufferViews:[
+        {buffer:0,byteOffset:0,byteLength:72,target:34962},
+        {buffer:0,byteOffset:72,byteLength:12,target:34963},
+      ],
+      accessors:[
+        {bufferView:0,componentType:5126,count:6,type:'VEC3',min:[-1,0,-2],max:[1,2,2]},
+        {bufferView:1,componentType:5123,count:6,type:'SCALAR',min:[0],max:[5]},
+      ],
+    };
+    const json=Buffer.from(JSON.stringify(gltf));
+    const jsonPadding=(4-json.length%4)%4;
+    const jsonChunk=Buffer.concat([json,Buffer.alloc(jsonPadding,0x20)]);
+    const binPadding=(4-binary.length%4)%4;
+    const binChunk=Buffer.concat([binary,Buffer.alloc(binPadding)]);
+    const total=12+8+jsonChunk.length+8+binChunk.length;
+    const header=Buffer.alloc(12);
+    header.writeUInt32LE(0x46546c67,0);header.writeUInt32LE(2,4);header.writeUInt32LE(total,8);
+    const jsonHeader=Buffer.alloc(8);
+    jsonHeader.writeUInt32LE(jsonChunk.length,0);jsonHeader.writeUInt32LE(0x4e4f534a,4);
+    const binHeader=Buffer.alloc(8);
+    binHeader.writeUInt32LE(binChunk.length,0);binHeader.writeUInt32LE(0x004e4942,4);
+    return Buffer.concat([header,jsonHeader,jsonChunk,binHeader,binChunk]);
+  }
+  await page.locator('#import-3d-input').setInputFiles({
+    name:'test-imported-sailboat.glb',
+    mimeType:'model/gltf-binary',
+    buffer:makeTestGlb(),
+  });
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded test-imported-sailboat'));
+  assert.ok(Number(await page.locator('#parts').innerText())>0,'Local GLB import did not expose editable parts.');
+  assert.ok(await page.locator('#ship-select').inputValue().startsWith('imported-local-'),'Local GLB import did not add a model selector entry.');
+  await delay(350);
+  await page.locator('#viewport canvas').screenshot({path:join(projectDir,'imported-local-preview.png')});
+  console.log('Local GLB import passed.');
+
   await page.locator('#ship-select').selectOption('sloop');
 
   await page.locator('[data-mode="rotate"]').click();
