@@ -28,7 +28,7 @@ for(const path of ['ship-designs.js','ship-structures.js','ship-hull-parameteriz
 }
 assert.ok(!existsSync(join(shipRoot,'shared','define-vessel.js')),'Unused wrapper helper remains.');
 
-const hullFingerprints=new Set(),deckFingerprints=new Set(),keelFingerprints=new Set(),sectionFingerprints=new Set(),sailFingerprints=new Set();
+const hullFingerprints=new Set(),deckFingerprints=new Set(),keelFingerprints=new Set(),sectionFingerprints=new Set(),deckEdgeFingerprints=new Set(),sailFingerprints=new Set();
 for(const id of ids){
  const path=join(shipRoot,'vessels',id+'.js');assert.ok(existsSync(path),'Missing independent vessel module: '+id);
  const source=readFileSync(path,'utf8');
@@ -45,24 +45,29 @@ for(const id of ids){
  assert.ok(source.includes('buildCanvasSail(ctx,'),id+' must use its local sail builder.');
  assert.ok(registry.includes("./vessels/"+id+".js"),id+' missing from the registry.');
  assert.ok(!source.includes('../V8/')&&!source.includes('V8/verdant-reach'),id+' must not import main-game code.');
- const hull=source.match(/function halfBreadth\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\}/);
- const deck=source.match(/function deckY\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\}/);
- const keel=source.match(/function keelY\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\}/);
- const section=source.match(/function hullPoint\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\}/);
- const sail=source.match(/function buildCanvasSail\\(ctx,[\\s\\S]*?\\n\\}/);
+ const hull=source.match(/function halfBreadth\([^)]*\)\s*\{([\s\S]*?)\}/);
+ const deck=source.match(/function deckY\([^)]*\)\s*\{([\s\S]*?)\}/);
+ const keel=source.match(/function keelY\([^)]*\)\s*\{([\s\S]*?)\}/);
+ const section=source.match(/function hullPoint\([^)]*\)\s*\{([\s\S]*?)\}/);
+ const deckEdge=source.match(/function deckBreadthRatio\(d\)\s*\{([\s\S]*?)\}/);
+ const sail=source.match(/function buildCanvasSail\(ctx,[\s\S]*?\n\}/);
  assert.ok(hull,id+' missing individual hull breadth algorithm.');
  assert.ok(deck,id+' missing individual deck sheer algorithm.');
  assert.ok(keel,id+' missing individual keel rocker algorithm.');
  assert.ok(section,id+' missing individual hull cross-section algorithm.');
+ assert.ok(deckEdge,id+' missing its deck-edge breadth calculation.');
+ assert.ok(source.includes('const v=1-Math.pow(Math.abs(Math.sin(a)),'),id+' must map the hull section from keel to both gunwales.');
+ assert.ok(source.includes('half=halfBreadth(d,t)*deckBreadthRatio(d)'),id+' deck mesh must meet its own hull edge.');
  assert.ok(sail,id+' missing individual sail-cloth algorithm.');
  hullFingerprints.add(hull[1].trim());deckFingerprints.add(deck[1].trim());
  keelFingerprints.add(keel[1].trim());sectionFingerprints.add(section[1].trim());
- sailFingerprints.add(sail[0].trim());
+ deckEdgeFingerprints.add(deckEdge[1].trim());sailFingerprints.add(sail[0].trim());
 }
 assert.equal(hullFingerprints.size,16,'Each vessel must implement a distinct hull breadth function.');
 assert.equal(deckFingerprints.size,16,'Each vessel must implement its own deck sheer function.');
 assert.equal(keelFingerprints.size,16,'Each vessel must implement its own keel rocker function.');
 assert.equal(sectionFingerprints.size,16,'Each vessel must implement its own hull section function.');
+assert.equal(deckEdgeFingerprints.size,16,'Each vessel must implement its own deck-edge breadth calculation.');
 assert.equal(sailFingerprints.size,16,'Each vessel must implement its own sail surface profile.');
 
 const preview=readFileSync(join(here,'preview.js'),'utf8');
