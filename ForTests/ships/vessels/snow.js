@@ -34,25 +34,10 @@ export const SnowDefinition = defineVesselSpec({
 import * as THREE from 'three';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 
-function deckY(d,t){
- const q=Math.max(0,Math.min(1,t)),edge=Math.abs(2*q-1);
- const sheer=Math.pow(edge,1.34),bow=Math.pow(Math.max(0,1-2*q),1.12),stern=Math.pow(Math.max(0,2*q-1),1.18);
- return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*sheer*d.structure.sheer+d.hull.bowRise*d.deckHeightUnits*bow+d.hull.sternRise*d.deckHeightUnits*stern;
-}
-function keelY(d,t){
- const q=Math.max(0,Math.min(1,t)),mid=Math.pow(Math.max(0,Math.sin(Math.PI*q)),0.68);
- const depth=0.79+(1-0.79)*mid+d.hull.keelDepth*0.08*mid*(1-mid);
- return -d.draftUnits*Math.min(1,depth);
-}
+function deckY(d,t){const q=Math.max(0,Math.min(1,t)),edge=Math.abs(2*q-1);const sheer=Math.pow(edge,1.34),bow=Math.pow(Math.max(0,1-2*q),1.12),stern=Math.pow(Math.max(0,2*q-1),1.18);return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*sheer*d.structure.sheer+d.hull.bowRise*d.deckHeightUnits*bow+d.hull.sternRise*d.deckHeightUnits*stern;}
+function keelY(d,t){const q=Math.max(0,Math.min(1,t)),mid=Math.pow(Math.max(0,Math.sin(Math.PI*q)),0.68);const depth=0.79+(1-0.79)*mid+d.hull.keelDepth*0.08*mid*(1-mid);return -d.draftUnits*Math.min(1,depth);}
 function halfBreadth(d,t){const mid=Math.max(0,Math.sin(Math.PI*t)),fore=.87+.13*Math.min(1,t*3),aft=1+.09*Math.exp(-Math.pow((t-.72)*5,2));return d.beamUnits*.5*Math.pow(mid,.74)*fore*aft;}
-function hullPoint(d,t,a){
- const raw=(Math.sin(a)+1)*.5,v=Math.max(0,Math.min(1,(raw-0.04)/(0.61-0.04)));
- const deck=deckY(d,t),keel=keelY(d,t),lowerT=Math.min(1,v/.78),upperT=Math.max(0,Math.min(1,(v-.78)/.22));
- const lower=0.17+(1-0.17)*Math.pow(Math.sin(lowerT*Math.PI*.5),0.7);
- const tuck=d.hull.tumblehome*0.92+d.structure.tumble*.55+0.065,flare=d.structure.flare*0.38;
- const upper=1-tuck*Math.pow(upperT,1.16)+flare*Math.pow(upperT,.9),section=v<=.78?lower:upper;
- return V(Math.cos(a)*halfBreadth(d,t)*section,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);
-}
+function hullPoint(d,t,a){const v=(Math.sin(a)+1)*.5,deck=deckY(d,t),keel=keelY(d,t);const transition=0.62,lowerT=Math.max(0,Math.min(1,v/transition)),upperT=Math.max(0,Math.min(1,(v-transition)/(1-transition)));const lower=0.025+(1-0.025)*Math.pow(Math.sin(lowerT*Math.PI*.5),0.56)*(1+(d.structure.bilge||0)*.18*Math.sin(Math.PI*lowerT));const smooth=upperT*upperT*(3-2*upperT);const deckRatio=Math.max(.58,Math.min(.99,0.92-d.hull.tumblehome*0.48-d.structure.tumble*.25-0.02+d.structure.flare*0.25));const upper=1+(deckRatio-1)*Math.pow(smooth,1.16);const section=v<=transition?lower:upper;return V(Math.cos(a)*halfBreadth(d,t)*section,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);}
 function buildHull(d,ctx){
  const {THREE,part,mesh,materials,V}=ctx,hullGroup=part('hull'),stations=90,rings=36,positions=[],indices=[];
  for(let i=0;i<=stations;i++){const t=i/stations;for(let j=0;j<=rings;j++){const q=hullPoint(d,t,j/rings*Math.PI*2);positions.push(q.x,q.y,q.z);}}
