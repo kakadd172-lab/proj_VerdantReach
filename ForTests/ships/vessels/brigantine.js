@@ -45,11 +45,13 @@ function keelY(d,t){
 }
 function halfBreadth(d,t){const mid=Math.max(0,Math.sin(Math.PI*t)),body=.87+.15*Math.sin(Math.PI*t*.92),bow=.82+.18*Math.min(1,t*3.8),stern=.92+.08*Math.min(1,(1-t)*4.2);return d.beamUnits*.5*Math.pow(mid,.68)*body*bow*stern;}
 function hullPoint(d,t,a){
- const raw=(Math.sin(a)+1)*.5,v=Math.max(0,Math.min(1,(raw-0.035)/(0.61-0.035)));
- const deck=deckY(d,t),keel=keelY(d,t),lowerT=Math.min(1,v/.78),upperT=Math.max(0,Math.min(1,(v-.78)/.22));
- const lower=0.16+(1-0.16)*Math.pow(Math.sin(lowerT*Math.PI*.5),0.72);
- const tuck=d.hull.tumblehome*1.04+d.structure.tumble*.55+0.06,flare=d.structure.flare*0.34;
- const upper=1-tuck*Math.pow(upperT,1.18)+flare*Math.pow(upperT,.9),section=v<=.78?lower:upper;
+ const v=(Math.sin(a)+1)*.5,deck=deckY(d,t),keel=keelY(d,t);
+ const transition=0.62,lowerT=Math.max(0,Math.min(1,v/transition)),upperT=Math.max(0,Math.min(1,(v-transition)/(1-transition)));
+ const lower=0.025+(1-0.025)*Math.pow(Math.sin(lowerT*Math.PI*.5),0.62)*(1+(d.structure.bilge||0)*.18*Math.sin(Math.PI*lowerT));
+ const smooth=upperT*upperT*(3-2*upperT);
+ const deckRatio=Math.max(.58,Math.min(.99,0.92-d.hull.tumblehome*0.48-d.structure.tumble*.25-0.02+d.structure.flare*0.26));
+ const upper=1+(deckRatio-1)*Math.pow(smooth,1.18);
+ const section=v<=transition?lower:upper;
  return V(Math.cos(a)*halfBreadth(d,t)*section,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);
 }
 function buildHull(d,ctx){
