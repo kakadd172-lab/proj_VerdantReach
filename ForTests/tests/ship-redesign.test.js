@@ -322,3 +322,31 @@ test('Galleon keel has a sculpted rocker and stern tiers taper and project aft',
     disposeShipModel(ship);
   }
 });
+
+
+test('Galleon rig, sails, beakhead and flared stern retain their refined construction', () => {
+  const source = readFileSync(new URL('../ships/vessels/galleon.js', import.meta.url), 'utf8');
+  assert.ok(!source.includes('reinforced-sail-perimeter'), 'sail perimeter ropes must not be generated');
+  assert.ok(!source.includes('sail-bolt-rope-'), 'sail bolt-rope loops must not be generated');
+  assert.ok(source.includes('fullness=.28'), 'Galleon sails should use the fuller cloth profile');
+
+  const ship = createShipModel('galleon');
+  try {
+    assert.ok(ship.getObjectByName('short-tapered-bowsprit'), 'short bowsprit should be seated in the beakhead');
+    assert.ok(ship.getObjectByName('broad-tapered-beakhead-platform'), 'beakhead should have a broad tapered deck');
+    assert.ok(ship.getObjectByName('twelve-sided-fighting-top'), 'mast platform should be polygonal, not a square plate');
+    assert.ok(ship.getObjectByName('sail-fore-staysail'), 'one restrained fore-staysail should be present');
+
+    const cabin = ship.getObjectByName('sloped-quarter-cabin-wall-1');
+    assert.ok(cabin?.isMesh, 'Galleon quarter cabin wall');
+    const p = cabin.geometry.getAttribute('position');
+    const across = 25;
+    const rows = 12;
+    const lowerEdge = Math.abs(p.getX(12));
+    const upperStart = rows * across;
+    const upperEdge = Math.abs(p.getX(upperStart + 12));
+    assert.ok(lowerEdge > upperEdge + 0.12, 'cabin sides should flare outward at the lower level and taper inward above');
+  } finally {
+    disposeShipModel(ship);
+  }
+});
