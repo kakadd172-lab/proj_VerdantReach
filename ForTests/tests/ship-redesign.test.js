@@ -1,4 +1,5 @@
 import test from 'node:test';
+import * as THREE from 'three';
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
@@ -74,7 +75,7 @@ test('historical reference variants stay within their intended length-to-beam en
     sloop: [3.8, 4.1], schooner: [3.3, 3.8], brigantine: [3.3, 3.8],
     brig: [3.2, 3.7], snow: [3.4, 3.9], cutter: [3.1, 3.5],
     frigate: [3.4, 3.8], barque: [4.4, 4.7], caravel: [2.6, 3.1],
-    carrack: [2.9, 3.3], galleon: [2.8, 3.3], fluyt: [4.7, 5.1],
+    carrack: [2.9, 3.3], galleon: [3.8, 4.2], fluyt: [4.7, 5.1],
     xebec: [4.0, 4.8], junk: [3.6, 4.2], 'first-rate': [3.4, 3.8],
     pinnace: [3.4, 4.0],
   };
@@ -278,6 +279,45 @@ test('reset component restores its original hierarchy, transform and visibility'
     assert.ok(Math.abs(part.rotation.z - originalRotation.z) < 1e-8);
     assert.deepEqual(ship.userData.getShipState().unlinkedParts, []);
     assert.deepEqual(ship.userData.getShipState().hiddenParts, {});
+  } finally {
+    disposeShipModel(ship);
+  }
+});
+
+
+test('Galleon keel has a sculpted rocker and stern tiers taper and project aft', () => {
+  const ship = createShipModel('galleon');
+  try {
+    const keelMesh = ship.getObjectByName('galleon-sculpted-keel');
+    assert.ok(keelMesh?.isMesh, 'Galleon sculpted keel mesh');
+    const keelPositions = keelMesh.geometry.getAttribute('position');
+    const ring = 12;
+    const stations = 104;
+    const lowestAt = (station) => {
+      let lowest = Infinity;
+      for (let j = 0; j < ring; j += 1) {
+        lowest = Math.min(lowest, keelPositions.getY(station * ring + j));
+      }
+      return lowest;
+    };
+    const foreKeel = lowestAt(0);
+    const midKeel = lowestAt(Math.floor(stations / 2));
+    const aftKeel = lowestAt(stations);
+    assert.ok(midKeel < foreKeel - 0.8, 'keel must rise toward the forefoot');
+    assert.ok(midKeel < aftKeel - 0.8, 'keel must rise toward the sternpost');
+
+    const transom = ship.getObjectByName('curved-transom-wall-1');
+    assert.ok(transom?.isMesh, 'lower stern transom mesh');
+    const p = transom.geometry.getAttribute('position');
+    const across = 36;
+    const rows = 12;
+    const lowerWidth = Math.abs(p.getX(across) - p.getX(0));
+    const upperStart = rows * (across + 1);
+    const upperWidth = Math.abs(p.getX(upperStart + across) - p.getX(upperStart));
+    assert.ok(lowerWidth > upperWidth * 1.15, 'stern transom should narrow substantially toward its top');
+    const lowerAft = p.getZ(across / 2);
+    const upperAft = p.getZ(upperStart + across / 2);
+    assert.ok(upperAft > lowerAft + 0.3, 'upper stern structure should project aft beyond the lower transom');
   } finally {
     disposeShipModel(ship);
   }
