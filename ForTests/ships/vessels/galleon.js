@@ -467,13 +467,7 @@ function buildRailingsAndEquipment(d,ctx){
    beam(group,V(side*size*.5,deckY(d,t)+.19,z-size*.42),V(side*size*.5,deckY(d,t)+.19,z+size*.42),.025,materials.trim,'hatch-coaming');
   }
  }
- for(let level=0;level<2;level++)for(let side of [-1,1])for(let i=0;i<12;i++){
-  const t=.14+i/11*.72,x=side*halfBreadth(d,t)*.8,z=(t-.5)*d.hullLengthUnits;
-  const y=deckY(d,t)-.36-level*d.deckHeightUnits*.24;
-  const portHole=box(fittings,.34,.28,.08,materials.lower,'gunport-'+level+'-'+side+'-'+i);
-  portHole.position.set(x,y,z);
-  // Keep the hull openings as visual architecture; no functional weapon geometry is generated.
- }
+
  const companionways=part('quarterdeck-companionways');
  for(const side of [-1,1]){
   const stair=part('sterncastle-stairs-'+side,companionways);
