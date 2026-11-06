@@ -46,7 +46,7 @@ function keelY(d,t){
 function deckBreadthRatio(d){return Math.max(.58,Math.min(.99,0.9-d.hull.tumblehome*0.42-d.structure.tumble*.25-0.01+d.structure.flare*0.22));}
 function halfBreadth(d,t){const mid=Math.max(0,Math.sin(Math.PI*t)),fore=1-.24*Math.pow(1-t,1.7),aft=1-.11*Math.pow(t,2.1);return d.beamUnits*.5*Math.pow(mid,.91)*fore*aft*(1-.035*Math.cos(2*Math.PI*t));}
 function hullPoint(d,t,a){
- const v=1-Math.pow(Math.abs(Math.sin(a)),1.72),deck=deckY(d,t),keel=keelY(d,t);
+ const v=1-Math.pow(Math.max(0,Math.sin(a)),1.72),deck=deckY(d,t),keel=keelY(d,t);
  const transition=0.6,lowerT=Math.max(0,Math.min(1,v/transition)),upperT=Math.max(0,Math.min(1,(v-transition)/(1-transition)));
  const lower=0.01+(1-0.01)*Math.pow(Math.sin(lowerT*Math.PI*.5),0.55)*(1+(d.structure.bilge||0)*.18*Math.sin(Math.PI*lowerT));
  const smooth=upperT*upperT*(3-2*upperT);
