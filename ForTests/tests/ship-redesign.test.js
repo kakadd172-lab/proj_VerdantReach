@@ -35,7 +35,7 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     id,
     readFileSync(new URL('../ships/vessels/' + id + '.js', import.meta.url), 'utf8'),
   ]));
-  const hullAlgorithms = [];
+  const algorithms = { halfBreadth: [], deckY: [], keelY: [], hullPoint: [] };
   for (const [id, source] of sources) {
     for (const required of [
       'function halfBreadth(', 'function hullPoint(', 'function buildHull(',
@@ -51,13 +51,35 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     assert.ok(match, id + ' has a readable local hull breadth function');
     hullAlgorithms.push(match[1].trim());
   }
-  assert.equal(new Set(hullAlgorithms).size, 16, 'All 16 ships must have different hull breadth algorithms');
+  for (const [name, bodies] of Object.entries(algorithms)) {
+    assert.equal(new Set(bodies).size, 16, 'All 16 ships must have their own ' + name + ' algorithm');
+  }
 
   const kit = readFileSync(new URL('../ships/shared/ship-editor-kit.js', import.meta.url), 'utf8');
   assert.ok(kit.includes('createShipContext'));
   assert.ok(kit.includes('finishShipModel'));
   for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildCanvasSail(', 'function buildRig(']) {
     assert.ok(!kit.includes(geometryRoutine), 'Editor kit must not contain vessel geometry: ' + geometryRoutine);
+  }
+});
+
+
+test('historical reference variants stay within their intended length-to-beam envelopes', () => {
+  const ranges = {
+    sloop: [3.8, 4.1], schooner: [3.3, 3.8], brigantine: [3.3, 3.8],
+    brig: [3.2, 3.7], snow: [3.4, 3.9], cutter: [3.1, 3.5],
+    frigate: [3.4, 3.8], barque: [3.1, 3.6], caravel: [2.6, 3.1],
+    carrack: [2.9, 3.3], galleon: [2.8, 3.3], fluyt: [4.0, 4.6],
+    xebec: [4.0, 4.8], junk: [3.6, 4.2], 'first-rate': [3.4, 3.8],
+    pinnace: [3.4, 4.0],
+  };
+  for (const [id, [minimum, maximum]] of Object.entries(ranges)) {
+    const design = getShipDesign(id);
+    assert.ok(
+      design.lengthBeamRatio >= minimum && design.lengthBeamRatio <= maximum,
+      id + ' length-to-beam ratio ' + design.lengthBeamRatio.toFixed(3) +
+        ' is outside the intended ' + minimum + '–' + maximum + ' envelope',
+    );
   }
 });
 
