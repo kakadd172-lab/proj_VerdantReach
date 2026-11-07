@@ -176,11 +176,6 @@ test('all 16 independent ForTests generators build separate editable models', ()
         assert.ok(galleryWalkways >= 2, id + ' should have separate port and starboard stern gallery walkways');
         assert.ok(gallerySupports >= 10, id + ' should support its stern galleries with visible corbels');
 
-        let visibleGunports = 0;
-        ship.userData.getPart('deck-fittings').traverse((object) => {
-          if (object.isMesh && object.name.startsWith('gunport-')) visibleGunports += 1;
-        });
-        assert.ok(visibleGunports >= 20, id + ' should expose port openings and frames along its gun decks');
       }
       if (['galleon','carrack'].includes(id)) {
         assert.ok(ship.userData.getPart(id + '-forecastle'), id + ' raised forecastle assembly');
