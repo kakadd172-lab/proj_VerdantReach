@@ -19,3 +19,9 @@ vessel's own `createModel()` function.
 
 To add a ship, implement its geometry in a new `vessels/<id>.js` module, then
 register it in `index.js`.
+
+
+The v0.8.8 visual pass also gives the galleon, carrack, and first-rate
+independent tapered stern-castle shells, framed gallery windows and balconies.
+The galleon and carrack add raised foredeck platforms and bulwarks; all three
+have hull-surface gunport frames and separately editable cannon assemblies.

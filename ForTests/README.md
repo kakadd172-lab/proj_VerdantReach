@@ -99,3 +99,16 @@ npm run dev
 
 Open `http://127.0.0.1:5174/`. Experiments are saved in
 `design-overrides.json`; they do not rewrite the base vessel definition.
+
+
+## Visual refinement pass — 0.8.8
+
+The galleon, carrack, and first-rate now build their stern tiers as locally
+authored tapered, bevelled extrusions instead of plain rectangular blocks.
+Their stern windows have individual trim and mullions, with gallery balconies
+and railings. The galleon and carrack also have raised forecastle deck surfaces
+and bulwarks. Their gun decks now place framed, outward-facing gunports directly
+on the vessel's own hull surface, with separate cannon assemblies.
+
+These additions remain in the three vessel modules. No shared hull or stern
+geometry builder has been introduced.

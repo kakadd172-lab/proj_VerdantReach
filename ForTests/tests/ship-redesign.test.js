@@ -102,6 +102,23 @@ test('all 16 independent ForTests generators build separate editable models', ()
       assert.ok(ship.userData.getPart('hull'), id + ' hull');
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
+      if (['galleon','carrack','first-rate'].includes(id)) {
+        const sternTier = ship.userData.getPart('stern-tier-1');
+        let taperedSternMeshes = 0;
+        sternTier.traverse((object) => {
+          if (object.isMesh && object.geometry?.type === 'ExtrudeGeometry') taperedSternMeshes += 1;
+        });
+        assert.ok(taperedSternMeshes > 0, id + ' should use a tapered, bevelled stern-tier shell');
+        let visibleGunports = 0;
+        ship.userData.getPart('deck-fittings').traverse((object) => {
+          if (object.isMesh && object.name.startsWith('gunport-')) visibleGunports += 1;
+        });
+        assert.ok(visibleGunports >= 20, id + ' should expose port openings and frames along its gun decks');
+      }
+      if (['galleon','carrack'].includes(id)) {
+        assert.ok(ship.userData.getPart(id + '-forecastle'), id + ' raised forecastle assembly');
+        assert.ok(ship.userData.getPart(id + '-forecastle-deck'), id + ' raised forecastle deck');
+      }
       assert.ok(ship.userData.partNames.some((name) => name.startsWith('panel-seams-sail-')), id + ' editable sail panel seams');
       for (const partName of getShipDesign(id).partNames) {
         assert.ok(ship.userData.getPart(partName), id + ' missing editable component ' + partName);
