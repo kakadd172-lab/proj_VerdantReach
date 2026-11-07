@@ -211,7 +211,26 @@ try{
   assert.ok(reimportStatus.startsWith('Loaded '),'Re-import did not finish loading. Status: '+reimportStatus);
   assert.equal(await page.locator('#ship-select option').count(),optionCountBeforeReimport,'Re-import added a duplicate local model option.');
   assert.equal(await importedXField.inputValue(),'0.750','Re-import did not reconnect the saved local-model transform.');
-  console.log('Local imported-model backup and re-import persistence passed.');
+  console.log('Local imported-model backup and same-session re-import persistence passed.');
+
+  // Re-open the page to verify the saved state survives a browser reload, then reconnect the local file.
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '),undefined,{timeout:15000});
+  await page.locator('#import-3d-input').setInputFiles(localGlbPayload);
+  await page.waitForFunction(expected=>{
+    const selected=document.querySelector('#ship-select')?.value||'';
+    const status=document.querySelector('#status')?.textContent||'';
+    return selected!==expected||status.startsWith('Recorded: Import model test-imported-sailboat')
+      ||status.startsWith('Model import failed:')||status.startsWith('Could not load imported model:');
+  },localAssetId,{timeout:15000});
+  const reloadedId=await page.locator('#ship-select').inputValue();
+  const reloadedStatus=await page.locator('#status').innerText();
+  assert.equal(reloadedId,localAssetId,'Local model identity changed after page reload. Status: '+reloadedStatus);
+  assert.ok(reloadedStatus.startsWith('Recorded: Import model test-imported-sailboat'),
+    'Local model did not reconnect after page reload. Status: '+reloadedStatus);
+  await page.locator('details.section-card').filter({hasText:'Precise transforms'}).locator('summary').click();
+  assert.equal(await importedXField.inputValue(),'0.750','Imported-model transform was not restored from browser storage after reload.');
+  console.log('Local imported-model state survived a page reload.');
 
   // Exercise folder import with nested binary resources and duplicate filenames.
   const gltfFixtureDir=await mkdtemp(join(tmpdir(),'verdant-reach-gltf-folder-'));
@@ -244,13 +263,25 @@ try{
     await writeFile(join(gltfFixtureDir,'folder-test.gltf'),JSON.stringify(gltf));
     await writeFile(join(gltfFixtureDir,'geometry','mesh.bin'),binary);
     await writeFile(join(gltfFixtureDir,'unused','mesh.bin'),Buffer.from([9,8,7,6]));
+    await page.evaluate(()=>{
+      const input=document.querySelector('#import-3d-folder-input');
+      window.__folderImportFiles=null;
+      input?.addEventListener('change',()=>{
+        window.__folderImportFiles=Array.from(input.files||[]).map(file=>({
+          name:file.name,relativePath:file.webkitRelativePath,size:file.size
+        }));
+      },{capture:true,once:true});
+    });
     await page.locator('#import-3d-folder-input').setInputFiles(gltfFixtureDir);
-    const selectedFolderFiles=await page.locator('#import-3d-folder-input').evaluate(input=>
-      Array.from(input.files||[]).map(file=>({name:file.name,relativePath:file.webkitRelativePath,size:file.size})));
+    const selectedFolderFiles=await page.evaluate(()=>window.__folderImportFiles||[]);
     console.log('glTF folder input files: '+JSON.stringify(selectedFolderFiles));
+    assert.ok(selectedFolderFiles.some(file=>file.name==='folder-test.gltf'),'Folder picker did not include the glTF file.');
+    const duplicateBins=selectedFolderFiles.filter(file=>file.name==='mesh.bin');
+    assert.equal(duplicateBins.length,2,'Folder picker did not preserve both same-named companion files.');
+    assert.notEqual(duplicateBins[0].relativePath,duplicateBins[1].relativePath,'Folder picker lost relative paths for duplicate companion files.');
     await page.waitForFunction(()=>{
       const status=document.querySelector('#status')?.textContent||'';
-      return status.startsWith('Loaded ')
+      return status.startsWith('Recorded: Import model folder-test')
         ||status.startsWith('Model import failed:')
         ||status.startsWith('Could not load imported model:');
     },undefined,{timeout:20000}).catch(async error=>{
@@ -261,8 +292,9 @@ try{
     });
     const folderStatus=await page.locator('#status').innerText();
     const folderSelected=await page.locator('#ship-select').inputValue();
-    assert.ok(folderStatus.startsWith('Loaded '),'glTF folder importer failed. Status: '+folderStatus
-      +' · selected: '+folderSelected+' · files: '+JSON.stringify(selectedFolderFiles));
+    assert.ok(folderStatus.startsWith('Recorded: Import model folder-test'),
+      'glTF folder importer failed. Status: '+folderStatus+' · selected: '+folderSelected
+      +' · files: '+JSON.stringify(selectedFolderFiles));
     assert.ok(folderSelected.startsWith('imported-local-')&&(await page.locator('#ship-caption').innerText()).includes('folder-test'),
       'glTF folder selection did not load the expected local model.');
     assert.ok(Number(await page.locator('#parts').innerText())>0,'glTF folder import did not expose editable components.');
