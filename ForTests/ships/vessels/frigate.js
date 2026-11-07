@@ -9,10 +9,12 @@ import { createShipContext, finishShipModel } from '../shared/ship-editor-kit.js
 export const FrigateDefinition = defineVesselSpec({
   id: 'frigate',
   design: {
-    id: 'frigate', label: '18th-century frigate', era: '18th century',
+    id: 'frigate', label: '18th-century passenger frigate refit', era: '18th century',
     hullLength: 30.8, beam: 8.4, draft: 3.5, freeboard: 2.05,
     rig: 'Three full-rigged masts; low continuous upper profile rather than tall end-castles.',
     hullProfile: 'V-shaped lower body, fine entrance, square counter and a distinctly raked sternpost; a speed-oriented 18th-century Dutch frigate form.',
+    signatureFeatures: ["Quarterdeck stair","Aft passenger cabin","Deck capstan","Glazed skylight"],
+    detailParts: ["frigate-quarterdeck-stairs","frigate-officer-cabin","frigate-capstan","frigate-skylight"],
     reference: 'Anchored to the documented Dutch frigate ’t Hart at 30.8 m length and 8.4 m beam; 18th-century Dutch frigates averaged a length-to-beam ratio near 3.4:1. This is one reference form, not a universal frigate size.',
     sources: [{ label: 'Journal of Maritime Archaeology — Frigate ’t Hart (2025)', url: 'https://link.springer.com/article/10.1007/s11457-025-09458-2' }],
     hull: { fullness: 0.62, entry: 0.78, stern: 'counter', sternWidth: 0.3, tumblehome: 0.17, sheer: 0.09, bowRise: 0.21, sternRise: 0.18, keelDepth: 0.1, deckCamber: 0.12 },
@@ -27,7 +29,7 @@ export const FrigateDefinition = defineVesselSpec({
     ],
     headsails: 4, oars: false,
   },
-  structure: { frameCount: 36, beamStation: .52, forebody: 1.13, aftbody: 1.14, foreTip: .002, aftTip: .08, bottomFlat: .22, bilge: .11, flare: .05, tumble: .19, sheer: .9, lowerMastRatio: .66, shroudPairs: 4, ratlines: 11, yardSpread: 1.08 },
+  structure: { frameCount: 36, strakeRows: 12, deckSeamCount: 14, beamStation: .52, forebody: 1.13, aftbody: 1.14, foreTip: .002, aftTip: .08, bottomFlat: .22, bilge: .11, flare: .05, tumble: .19, sheer: .9, lowerMastRatio: .66, shroudPairs: 4, ratlines: 11, yardSpread: 1.08 },
 });
 
 
@@ -61,12 +63,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'frigate-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=8;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'frigate-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'frigate-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'frigate-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
  const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.405,deck=deckY(d,.94),tiers=d.sternTiers||[];
@@ -81,10 +83,24 @@ function buildRailingsAndEquipment(d,ctx){
  for(const [side,group] of [[-1,port],[1,starboard]]){const points=[];for(let i=0;i<=42;i++){const t=.08+.84*i/42,x=side*halfBreadth(d,t)*.88,y=deckY(d,t)+.56,z=(t-.5)*d.hullLengthUnits;points.push(V(x,y,z));if(i%4===0)beam(group,V(x,y-.48,z),V(x,y+.02,z),.035,materials.trim,'rail-post-'+i);}tube(group,points,.052,materials.trim,'frigate-gunwale-rail',64);}
  const fittings=part('deck-fittings');
  for(let h=0;h<2;h++){const t=.32+h*.13,z=(t-.5)*d.hullLengthUnits,group=part('cargo-hatch-'+h,fittings),size=d.beamUnits*.2,cover=box(group,size,.12,size*.84,materials.plank,'hatch-cover');cover.position.set(0,deckY(d,t)+.12,z);}
- for(let level=0;level<1;level++)for(let side of [-1,1])for(let i=0;i<10;i++){const t=.14+i/Math.max(1,10-1)*.72,x=side*halfBreadth(d,t)*.8,z=(t-.5)*d.hullLengthUnits,y=deckY(d,t)-.36-level*d.deckHeightUnits*.24,portHole=box(fittings,.34,.28,.08,materials.lower,'gunport-'+level+'-'+side+'-'+i);portHole.position.set(x,y,z);const cannon=part('deck-gun-'+level+'-'+side+'-'+i,fittings);beam(cannon,V(x,y+.02,z),V(x+side*.48,y+.02,z),.068,materials.iron,'cannon-barrel',12);for(let wheel=0;wheel<2;wheel++){const w=ctx.mesh(cannon,new ctx.THREE.CylinderGeometry(.1,.1,.055,10),materials.trim,'gun-carriage-wheel');w.rotation.z=Math.PI/2;w.position.set(x+side*.15,y-.12,z+(wheel-.5)*.2);}}
+  // Non-combat refit: deck-gun and gunport geometry intentionally omitted.
+ 
  
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const cabin=part('frigate-officer-cabin'),cy=deckY(d,.87),cz=d.hullLengthUnits*.36,cw=d.beamUnits*.3,ch=.72,cd=d.hullLengthUnits*.055,body=box(cabin,cw,ch,cd,materials.hull,'passenger-cabin-body');body.position.set(0,cy+ch*.5,cz);
+ const roof=box(cabin,cw*1.06,.1,cd*1.08,materials.trim,'cabin-roof');roof.position.set(0,cy+ch+.05,cz);
+ for(let side of [-1,1]){const pane=box(cabin,.24,.29,.035,materials.glass,'cabin-light');pane.position.set(side*cw*.5,cy+ch*.58,cz);}
+ const stairs=part('frigate-quarterdeck-stairs'),sy=deckY(d,.68),sz=d.hullLengthUnits*.2,sw=d.beamUnits*.22;
+ for(let i=0;i<7;i++){const f=i/6,step=box(stairs,sw,.1,.3,materials.plank,'quarterdeck-step');step.position.set(0,sy+f*.52,sz+f*d.hullLengthUnits*.09);}
+ for(let side of [-1,1])beam(stairs,V(side*sw*.5,sy,sz),V(side*sw*.5,sy+.62,sz+d.hullLengthUnits*.09),.035,materials.trim,'stair-rail');
+ const skylight=part('frigate-skylight'),ky=deckY(d,.78),kz=d.hullLengthUnits*.26,kw=d.beamUnits*.18,frame=box(skylight,kw,.12,kw*.72,materials.trim,'skylight-frame');frame.position.set(0,ky+.08,kz);
+ const pane=box(skylight,kw*.8,.035,kw*.55,materials.glass,'skylight-glazing');pane.position.set(0,ky+.15,kz);
+ const capstan=part('frigate-capstan'),ty=deckY(d,.48),tz=-d.hullLengthUnits*.025,drum=mesh(capstan,new THREE.CylinderGeometry(.28,.3,.68,16),materials.trim,'capstan-drum');drum.position.set(0,ty+.34,tz);
+ for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(capstan,V(Math.cos(a)*.48,ty+.7,tz+Math.sin(a)*.48),V(Math.cos(a)*.78,ty+.7,tz+Math.sin(a)*.78),.038,materials.trim,'capstan-bar');}
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -211,6 +227,7 @@ function generateFrigateGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);

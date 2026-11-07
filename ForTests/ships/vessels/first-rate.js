@@ -9,10 +9,12 @@ import { createShipContext, finishShipModel } from '../shared/ship-editor-kit.js
 export const FirstRateDefinition = defineVesselSpec({
   id: 'first-rate',
   design: {
-    id: 'first-rate', label: 'First-rate ship of the line', era: 'Late 18th century reference form',
+    id: 'first-rate', label: 'Three-deck ocean transport (first-rate hull form)', era: 'Late 18th century reference form',
     hullLength: 56.73, beam: 15.79, draft: 5.9, freeboard: 3.05,
     rig: 'Three very tall square-rigged masts with a full course, topsail and topgallant sequence.',
     hullProfile: 'Very long, deep three-deck hull with a fine entrance, full central body, pronounced sheer and stepped stern.',
+    signatureFeatures: ["Three-deck quarterdeck stair","Aft passenger cabin","Heavy capstan","Glazed deck skylight"],
+    detailParts: ["first-rate-quarterdeck-stair","first-rate-captain-cabin","first-rate-capstan","first-rate-skylight"],
     reference: 'HMS Victory is the dimensional anchor: the model uses the 186 ft (56.73 m) gun-deck length and 52 ft (15.79 m) extreme breadth. The 151 ft keel length is a separate measure; 227 ft (about 68.88 m) overall length is a reasonableness check including the projecting bow. Draft, freeboard, mast heights and detailed hull offsets are reconstruction estimates.',
     sources: [
       { label: 'The Mariners’ Museum — HMS Victory gun-deck and keel dimensions', url: 'https://catalogs.marinersmuseum.org/object/CL13073' },
@@ -31,7 +33,7 @@ export const FirstRateDefinition = defineVesselSpec({
     ],
     headsails: 4, oars: false,
   },
-  structure: { frameCount: 42, beamStation: .52, forebody: 1.08, aftbody: 1.04, foreTip: .002, aftTip: .095, bottomFlat: .32, bilge: .2, flare: .07, tumble: .17, sheer: .95, lowerMastRatio: .66, shroudPairs: 5, ratlines: 12, yardSpread: 1.1 },
+  structure: { frameCount: 42, strakeRows: 14, deckSeamCount: 16, beamStation: .52, forebody: 1.08, aftbody: 1.04, foreTip: .002, aftTip: .095, bottomFlat: .32, bilge: .2, flare: .07, tumble: .17, sheer: .95, lowerMastRatio: .66, shroudPairs: 5, ratlines: 12, yardSpread: 1.1 },
 });
 
 import * as THREE from 'three';
@@ -64,12 +66,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=56;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.0075),materials.trim,'first-rate-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=8;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'first-rate-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'first-rate-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'first-rate-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
  const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.355,deck=deckY(d,.94),tiers=d.sternTiers||[];
@@ -84,10 +86,24 @@ function buildRailingsAndEquipment(d,ctx){
  for(const [side,group] of [[-1,port],[1,starboard]]){const points=[];for(let i=0;i<=42;i++){const t=.08+.84*i/42,x=side*halfBreadth(d,t)*.88,y=deckY(d,t)+.88,z=(t-.5)*d.hullLengthUnits;points.push(V(x,y,z));if(i%2===0)beam(group,V(x,y-.48,z),V(x,y+.02,z),.035,materials.trim,'rail-post-'+i);}tube(group,points,.052,materials.trim,'first-rate-gunwale-rail',64);}
  const fittings=part('deck-fittings');
  for(let h=0;h<3;h++){const t=.32+h*.13,z=(t-.5)*d.hullLengthUnits,group=part('cargo-hatch-'+h,fittings),size=d.beamUnits*.2,cover=box(group,size,.12,size*.84,materials.plank,'hatch-cover');cover.position.set(0,deckY(d,t)+.12,z);}
- for(let level=0;level<3;level++)for(let side of [-1,1])for(let i=0;i<18;i++){const t=.14+i/Math.max(1,18-1)*.72,x=side*halfBreadth(d,t)*.8,z=(t-.5)*d.hullLengthUnits,y=deckY(d,t)-.36-level*d.deckHeightUnits*.24,portHole=box(fittings,.34,.28,.08,materials.lower,'gunport-'+level+'-'+side+'-'+i);portHole.position.set(x,y,z);const cannon=part('deck-gun-'+level+'-'+side+'-'+i,fittings);beam(cannon,V(x,y+.02,z),V(x+side*.48,y+.02,z),.068,materials.iron,'cannon-barrel',12);for(let wheel=0;wheel<2;wheel++){const w=ctx.mesh(cannon,new ctx.THREE.CylinderGeometry(.1,.1,.055,10),materials.trim,'gun-carriage-wheel');w.rotation.z=Math.PI/2;w.position.set(x+side*.15,y-.12,z+(wheel-.5)*.2);}}
+  // Non-combat refit: deck-gun and gunport geometry intentionally omitted.
+ 
  
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const cabin=part('first-rate-captain-cabin'),cy=deckY(d,.91),cz=d.hullLengthUnits*.4,cw=d.beamUnits*.31,ch=.95,cd=d.hullLengthUnits*.04,body=box(cabin,cw,ch,cd,materials.hull,'passenger-cabin-body');body.position.set(0,cy+ch*.5,cz);
+ const roof=box(cabin,cw*1.05,.12,cd*1.08,materials.trim,'passenger-cabin-roof');roof.position.set(0,cy+ch+.06,cz);
+ for(let side of [-1,1])for(let i=0;i<3;i++){const pane=box(cabin,.24,.28,.035,materials.glass,'stern-cabin-window');pane.position.set(side*cw*.5,cy+ch*.58,cz+(i-1)*cd*.28);}
+ const stairs=part('first-rate-quarterdeck-stair'),sy=deckY(d,.68),sz=d.hullLengthUnits*.25,sw=d.beamUnits*.2;
+ for(let i=0;i<9;i++){const f=i/8,step=box(stairs,sw,.12,.34,materials.plank,'quarterdeck-stair-step');step.position.set(0,sy+f*.82,sz+f*d.hullLengthUnits*.085);}
+ for(let side of [-1,1])beam(stairs,V(side*sw*.5,sy,sz),V(side*sw*.5,sy+.9,sz+d.hullLengthUnits*.085),.045,materials.trim,'stair-handrail');
+ const skylight=part('first-rate-skylight'),ky=deckY(d,.77),kz=d.hullLengthUnits*.29,kw=d.beamUnits*.2,rim=box(skylight,kw,.15,kw*.75,materials.trim,'skylight-rim');rim.position.set(0,ky+.075,kz);
+ for(let i=0;i<3;i++){const pane=box(skylight,kw*.22,.035,kw*.57,materials.glass,'skylight-pane');pane.position.set((i-1)*kw*.28,ky+.16,kz);}
+ const capstan=part('first-rate-capstan'),ty=deckY(d,.48),tz=-d.hullLengthUnits*.02,drum=mesh(capstan,new THREE.CylinderGeometry(.32,.35,.82,16),materials.trim,'heavy-capstan-drum');drum.position.set(0,ty+.41,tz);
+ for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(capstan,V(Math.cos(a)*.54,ty+.84,tz+Math.sin(a)*.54),V(Math.cos(a)*.9,ty+.84,tz+Math.sin(a)*.9),.045,materials.trim,'capstan-bar');}
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -214,6 +230,7 @@ function generateFirstRateGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);
