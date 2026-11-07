@@ -13,6 +13,8 @@ export const CarrackDefinition = defineVesselSpec({
     hullLength: 32.3, beam: 10.5, draft: 4.0, freeboard: 2.55,
     rig: 'Three masts: square fore and main; lateen mizzen.',
     hullProfile: 'Broad, deep bulbous hull, narrow upper works, high forecastle and tall aftercastle.',
+    signatureFeatures: ["High forecastle rail","Deep cargo hatch coamings","Sterncastle walkway","Heavy deck capstan"],
+    detailParts: ["carrack-forecastle-rail","carrack-cargo-hatches","carrack-stern-walkway","carrack-capstan"],
     reference: 'Carrack c. 1480 model at the German Historical Museum: 32.3 m × 10.5 m; the Mariners’ Museum describes the wide, deep cargo hull and mixed square/lateen three-mast rig.',
     sources: [{ label: 'Deutsches Historisches Museum — Carrack', url: 'https://www.dhm.de/mediathek/en/ship-types/milestones-in-the-history-of-european-shipbuilding/07-carrack/' }, { label: 'The Mariners’ Museum — Carrack / Nao', url: 'https://exploration.marinersmuseum.org/watercraft/carrack-nao/' }],
     hull: { fullness: 0.92, entry: 0.44, stern: 'transom', sternWidth: 0.42, tumblehome: 0.1, sheer: 0.18, bowRise: 0.44, sternRise: 0.5, keelDepth: 0.16, deckCamber: 0.2 },
@@ -27,7 +29,7 @@ export const CarrackDefinition = defineVesselSpec({
     ],
     headsails: 1, oars: false,
   },
-  structure: { frameCount: 34, beamStation: .53, forebody: .76, aftbody: .78, foreTip: .006, aftTip: .17, bottomFlat: .45, bilge: .29, flare: .15, tumble: .08, sheer: 1.33, lowerMastRatio: .62, shroudPairs: 3, ratlines: 10, yardSpread: 1.12 },
+  structure: { frameCount: 34, strakeRows: 12, deckSeamCount: 12, beamStation: .53, forebody: .76, aftbody: .78, foreTip: .006, aftTip: .17, bottomFlat: .45, bilge: .29, flare: .15, tumble: .08, sheer: 1.33, lowerMastRatio: .62, shroudPairs: 3, ratlines: 10, yardSpread: 1.12 },
 });
 
 
@@ -61,12 +63,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'carrack-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=8;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'carrack-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'carrack-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'carrack-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
  const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.355,deck=deckY(d,.94),tiers=d.sternTiers||[];
@@ -85,6 +87,16 @@ function buildRailingsAndEquipment(d,ctx){
  
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const forecastle=part('carrack-forecastle-rail'),fy=deckY(d,.10)+.52,fz=-d.hullLengthUnits*.39,fw=d.beamUnits*.58,fd=d.hullLengthUnits*.08;
+ for(let side of [-1,1]){beam(forecastle,V(side*fw*.5,fy,fz-fd*.5),V(side*fw*.5,fy,fz+fd*.5),.052,materials.trim,'forecastle-toprail');for(let i=0;i<5;i++){const z=fz-fd*.48+i*fd*.24;beam(forecastle,V(side*fw*.5,fy-.4,z),V(side*fw*.5,fy,z),.035,materials.trim,'forecastle-stanchion');}}
+ const hatches=part('carrack-cargo-hatches');for(let i=0;i<2;i++){const t=.37+i*.19,z=(t-.5)*d.hullLengthUnits,w=d.beamUnits*.38,y=deckY(d,t),rim=box(hatches,w,.2,d.hullLengthUnits*.09,materials.trim,'deep-hold-coaming');rim.position.set(0,y+.1,z);const lid=box(hatches,w*.88,.07,d.hullLengthUnits*.075,materials.plank,'hold-cover');lid.position.set(0,y+.22,z);}
+ const walk=part('carrack-stern-walkway'),wy=deckY(d,.91)+.55,wz=d.hullLengthUnits*.39,ww=d.beamUnits*.43;beam(walk,V(-ww*.5,wy,wz),V(ww*.5,wy,wz),.045,materials.trim,'stern-walkway-rail');
+ for(let side of [-1,1]){beam(walk,V(side*ww*.5,wy-.25,wz),V(side*ww*.5,wy,wz),.035,materials.trim,'walkway-stanchion');beam(walk,V(side*ww*.5,wy,wz-.65),V(side*ww*.5,wy,wz),.035,materials.trim,'walkway-side-rail');}
+ const capstan=part('carrack-capstan'),cy=deckY(d,.5),cz=-d.hullLengthUnits*.02,drum=mesh(capstan,new THREE.CylinderGeometry(.27,.3,.7,14),materials.trim,'heavy-capstan-drum');drum.position.set(0,cy+.35,cz);
+ for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(capstan,V(Math.cos(a)*.44,cy+.73,cz+Math.sin(a)*.44),V(Math.cos(a)*.76,cy+.73,cz+Math.sin(a)*.76),.04,materials.trim,'capstan-bar');}
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -211,6 +223,7 @@ function generateCarrackGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);
