@@ -152,7 +152,7 @@ function buildRig(d,ctx){
    });
   }
   if(mast.rig==='gaff'||mast.rig==='trysail'||mast.rig==='brigantine'||mast.spanker){
-   const type=mast.rig==='trysail'?'trysail':mast.spanker?'spanker':'gaff',run=d.hullLengthUnits*(mast.span??.38)*1.16,low=totalHeight*.12,high=totalHeight*.82,headRun=run*.80,gaff=part('gaff-spar-'+mast.id,group),boom=part('boom-'+mast.id,group);
+   const type=mast.rig==='trysail'?'trysail':mast.spanker?'spanker':'gaff',run=d.hullLengthUnits*(mast.span??.38)*1.08,low=lowerHeight*.14,high=lowerHeight*.82,headRun=run*.80,gaff=part('gaff-spar-'+mast.id,group),boom=part('boom-'+mast.id,group);
    beam(gaff,V(0,high,-.12),V(0,high+.05,headRun),.062,materials.trim,'gaff-spar');beam(boom,V(0,low,0),V(0,low,run),.068,materials.trim,'boom-spar');
    buildCanvasSail(ctx,'sail-'+mast.id+'-'+type,mast.id,[V(0,low,0),V(0,high,-.12),V(0,high+.05,headRun),V(0,low,run)],.10,group,'x');
   }else if(mast.rig==='lateen'){

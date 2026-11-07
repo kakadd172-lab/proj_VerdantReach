@@ -140,11 +140,11 @@ function buildRig(d,ctx){
   const topStart=lowerHeight-.12,topLength=totalHeight-topStart,topSpar=ctx.mesh(topmast,new THREE.CylinderGeometry(Math.max(.035,radius*.34),Math.max(.055,radius*.68),topLength,10,1),materials.trim,'topmast');topSpar.position.y=topStart+topLength*.5;
   if(mast.rig==='junk'){
    const span=d.hullLengthUnits*(mast.span??.72)*.52,low=totalHeight*.09,high=totalHeight*.88,yard=part('junk-yard-'+mast.id,group),boom=part('junk-boom-'+mast.id,group);
-   const topForward=V(0,high,span*.06),topAft=V(0,high*.96,span*.90),bottomForward=V(0,low,0),bottomAft=V(0,low,span);
+   const topForward=V(0,high,span*.06),topAft=V(0,high*.96,span*.74),bottomForward=V(0,low,0),bottomAft=V(0,low,span*.98);
    beam(yard,topForward,topAft,Math.max(.08,radius*1.25),materials.trim,'junk-lug-yard');beam(boom,bottomForward,bottomAft,Math.max(.07,radius*1.05),materials.trim,'junk-lug-boom');
    buildCanvasSail(ctx,'sail-'+mast.id+'-junk',mast.id,[bottomForward,topForward,topAft,bottomAft],.095,group,'x');
    const battens=part('junk-battens-'+mast.id,group);
-   for(let i=1;i<=9;i++){const f=i/10,y=low+(high-low)*f,left=span*(.035+.025*f),right=span*(.965-.065*f),batten=part('batten-'+mast.id+'-'+i,battens);beam(batten,V(0,y,left),V(0,y-.025,right),Math.max(.024,radius*.30),materials.trim,'bamboo-batten');}
+   for(let i=1;i<=9;i++){const f=i/10,y=low+(high-low)*f,left=span*(.025+.055*f),right=span*(.97-.25*f),batten=part('batten-'+mast.id+'-'+i,battens);beam(batten,V(0,y,left),V(0,y-.025,right),Math.max(.024,radius*.30),materials.trim,'bamboo-batten');}
    const runningLines=part('running-rigging-'+mast.id,group);
    tube(runningLines,[topAft,V(0,low+totalHeight*.08,span*.82),bottomAft],.014,materials.rope,'junk-running-leech-line',24);
    tube(runningLines,[topForward,V(0,low+totalHeight*.12,span*.10),bottomForward],.014,materials.rope,'junk-running-luff-line',24);
@@ -167,7 +167,7 @@ function buildRig(d,ctx){
     const sheets=part('sheets-'+mast.id+'-'+level,group);for(let side of [-1,1])beam(sheets,V(side*width*.46,y0,0),V(side*width*.46,y0-.24,.16),.016,materials.rope,'sail-sheet');});
   }
   if(mast.rig==='gaff'||mast.rig==='trysail'||mast.rig==='brigantine'||mast.spanker){
-   const type=mast.rig==='trysail'?'trysail':mast.spanker?'spanker':'gaff',run=d.hullLengthUnits*(mast.span??.38)*1.16,low=totalHeight*.12,high=totalHeight*.82,headRun=run*.80,gaff=part('gaff-spar-'+mast.id,group),boom=part('boom-'+mast.id,group);
+   const type=mast.rig==='trysail'?'trysail':mast.spanker?'spanker':'gaff',run=d.hullLengthUnits*(mast.span??.38)*1.08,low=lowerHeight*.14,high=lowerHeight*.82,headRun=run*.80,gaff=part('gaff-spar-'+mast.id,group),boom=part('boom-'+mast.id,group);
    beam(gaff,V(0,high,-.12),V(0,high+.05,headRun),.062,materials.trim,'gaff-spar');beam(boom,V(0,low,0),V(0,low,run),.068,materials.trim,'boom-spar');
    buildCanvasSail(ctx,'sail-'+mast.id+'-'+type,mast.id,[V(0,low,0),V(0,high,-.12),V(0,high+.05,headRun),V(0,low,run)],.10,group,'x');
   }else if(mast.rig==='lateen'){
