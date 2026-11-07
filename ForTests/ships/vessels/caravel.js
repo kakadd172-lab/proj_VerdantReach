@@ -13,6 +13,8 @@ export const CaravelDefinition = defineVesselSpec({
     hullLength: 19.81, beam: 7.01, draft: 2.4, freeboard: 1.6,
     rig: 'Four-masted late-15th-century Portuguese redonda reconstruction: square forward sails and lateen sails aft.',
     hullProfile: 'Rounded carvel-built hull, deep bow flare, modest freeboard and narrow transom.',
+    signatureFeatures: ["Low forecastle platform","Deck capstan","Four mast partners","Companionway hatch"],
+    detailParts: ["caravel-forecastle","caravel-capstan","caravel-mast-partners","caravel-companionway"],
     reference: 'The Royal Museums Greenwich catalogue describes a later Portuguese caravel model (circa 1490) at 65 ft × 23 ft (19.81 × 7.01 m), with four masts, square forward canvas and lateen sails aft. This is a museum interpretation, not a surviving original lines plan.',
     sources: [{ label: 'Royal Museums Greenwich — Portuguese caravel (circa 1490)', url: 'https://www.rmg.co.uk/collections/objects/rmgc-object-66267' }, { label: 'Royal Museums Greenwich — Matthew caravel reconstruction', url: 'https://www.rmg.co.uk/collections/objects/rmgc-object-386365' }],
     hull: { fullness: 0.65, entry: 0.6, stern: 'round', sternWidth: 0.18, tumblehome: 0.08, sheer: 0.15, bowRise: 0.34, sternRise: 0.24, keelDepth: 0.14, deckCamber: 0.14 },
@@ -28,7 +30,7 @@ export const CaravelDefinition = defineVesselSpec({
     ],
     headsails: 1, oars: false,
   },
-  structure: { frameCount: 26, beamStation: .49, forebody: .82, aftbody: 1.22, foreTip: .003, aftTip: .035, bottomFlat: .16, bilge: .1, flare: .18, tumble: .075, sheer: 1.2, lowerMastRatio: .61, shroudPairs: 2, ratlines: 8, yardSpread: .92 },
+  structure: { frameCount: 26, strakeRows: 9, deckSeamCount: 10, beamStation: .49, forebody: .82, aftbody: 1.22, foreTip: .003, aftTip: .035, bottomFlat: .16, bilge: .1, flare: .18, tumble: .075, sheer: 1.2, lowerMastRatio: .61, shroudPairs: 2, ratlines: 8, yardSpread: .92 },
 });
 
 
@@ -62,12 +64,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'caravel-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=8;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'caravel-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'caravel-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'caravel-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
  const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.355,deck=deckY(d,.94),tiers=d.sternTiers||[];
@@ -86,6 +88,15 @@ function buildRailingsAndEquipment(d,ctx){
  
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const forecastle=part('caravel-forecastle'),fy=deckY(d,.105),fz=-d.hullLengthUnits*.39,fw=d.beamUnits*.52,fd=d.hullLengthUnits*.095,deck=box(forecastle,fw,.16,fd,materials.deck,'forecastle-platform');deck.position.set(0,fy+.08,fz);
+ for(let side of [-1,1]){beam(forecastle,V(side*fw*.5,fy+.43,fz-fd*.45),V(side*fw*.5,fy+.43,fz+fd*.45),.035,materials.trim,'forecastle-rail');for(let j=0;j<4;j++){const z=fz-fd*.42+j*fd*.28;beam(forecastle,V(side*fw*.5,fy+.16,z),V(side*fw*.5,fy+.43,z),.025,materials.trim,'forecastle-stanchion');}}
+ const capstan=part('caravel-capstan'),cy=deckY(d,.48),cz=-d.hullLengthUnits*.03,drum=mesh(capstan,new THREE.CylinderGeometry(.2,.22,.52,12),materials.trim,'capstan-drum');drum.position.set(0,cy+.26,cz);
+ for(let i=0;i<6;i++){const a=i*Math.PI/3;beam(capstan,V(Math.cos(a)*.34,cy+.54,cz+Math.sin(a)*.34),V(Math.cos(a)*.58,cy+.54,cz+Math.sin(a)*.58),.03,materials.trim,'capstan-bar');}
+ const partners=part('caravel-mast-partners');for(const mast of d.masts){const z=mast.z*d.hullLengthUnits,y=deckY(d,.5+mast.z*.45),w=d.beamUnits*(mast.id==='bonaventure'?.09:.12),collar=box(partners,w,.13,w*1.15,materials.trim,'mast-partner-collar');collar.position.set(0,y+.07,z);}
+ const companion=part('caravel-companionway'),hy=deckY(d,.72),hz=d.hullLengthUnits*.23,rim=box(companion,d.beamUnits*.24,.15,d.hullLengthUnits*.06,materials.trim,'companionway-coaming');rim.position.set(0,hy+.08,hz);
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -212,6 +223,7 @@ function generateCaravelGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);

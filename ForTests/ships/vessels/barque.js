@@ -13,6 +13,8 @@ export const BarqueDefinition = defineVesselSpec({
     hullLength: 39.93, beam: 8.84, draft: 3.5, freeboard: 1.8,
     rig: 'At least three masts; fore and main square, mizzen fore-and-aft.',
     hullProfile: 'Long three-masted cargo hull, full but fine-ended midbody, restrained sheer, short forecastle and rounded counter stern.',
+    signatureFeatures: ["Cargo loading booms","Cargo hatch coamings","Aft deckhouse","Cargo winches"],
+    detailParts: ["barque-cargo-booms","barque-hatch-coamings","barque-deckhouse","barque-winches"],
     reference: 'Based on the three-masted barque Ravensworth (built 1856): 131 ft length × 29 ft beam (39.93 × 8.84 m), 508 gross tons. Its fore and main masts carried square sails and its mizzen was fore-and-aft rigged.',
     sources: [{ label: 'Royal Museums Greenwich — Ravensworth (1856), three-masted barque', url: 'https://www.rmg.co.uk/collections/objects/rmgc-object-66014' }, { label: 'Royal Museums Greenwich — Cargo vessel; barque (circa 1880)', url: 'https://www.rmg.co.uk/collections/objects/rmgc-object-67057' }],
     hull: { fullness: 0.72, entry: 0.62, stern: 'counter', sternWidth: 0.35, tumblehome: 0.08, sheer: 0.12, bowRise: 0.24, sternRise: 0.28, keelDepth: 0.1, deckCamber: 0.13 },
@@ -27,7 +29,7 @@ export const BarqueDefinition = defineVesselSpec({
     ],
     headsails: 3, oars: false,
   },
-  structure: { frameCount: 32, beamStation: .52, forebody: .9, aftbody: 1.01, foreTip: .005, aftTip: .10, bottomFlat: .34, bilge: .22, flare: .09, tumble: .08, sheer: .99, lowerMastRatio: .64, shroudPairs: 3, ratlines: 10, yardSpread: 1.02 },
+  structure: { frameCount: 32, strakeRows: 12, deckSeamCount: 14, beamStation: .52, forebody: .9, aftbody: 1.01, foreTip: .005, aftTip: .10, bottomFlat: .34, bilge: .22, flare: .09, tumble: .08, sheer: .99, lowerMastRatio: .64, shroudPairs: 3, ratlines: 10, yardSpread: 1.02 },
 });
 
 
@@ -61,12 +63,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'barque-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=8;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'barque-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'barque-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'barque-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
  const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.405,deck=deckY(d,.94),tiers=d.sternTiers||[];
@@ -85,6 +87,14 @@ function buildRailingsAndEquipment(d,ctx){
  
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const house=part('barque-deckhouse'),hy=deckY(d,.86),hz=d.hullLengthUnits*.34,hw=d.beamUnits*.24,hh=.62,hd=d.hullLengthUnits*.052,body=box(house,hw,hh,hd,materials.hull,'barque-deckhouse-body');body.position.set(0,hy+hh*.5,hz);
+ const roof=box(house,hw*1.08,.1,hd*1.08,materials.trim,'deckhouse-roof');roof.position.set(0,hy+hh+.05,hz);
+ const hatches=part('barque-hatch-coamings');for(let i=0;i<3;i++){const t=.32+i*.16,z=(t-.5)*d.hullLengthUnits,w=d.beamUnits*(i===1?.34:.29),y=deckY(d,t),rim=box(hatches,w,.14,d.hullLengthUnits*.085,materials.trim,'cargo-hatch-coaming');rim.position.set(0,y+.07,z);for(let side of [-1,1]){const cleat=box(hatches,.1,.1,.22,materials.hull,'hatch-cleat');cleat.position.set(side*w*.54,y+.08,z);}}
+ const winches=part('barque-winches'),wy=deckY(d,.52);for(let n=0;n<2;n++){const z=(n===0?-.08:.15)*d.hullLengthUnits;for(let side of [-1,1]){const p=box(winches,.11,.48,.12,materials.trim,'winch-post');p.position.set(side*.42,wy+.24,z);}beam(winches,V(-.48,wy+.48,z),V(.48,wy+.48,z),.065,materials.trim,'winch-axle');const drum=mesh(winches,new THREE.CylinderGeometry(.12,.12,.7,12),materials.hull,'winch-drum');drum.rotation.z=Math.PI/2;drum.position.set(0,wy+.48,z);}
+ const booms=part('barque-cargo-booms');for(const mast of d.masts){const mz=mast.z*d.hullLengthUnits,y=deckY(d,.5+mast.z*.45);beam(booms,V(0,y+mast.height*.23,mz),V(d.beamUnits*.62,y+mast.height*.28,mz+d.hullLengthUnits*.11),.065,materials.trim,'cargo-boom');ctx.tube(booms,[V(0,y+mast.height*.23,mz),V(d.beamUnits*.31,y+.3,mz+d.hullLengthUnits*.06),V(d.beamUnits*.62,y+mast.height*.28,mz+d.hullLengthUnits*.11)],.016,materials.rope,'cargo-boom-tackle',18);}
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -211,6 +221,7 @@ function generateBarqueGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);
