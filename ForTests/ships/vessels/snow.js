@@ -181,10 +181,31 @@ function buildRig(d,ctx){
    buildCanvasSail(ctx,'sail-'+mast.id+'-lateen',mast.id,[V(0,.25,0),V(0,topY-baseY-.3,-span*.45),V(0,.3,span),V(0,.2,span*.92)],.1,group,'x');
   }
  }
- for(let i=0;i<d.headsails;i++){const f=(i+1)/(d.headsails+1),fore=d.masts[0],foreTop=deckY(d,.35)+fore.height*(4/3),bowZ=-d.hullLengthUnits*.5-d.beamUnits*.72,aftZ=-d.hullLengthUnits*(.43-f*.12),low=deckY(d,.04)+.3+i*.1;
-  const control=part('sail-head-'+(i+1),head);control.userData.sailControl={mastId:fore.id,clothPart:'cloth-sail-head-'+(i+1)};const cloth=part('cloth-sail-head-'+(i+1),control);
-  const geom=new ctx.THREE.BufferGeometry();geom.setAttribute('position',new ctx.THREE.Float32BufferAttribute([0,0,0,0,foreTop*(1-f*.08)-low,aftZ-bowZ,0,foreTop*.66-low,-d.beamUnits*.1],3));geom.setIndex([0,1,2]);geom.computeVertexNormals();ctx.mesh(cloth,geom,materials.sail,'triangular-head-sail');
+ for(let i=0;i<d.headsails;i++){
+  const fore=d.masts[0],foreZ=fore.z*d.hullLengthUnits,bowZ=-d.hullLengthUnits*.5-d.beamUnits*.72;
+  const bowY=deckY(d,.035)+.32,mastY=deckY(d,.5+fore.z*.45)+.12+fore.height*(4/3);
+  const staySpan=foreZ-bowZ,segments=Math.max(1,d.headsails),startFraction=i/segments,endFraction=(i+1)/segments;
+  const lowerForward=V(0,bowY,bowZ+staySpan*startFraction);
+  const upperAft=V(0,bowY+(mastY-bowY)*endFraction,bowZ+staySpan*endFraction);
+  const lowerAft=V(0,bowY,bowZ+staySpan*endFraction);
+  buildCanvasSail(ctx,'sail-head-'+(i+1),fore.id,[lowerForward,upperAft,lowerAft,lowerForward],0.05,head,'x');
+  const stays=part('head-stays-'+(i+1),head);
+  tube(stays,[lowerForward,upperAft],.014,materials.rope,'headstay-'+(i+1),24);
+  tube(stays,[lowerAft,lowerForward],.011,materials.rope,'headsail-foot-'+(i+1),18);
  }
+}
+function buildSnowTrysailSupports(d,ctx){
+ const {part,beam,box,tube,materials,V}=ctx,horse=part('snow-trysail-mast-horse');
+ const main=d.masts.find(m=>m.id==='main'),aux=d.masts.find(m=>m.id==='trysail');
+ if(!main||!aux)return;
+ const mainZ=main.z*d.hullLengthUnits,auxZ=aux.z*d.hullLengthUnits,deck=deckY(d,.5+aux.z*.45),crossY=deck+.32;
+ for(let side of [-1,1]){
+  beam(horse,V(side*.34,crossY,mainZ),V(side*.34,crossY,auxZ),.045,materials.trim,'trysail-mast-horse-rail');
+  beam(horse,V(side*.34,crossY,auxZ),V(side*.10,deck+.05,auxZ+.35),.038,materials.trim,'trysail-horse-knee');
+ }
+ beam(horse,V(-.46,crossY,auxZ),V(.46,crossY,auxZ),.065,materials.trim,'trysail-mast-crosspiece');
+ const partner=box(horse,.72,.15,.62,materials.trim,'trysail-mast-partner');partner.position.set(0,deck+.08,auxZ);
+ const stay=part('snow-trysail-running-stays',horse);tube(stay,[V(0,deck+.22,auxZ),V(0,deck+.22,mainZ)],.018,materials.rope,'snow-mast-connecting-stay',20);
 }
 function buildAnchors(d,ctx){
  const {part,beam,tube,materials,V}=ctx,anchors=part('anchors');
@@ -229,6 +250,7 @@ function generateSnowGeometry(vessel,componentTransforms={},savedState={}){
  buildRailingsAndEquipment(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
+ buildSnowTrysailSupports(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);
 }
 

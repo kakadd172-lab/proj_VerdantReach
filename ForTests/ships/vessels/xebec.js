@@ -178,10 +178,31 @@ function buildRig(d,ctx){
    buildCanvasSail(ctx,'sail-'+mast.id+'-lateen',mast.id,[V(0,.25,0),V(0,topY-baseY-.3,-span*.45),V(0,.3,span),V(0,.2,span*.92)],.1,group,'x');
   }
  }
- for(let i=0;i<d.headsails;i++){const f=(i+1)/(d.headsails+1),fore=d.masts[0],foreTop=deckY(d,.35)+fore.height*(4/3),bowZ=-d.hullLengthUnits*.5-d.beamUnits*.72,aftZ=-d.hullLengthUnits*(.43-f*.12),low=deckY(d,.04)+.3+i*.1;
-  const control=part('sail-head-'+(i+1),head);control.userData.sailControl={mastId:fore.id,clothPart:'cloth-sail-head-'+(i+1)};const cloth=part('cloth-sail-head-'+(i+1),control);
-  const geom=new ctx.THREE.BufferGeometry();geom.setAttribute('position',new ctx.THREE.Float32BufferAttribute([0,0,0,0,foreTop*(1-f*.08)-low,aftZ-bowZ,0,foreTop*.66-low,-d.beamUnits*.1],3));geom.setIndex([0,1,2]);geom.computeVertexNormals();ctx.mesh(cloth,geom,materials.sail,'triangular-head-sail');
+ for(let i=0;i<d.headsails;i++){
+  const fore=d.masts[0],foreZ=fore.z*d.hullLengthUnits,bowZ=-d.hullLengthUnits*.5-d.beamUnits*.72;
+  const bowY=deckY(d,.035)+.32,mastY=deckY(d,.5+fore.z*.45)+.12+fore.height*(4/3);
+  const staySpan=foreZ-bowZ,segments=Math.max(1,d.headsails),startFraction=i/segments,endFraction=(i+1)/segments;
+  const lowerForward=V(0,bowY,bowZ+staySpan*startFraction),upperAft=V(0,bowY+(mastY-bowY)*endFraction,bowZ+staySpan*endFraction),lowerAft=V(0,bowY,bowZ+staySpan*endFraction);
+  buildCanvasSail(ctx,'sail-head-'+(i+1),fore.id,[lowerForward,upperAft,lowerAft,lowerForward],.042,head,'x');
+  const stays=part('head-stays-'+(i+1),head);tube(stays,[lowerForward,upperAft],.014,materials.rope,'headstay-'+(i+1),24);tube(stays,[lowerAft,lowerForward],.011,materials.rope,'headsail-foot-'+(i+1),18);
  }
+}
+function buildOarBanks(d,ctx){
+ const {part,beam,box,materials,V}=ctx,bank=part('xebec-oar-banks');
+ for(let side of [-1,1]){
+  const label=side<0?'port':'starboard';
+  for(let station=0;station<8;station++){
+   const t=.20+station*.085,z=(t-.5)*d.hullLengthUnits,inner=halfBreadth(d,t)*.88,outer=inner+d.beamUnits*.62;
+   const y=deckY(d,t)+.08,fan=station%2===0?-.18:.18;
+   const oar=part('oar-station-'+label+'-'+String(station+1).padStart(2,'0'),bank);
+   const start=V(side*inner,y,z),tip=V(side*outer,y-.24,z+fan);
+   beam(oar,start,tip,.052,materials.trim,'oar-shaft',9);
+   beam(oar,V(side*(inner+.10),y-.02,z),V(side*(inner+.10),y+.18,z),.038,materials.trim,'oarlock-post',8);
+   const blade=box(oar,.56,.075,.19,materials.plank,'oar-blade');blade.position.copy(tip).add(V(-side*.12,-.02,0));blade.rotation.y=side*.12;
+  }
+ }
+ const benches=part('xebec-rowing-benches');
+ for(let station=0;station<4;station++){const t=.29+station*.13,z=(t-.5)*d.hullLengthUnits,width=halfBreadth(d,t)*1.25,seat=box(benches,width,.12,.42,materials.plank,'rowing-bench');seat.position.set(0,deckY(d,t)+.30,z);}
 }
 function buildAnchors(d,ctx){
  const {part,beam,tube,materials,V}=ctx,anchors=part('anchors');
@@ -224,6 +245,7 @@ function generateXebecGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildOarBanks(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);

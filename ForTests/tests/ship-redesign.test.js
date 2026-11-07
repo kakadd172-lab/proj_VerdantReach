@@ -102,6 +102,25 @@ test('all 16 independent ForTests generators build separate editable models', ()
       assert.ok(ship.userData.getPart('hull'), id + ' hull');
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
+      if (getShipDesign(id).headsails > 0) {
+        assert.ok(ship.userData.partNames.some((name) => name.startsWith('head-stays-')), id + ' should generate correctly anchored headsails');
+      }
+      if (id === 'fluyt') {
+        assert.ok(ship.userData.getPart('cargo-deck-details'), 'fluyt merchant cargo deck');
+        assert.ok(ship.userData.getPart('cargo-hatch-forward'), 'fluyt forward cargo hatch');
+        assert.ok(ship.userData.getPart('cargo-hatch-aft'), 'fluyt aft cargo hatch');
+        assert.ok(ship.userData.getPart('fluyt-spritsail-rig'), 'fluyt spritsail assembly');
+      }
+      if (id === 'xebec') {
+        assert.ok(ship.userData.getPart('xebec-oar-banks'), 'xebec oar banks');
+        assert.ok(ship.userData.getPart('xebec-rowing-benches'), 'xebec rowing benches');
+      }
+      if (id === 'schooner') {
+        assert.ok(ship.userData.getPart('deckhouse'), 'schooner low aft deckhouse');
+      }
+      if (id === 'snow') {
+        assert.ok(ship.userData.getPart('snow-trysail-mast-horse'), 'snow auxiliary trysail mast supports');
+      }
       if (['galleon','carrack','first-rate'].includes(id)) {
         const sternTier = ship.userData.getPart('stern-tier-1');
         let taperedSternMeshes = 0;

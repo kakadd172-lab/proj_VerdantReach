@@ -180,10 +180,31 @@ function buildRig(d,ctx){
    buildCanvasSail(ctx,'sail-'+mast.id+'-lateen',mast.id,[V(0,.25,0),V(0,topY-baseY-.3,-span*.45),V(0,.3,span),V(0,.2,span*.92)],.1,group,'x');
   }
  }
- for(let i=0;i<d.headsails;i++){const f=(i+1)/(d.headsails+1),fore=d.masts[0],foreTop=deckY(d,.35)+fore.height*(4/3),bowZ=-d.hullLengthUnits*.5-d.beamUnits*.72,aftZ=-d.hullLengthUnits*(.43-f*.12),low=deckY(d,.04)+.3+i*.1;
-  const control=part('sail-head-'+(i+1),head);control.userData.sailControl={mastId:fore.id,clothPart:'cloth-sail-head-'+(i+1)};const cloth=part('cloth-sail-head-'+(i+1),control);
-  const geom=new ctx.THREE.BufferGeometry();geom.setAttribute('position',new ctx.THREE.Float32BufferAttribute([0,0,0,0,foreTop*(1-f*.08)-low,aftZ-bowZ,0,foreTop*.66-low,-d.beamUnits*.1],3));geom.setIndex([0,1,2]);geom.computeVertexNormals();ctx.mesh(cloth,geom,materials.sail,'triangular-head-sail');
+ for(let i=0;i<d.headsails;i++){
+  const fore=d.masts[0],foreZ=fore.z*d.hullLengthUnits,bowZ=-d.hullLengthUnits*.5-d.beamUnits*.72;
+  const bowY=deckY(d,.035)+.32,mastY=deckY(d,.5+fore.z*.45)+.12+fore.height*(4/3);
+  const staySpan=foreZ-bowZ,segments=Math.max(1,d.headsails),startFraction=i/segments,endFraction=(i+1)/segments;
+  const lowerForward=V(0,bowY,bowZ+staySpan*startFraction);
+  const upperAft=V(0,bowY+(mastY-bowY)*endFraction,bowZ+staySpan*endFraction);
+  const lowerAft=V(0,bowY,bowZ+staySpan*endFraction);
+  buildCanvasSail(ctx,'sail-head-'+(i+1),fore.id,[lowerForward,upperAft,lowerAft,lowerForward],0.07,head,'x');
+  const stays=part('head-stays-'+(i+1),head);
+  tube(stays,[lowerForward,upperAft],.014,materials.rope,'headstay-'+(i+1),24);
+  tube(stays,[lowerAft,lowerForward],.011,materials.rope,'headsail-foot-'+(i+1),18);
  }
+}
+function buildSchoonerDeckhouse(d,ctx){
+ const {part,box,beam,materials,V}=ctx,cabin=part('deckhouse');
+ const t=.78,z=(t-.5)*d.hullLengthUnits,width=halfBreadth(d,t)*.68;
+ const length=d.hullLengthUnits*.105,height=d.deckHeightUnits*.40,y=deckY(d,t);
+ const body=box(cabin,width,height,length,materials.hull,'low-deckhouse-body');body.position.set(0,y+height*.5,z);
+ const roof=box(cabin,width*1.10,.12,length*1.10,materials.trim,'deckhouse-roof');roof.position.set(0,y+height+.06,z);
+ const door=box(cabin,width*.22,height*.72,.055,materials.plank,'deckhouse-door');door.position.set(0,y+height*.38,z-length*.505);
+ for(let side of [-1,1])for(let n=0;n<2;n++){
+  const pane=box(cabin,.045,.28,.36,materials.glass,'deckhouse-side-window');pane.position.set(side*(width*.505),y+height*.58,z+(n-.5)*length*.44);
+  beam(cabin,V(side*(width*.53),y+height*.43,z+(n-.5)*length*.44-.20),V(side*(width*.53),y+height*.43,z+(n-.5)*length*.44+.20),.018,materials.trim,'deckhouse-window-sill');
+ }
+ const companionway=box(cabin,width*.32,.16,length*.24,materials.plank,'companionway-hatch');companionway.position.set(0,y+.12,z-length*.66);
 }
 function buildAnchors(d,ctx){
  const {part,beam,tube,materials,V}=ctx,anchors=part('anchors');
@@ -226,6 +247,7 @@ function generateSchoonerGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSchoonerDeckhouse(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);
