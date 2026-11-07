@@ -59,10 +59,17 @@ try{
  await page.locator('[data-camera="top"]').click();
  await delay(600);
  await page.locator('#viewport').screenshot({path:join(outputDir,'junk-top.png')});
+ for(const [id,angle] of [['fluyt','top'],['xebec','top'],['schooner','side'],['snow','side']]){
+  await page.locator('#ship-select').selectOption(id);
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
+  await page.locator('[data-camera="'+angle+'"]').click();
+  await delay(600);
+  await page.locator('#viewport').screenshot({path:join(outputDir,id+'-'+angle+'.png')});
+ }
  assert.deepEqual(errors,[],'Browser page errors: '+errors.join(' | '));
  const fs=await import('node:fs/promises');
  await fs.writeFile(join(outputDir,'report.json'),JSON.stringify({vessels:report,errors},null,2));
- console.log('Captured front-quarter views of eight target vessels plus galleon and junk plan views.');
+ console.log('Captured front-quarter views of eight target vessels plus galleon, junk, fluyt, xebec and specialist side views.');
  console.log(JSON.stringify(report,null,2));
 }finally{
  if(browser)await browser.close();
