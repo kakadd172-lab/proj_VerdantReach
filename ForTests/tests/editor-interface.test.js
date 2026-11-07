@@ -5,9 +5,11 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
-const [html,preview]=await Promise.all([
+const [html,preview,researchPage,assetAudit]=await Promise.all([
   readFile(join(root,'index.html'),'utf8'),
   readFile(join(root,'preview.js'),'utf8'),
+  readFile(join(root,'historical-model-references.html'),'utf8'),
+  readFile(join(root,'HISTORICAL_ASSET_RESEARCH.md'),'utf8'),
 ]);
 const [css,gameHtml]=await Promise.all([
   readFile(join(root,'../V8/verdant-reach-v0.8.6/verdant-reach/src/styles.css'),'utf8'),
@@ -50,6 +52,16 @@ test('the shipyard page keeps its vessel choice, parameter, and save workflow ta
   assert.ok(html.includes('id="design-controls"'));
   assert.ok(html.includes('id="save-design"'));
   assert.ok(html.includes('id="export-design"'));
+});
+
+
+test('historical asset research is linked and does not confuse external sources with bundled presets',()=>{
+  assert.ok(html.includes('href="./historical-model-references.html"'));
+  assert.ok(researchPage.includes('Nothing on this page is bundled into the game yet.'));
+  assert.ok(researchPage.includes('HISTORICAL_ASSET_RESEARCH.md'));
+  assert.ok(assetAudit.includes('Generator-by-generator coverage'));
+  assert.ok(assetAudit.includes('`first-rate`'));
+  assert.ok(assetAudit.includes('`fluyt`'));
 });
 
 test('the refreshed game title menu keeps every original launch and save control',()=>{
