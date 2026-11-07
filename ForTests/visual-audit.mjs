@@ -28,6 +28,11 @@ try{
  browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
  const page=await browser.newPage({viewport:{width:1600,height:1050},deviceScaleFactor:1});
  const errors=[];
+ const capture=async name=>{
+  const canvas=page.locator('#viewport canvas');
+  await canvas.waitFor({state:'visible',timeout:15000});
+  await canvas.screenshot({path:join(outputDir,name),animations:'disabled',timeout:15000});
+ };
  page.on('pageerror',e=>errors.push(e.message));
  await page.goto(baseUrl,{waitUntil:'domcontentloaded',timeout:30000});
  await page.waitForFunction(()=>document.querySelectorAll('#ship-select option').length>=16,{timeout:30000});
@@ -40,7 +45,7 @@ try{
   const canvas=page.locator('#viewport canvas');
   assert.ok(await canvas.count(),id+' canvas missing');
   const name=id.replace(/[^a-z0-9-]/g,'_');
-  await page.locator('#viewport').screenshot({path:join(outputDir,name+'.png'),animations:'disabled'});
+  await capture(name+'.png');
   const metrics=await page.evaluate(()=>{
    const s=document.querySelector('#status')?.textContent||'';
    const p=document.querySelector('#parts')?.textContent||'';
@@ -54,15 +59,15 @@ try{
  await page.locator('details.section-card').filter({hasText:'Viewport & camera'}).locator('summary').click();
  await page.locator('[data-camera="top"]').click();
  await delay(600);
- await page.locator('#viewport').screenshot({path:join(outputDir,'galleon-top.png')});
+ await capture('galleon-top.png');
  await page.locator('[data-camera="side"]').click();
  await delay(600);
- await page.locator('#viewport').screenshot({path:join(outputDir,'galleon-side.png')});
+ await capture('galleon-side.png');
  await page.locator('#ship-select').selectOption('junk');
  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
  await page.locator('[data-camera="top"]').click();
  await delay(600);
- await page.locator('#viewport').screenshot({path:join(outputDir,'junk-top.png')});
+ await capture('junk-top.png');
  assert.deepEqual(errors,[],'Browser page errors: '+errors.join(' | '));
  const fs=await import('node:fs/promises');
  await fs.writeFile(join(outputDir,'report.json'),JSON.stringify({vessels:report,errors},null,2));
