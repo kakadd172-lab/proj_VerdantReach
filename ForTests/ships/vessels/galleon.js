@@ -126,6 +126,52 @@ function buildStern(d,ctx){
   for(let post=-2;post<=2;post++){const x=post*width*.22;beam(gallery,V(x,baseY+height*.1,centerZ+depth*.78),V(x,baseY+height*.2,centerZ+depth*.78),.022,materials.trim,'aft-balcony-post');}
  });
 }
+function buildBow(d,ctx){
+ const {part,beam,box,tube,materials,V}=ctx,bow=part('bowworks'),bowsprit=part('bowsprit');
+ const base=deckY(d,.045)+d.deckHeightUnits*.18,tip=-d.hullLengthUnits*.5;
+ const forecastle=part('galleon-forecastle',bow),forecastleDeck=part('galleon-forecastle-deck',forecastle);
+ const along=24,across=20,positions=[],indices=[];
+ for(let i=0;i<=along;i++){
+  const t=.045+.175*i/along,half=halfBreadth(d,t)*.86,z=(t-.5)*d.hullLengthUnits;
+  for(let j=0;j<=across;j++){
+   const u=j/across*2-1,camber=d.hull.deckCamber*d.deckHeightUnits*(1-u*u);
+   positions.push(u*half,deckY(d,t)+d.deckHeightUnits*0.19+camber,z);
+  }
+ }
+ for(let i=0;i<along;i++)for(let j=0;j<across;j++){
+  const a=i*(across+1)+j;
+  indices.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);
+ }
+ const deckGeometry=new ctx.THREE.BufferGeometry();
+ deckGeometry.setAttribute('position',new ctx.THREE.Float32BufferAttribute(positions,3));
+ deckGeometry.setIndex(indices);deckGeometry.computeVertexNormals();
+ ctx.mesh(forecastleDeck,deckGeometry,materials.deck,'galleon-raised-forecastle-platform');
+ for(const side of [-1,1]){
+  const railLine=[];
+  for(let i=0;i<=24;i++){
+   const t=.045+.175*i/24,x=side*halfBreadth(d,t)*.86;
+   const y=deckY(d,t)+d.deckHeightUnits*0.19+.34,z=(t-.5)*d.hullLengthUnits;
+   railLine.push(V(x,y,z));
+   if(i%3===0)beam(forecastle,V(x,y-.28,z),V(x,y+.04,z),.042,materials.trim,'forecastle-bulwark-stanchion');
+  }
+  tube(forecastle,railLine,.048,materials.trim,'forecastle-top-rail',48);
+  tube(forecastle,railLine.map(p=>V(p.x,p.y-.16,p.z)),.026,materials.trim,'forecastle-lower-rail',48);
+ }
+ const aftZ=(.22-.5)*d.hullLengthUnits,aftHalf=halfBreadth(d,.22)*.82;
+ const aftY=deckY(d,.22)+d.deckHeightUnits*0.19;
+ beam(forecastle,V(-aftHalf,aftY+.08,aftZ),V(aftHalf,aftY+.08,aftZ),.045,materials.trim,'forecastle-aft-cross-rail');
+ const beakhead=part('galleon-beakhead',bow),length=d.beamUnits*.78;
+ beam(beakhead,V(0,base,tip+d.hullLengthUnits*.08),V(0,base+d.deckHeightUnits*.42,tip-length),d.beamUnits*.04,materials.trim,'beakhead-stem');
+ const platform=box(beakhead,d.beamUnits*.34,.14,length*.82,materials.deck,'beakhead-platform');
+ platform.position.set(0,base+d.deckHeightUnits*.24,tip-length*.52);
+ for(const side of [-1,1]){
+  beam(beakhead,V(0,base+d.deckHeightUnits*.24,tip-length*.9),V(side*d.beamUnits*.19,base+d.deckHeightUnits*.2,tip),.035,materials.trim,'beakhead-cheek');
+ }
+ if(d.headsails>0){
+  const lashing=part('bowsprit-gammoning',bow);
+  beam(lashing,V(0,base+.12,tip+d.hullLengthUnits*.08),V(0,base+d.deckHeightUnits*.28,tip-d.beamUnits*.5),.026,materials.rope,'gammoning-line');
+ }
+}
 function buildRudderAndHelm(d,ctx){const {part,box,beam,materials,V}=ctx,rudder=part('rudder'),config=d.rudderDetails,stern=d.hullLengthUnits*.47;rudder.position.set(0,0,stern+config.pivotOffset);const width=d.beamUnits*config.breadthFactor*1,height=d.draftUnits*config.depthFactor,blade=box(rudder,width,height,.22,materials.trim,'galleon-rudder-blade');blade.position.set(0,-d.draftUnits*config.yFactor,0);beam(rudder,V(0,-d.draftUnits*.4,-.02),V(0,deckY(d,.97)+.22,0),Math.max(.045,d.beamUnits*.014),materials.trim,'rudder-stock');const helm=part('helm'),wheel=part('helm-wheel'),y=deckY(d,.83),z=d.hullLengthUnits*.31;beam(helm,V(0,y+.18,z),V(0,y+.9,z),.065,materials.trim,'helm-post');const ring=ctx.mesh(wheel,new ctx.THREE.TorusGeometry(.44,.045,8,20),materials.trim,'helm-wheel-ring');ring.position.set(0,y+1.02,z);for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(wheel,V(0,y+1.02,z),V(Math.cos(a)*.44,y+1.02+Math.sin(a)*.44,z),.022,materials.trim,'helm-spoke');}}
 function buildRailingsAndEquipment(d,ctx){
  const {part,beam,tube,box,materials,V}=ctx,rail=part('railings'),port=part('railings-port',rail),starboard=part('railings-starboard',rail);
