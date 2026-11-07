@@ -9,18 +9,11 @@ import {
   disposeImportedModel,
 } from '../imported-vessels.js';
 
-test('the imported vessel gallery contains only documented CC0 civilian vessels', () => {
-  assert.equal(IMPORTED_VESSELS.length, 3);
-  for (const asset of IMPORTED_VESSELS) {
-    assert.ok(asset.label && asset.description);
-    assert.equal(asset.license, 'CC0 1.0 Universal');
-    assert.ok(asset.sources.length > 0);
-    for (const source of asset.sources) {
-      assert.ok(source.url.startsWith('https://3dassets.dev/'));
-      assert.ok(source.model.startsWith('https://cdn.3dassets.dev/'));
-      assert.ok(source.model.endsWith('.glb'));
-    }
-  }
+test('no unverified modern demo vessels are presented as historical presets', () => {
+  // The former examples were modern leisure/working craft, not the requested
+  // Age-of-Sail fleet. A model only enters this registry after its actual file,
+  // historical fit and redistribution licence are verified.
+  assert.deepEqual(IMPORTED_VESSELS, []);
 });
 
 test('imported GLTF hierarchy exposes editable parts and supports transforms, visibility and relinking', () => {
