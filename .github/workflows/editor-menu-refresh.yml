@@ -33,7 +33,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -50,7 +50,7 @@ jobs:
         run: npx playwright install chromium
       - name: Run interactive editor browser smoke test
         run: npm run smoke
-      - name: Upload Galleon browser screenshot
+      - name: Upload shipyard browser screenshots
         if: always()
         uses: actions/upload-artifact@v7
         with:

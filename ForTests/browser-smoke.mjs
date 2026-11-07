@@ -185,19 +185,23 @@ try{
       }
     }
   };
+  // Change the live model after producing the backup so import must genuinely restore the earlier value.
+  await importedXField.fill('1.50');
+  await importedXField.dispatchEvent('change');
+  assert.equal(await importedXField.inputValue(),'1.500','Could not create a divergent live model state for the backup test.');
   await page.locator('#import-file').setInputFiles({
     name:'local-imported-model-state.json',
     mimeType:'application/json',
     buffer:Buffer.from(JSON.stringify(localBackup)),
   });
-  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('1 imported-model state(s)'));
-  assert.equal(await importedXField.inputValue(),'0.750','JSON backup import did not restore the local model transform.');
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('1 imported-model state(s)'),undefined,{timeout:15000});
+  assert.equal(await importedXField.inputValue(),'0.750','JSON backup import did not restore the earlier local model transform.');
 
   // Re-importing the same source must reconnect saved state without duplicating the dropdown entry.
   const optionCountBeforeReimport=await page.locator('#ship-select option').count();
   await page.locator('#import-3d-input').setInputFiles(localGlbPayload);
   await page.waitForFunction(expected=>document.querySelector('#ship-select')?.value===expected
-    &&(document.querySelector('#status')?.textContent||'').startsWith('Loaded '),{timeout:15000},localAssetId);
+    &&(document.querySelector('#status')?.textContent||'').startsWith('Loaded '),localAssetId,{timeout:15000});
   assert.equal(await page.locator('#ship-select').inputValue(),localAssetId,'Re-import changed the stable local asset identity.');
   assert.equal(await page.locator('#ship-select option').count(),optionCountBeforeReimport,'Re-import added a duplicate local model option.');
   assert.equal(await importedXField.inputValue(),'0.750','Re-import did not reconnect the saved local-model transform.');
@@ -238,7 +242,7 @@ try{
     await page.waitForFunction(()=>document.querySelector('#ship-select')?.value?.startsWith('imported-local-')
       &&(document.querySelector('#ship-caption')?.textContent||'').includes('folder-test')
       &&Number(document.querySelector('#parts')?.textContent||0)>0
-      &&(document.querySelector('#status')?.textContent||'').startsWith('Loaded '),{timeout:15000});
+      &&(document.querySelector('#status')?.textContent||'').startsWith('Loaded '),undefined,{timeout:15000});
     assert.ok(Number(await page.locator('#parts').innerText())>0,'glTF folder import did not expose editable components.');
     console.log('Nested glTF folder import passed.');
   }finally{
