@@ -115,6 +115,15 @@ test('all 16 independent ForTests generators build separate editable models', ()
           if (object.isMesh && object.name === 'stern-side-window') framedSideWindows += 1;
         });
         assert.ok(framedSideWindows >= 6, id + ' should have framed gallery windows visible from port and starboard');
+        let galleryWalkways = 0;
+        let gallerySupports = 0;
+        sternTier.traverse((object) => {
+          if (object.isMesh && object.name === id + '-side-gallery-walkway') galleryWalkways += 1;
+          if (object.isMesh && object.name === 'gallery-cantilever-support') gallerySupports += 1;
+        });
+        assert.ok(galleryWalkways >= 2, id + ' should have separate port and starboard stern gallery walkways');
+        assert.ok(gallerySupports >= 10, id + ' should support its stern galleries with visible corbels');
+
         let visibleGunports = 0;
         ship.userData.getPart('deck-fittings').traverse((object) => {
           if (object.isMesh && object.name.startsWith('gunport-')) visibleGunports += 1;

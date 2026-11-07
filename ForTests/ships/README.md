@@ -25,3 +25,9 @@ The v0.8.8 visual pass also gives the galleon, carrack, and first-rate
 independent tapered stern-castle shells, framed gallery windows and balconies.
 The galleon and carrack add raised foredeck platforms and bulwarks; all three
 have hull-surface gunport frames and separately editable cannon assemblies.
+
+
+Capital vessels use their own tapered, bevelled stern-tier profiles and
+corbel-supported port/starboard galleries. The galleon and carrack also own
+raised forecastle side sheathing and aft bulkheads; no common geometry builder
+is used for these additions.

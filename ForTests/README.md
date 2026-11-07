@@ -112,3 +112,14 @@ on the vessel's own hull surface, with separate cannon assemblies.
 
 These additions remain in the three vessel modules. No shared hull or stern
 geometry builder has been introduced.
+
+
+### Capital-ship form pass
+
+The galleon, carrack and first-rate use individually shaped, bevelled stern-tier
+shells with stronger shoulder taper. Their stern galleries now include separate
+port and starboard window banks, mouldings, pilasters, projecting walkways,
+balustrades and visible corbel supports. Galleon and carrack forecastles also
+have raised side sheathing and an aft bulkhead connecting the higher deck to
+the hull structure. The larger ships' gunports are laid onto the hull section
+surface with separate frames and editable cannon assemblies.
