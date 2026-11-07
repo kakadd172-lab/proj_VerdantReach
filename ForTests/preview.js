@@ -18,6 +18,17 @@ async function bootShipStudio(){
     const {SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
       getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
       createShipModel,disposeShipModel,SHIP_MODEL_MODULE_VERSION}=shipModule;
+    const importedModule=await import('./imported-vessels.js?v=1');
+    const {IMPORTED_VESSELS,loadImportedAsset,loadLocalModelFiles,disposeImportedModel}=importedModule;
+    const importedVesselMap=new Map(IMPORTED_VESSELS.map(asset=>[asset.id,asset]));
+    const localImportedAssets=new Map();
+    const localImportedFiles=new Map();
+    const IMPORTED_STATE_KEY='verdant-reach-imported-model-state-v1';
+    let importedStateById={};
+    try{importedStateById=JSON.parse(localStorage.getItem(IMPORTED_STATE_KEY)||'{}')||{};}catch{importedStateById={};}
+    const persistImportedStates=()=>{
+      try{localStorage.setItem(IMPORTED_STATE_KEY,JSON.stringify(importedStateById));}catch(error){console.warn('Imported-model state could not be saved locally:',error);}
+    };
     const apiProblems=[];
     if(typeof setShipDesignOverrides!=='function')apiProblems.push('ships/index.js: setShipDesignOverrides');
     if(typeof getShipDesign!=='function')apiProblems.push('ships/index.js: getShipDesign');
@@ -32,6 +43,15 @@ async function bootShipStudio(){
     if(apiProblems.length){
       throw new Error('Ship module mismatch: '+apiProblems.join('; ')+'. Pull the latest ForTests files, restart Vite, then hard-refresh the preview.');
     }
+for(const asset of IMPORTED_VESSELS){
+  if(selector.querySelector('option[value="'+CSS.escape(asset.id)+'"]'))continue;
+  const group=selector.querySelector('optgroup[data-imported-models]');
+  if(group){
+    const option=document.createElement('option');
+    option.value=asset.id;option.textContent=asset.label;
+    group.appendChild(option);
+  }
+}
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x101a22);
 scene.fog=new THREE.Fog(0x101a22,120,900);
@@ -115,6 +135,8 @@ function applyOverrides(){
 }
 applyOverrides();
 let ship=null;
+let activeImportedAsset=null;
+let shipLoadSequence=0;
 let selectedName='';
 let activeShipId=selector.value||Object.keys(SHIP_DESIGNS)[0];
 let historyEntries=[];
@@ -197,8 +219,17 @@ function fit(object){
 }
 function syncCurrentShipState(){
   if(!ship||!activeShipId)return;
-  const config=getConfig(activeShipId);
   const state=ship.userData.getShipState();
+  if(ship.userData.isImportedModel){
+    const changed=Object.keys(state.partTransforms||{}).length>0
+      ||Object.keys(state.hiddenParts||{}).length>0
+      ||(state.unlinkedParts||[]).length>0;
+    if(changed)importedStateById[activeShipId]=clone(state);
+    else delete importedStateById[activeShipId];
+    persistImportedStates();
+    return;
+  }
+  const config=getConfig(activeShipId);
   const hasState=Object.keys(state.partTransforms||{}).length>0
     ||Object.keys(state.hiddenParts||{}).length>0
     ||(state.unlinkedParts||[]).length>0
@@ -214,7 +245,7 @@ function syncCurrentShipState(){
 }
 function captureDocumentSnapshot(){
   syncCurrentShipState();
-  return {activeShip:activeShipId,ships:clone(overrideConfig)};
+  return {activeShip:activeShipId,ships:clone(overrideConfig),importedModels:clone(importedStateById)};
 }
 function refreshHistory(){
   document.querySelector('#undo').disabled=historyCursor<=0;
@@ -235,8 +266,12 @@ function commitHistory(before,label='Edit'){
 }
 function restoreDocumentSnapshot(snapshot){
   overrideConfig=clone(snapshot.ships||{});
+  importedStateById=clone(snapshot.importedModels||{});
+  persistImportedStates();
   applyOverrides();
-  const nextId=Object.hasOwn(SHIP_DESIGNS,snapshot.activeShip)?snapshot.activeShip:Object.keys(SHIP_DESIGNS)[0];
+  const candidate=snapshot.activeShip;
+  const validImported=importedVesselMap.has(candidate)||localImportedAssets.has(candidate);
+  const nextId=Object.hasOwn(SHIP_DESIGNS,candidate)||validImported?candidate:Object.keys(SHIP_DESIGNS)[0];
   selector.value=nextId;
   loadShip(nextId,selectedName,false,true);
   refreshHistory();
@@ -480,6 +515,12 @@ function renderTransformInputs(){
 function renderDesignInputs(){
   const container=document.querySelector('#design-controls');
   container.replaceChildren();
+  if(ship?.userData.isImportedModel){
+    const note=document.createElement('p');note.className='note';
+    note.textContent='This is a pre-built imported model. Use component transforms, visibility and hierarchy tools to edit its mesh parts; procedural hull parameters do not apply.';
+    container.appendChild(note);
+    return;
+  }
   const design=getShipDesign(selector.value);
   const structure=getShipStructureBlueprint(selector.value);
   for(const field of DESIGN_FIELDS){
@@ -512,6 +553,10 @@ function updateComparison(){
   const target=compareSelector?.value;
   const output=document.querySelector('#compare-summary');
   if(!output)return;
+  if(ship?.userData.isImportedModel){
+    output.textContent='Imported models use their source dimensions above; procedural-design comparison is not applicable.';
+    return;
+  }
   if(!target||target===activeShipId){output.textContent='Choose a different vessel to compare principal dimensions.';return;}
   const current=getShipDesign(activeShipId),other=getShipDesign(target);
   if(!current||!other){output.textContent='Comparison data is unavailable.';return;}
@@ -610,10 +655,58 @@ function updateInfo(design){
   document.querySelector('#masts').textContent=design.masts.length;
   document.querySelector('#parts').textContent=ship.userData.partNames.length;
   document.querySelector('#description').textContent=design.hullProfile+' '+(design.reference||'');
+  updateImportedSourcePanel(null);
   updateComparison();
 }
+function updateImportedSourcePanel(asset){
+  const panel=document.querySelector('#imported-asset-sources');
+  if(!panel)return;
+  panel.replaceChildren();
+  if(!asset){
+    panel.textContent='Choose an imported model to see licence and source details.';
+    return;
+  }
+  const licence=document.createElement('strong');
+  licence.textContent='Licence: '+(asset.license||'User-supplied model; verify redistribution rights.');
+  panel.appendChild(licence);
+  const description=document.createElement('p');
+  description.className='note';
+  description.textContent=asset.description||'Imported 3D model.';
+  panel.appendChild(description);
+  for(const source of asset.sources||[]){
+    const link=document.createElement('a');
+    link.href=source.url;link.target='_blank';link.rel='noopener noreferrer';
+    link.textContent=source.name||'Model source';
+    link.style.display='block';link.style.marginTop='6px';
+    panel.appendChild(link);
+  }
+}
+function updateImportedInfo(asset){
+  const dimensions=asset.dimensions||{};
+  document.querySelector('#ship-caption').textContent=asset.label||'Imported ship model';
+  document.querySelector('#length').textContent=Number(dimensions.length)>0?Number(dimensions.length).toFixed(2)+' m':'Measured in viewport';
+  document.querySelector('#beam').textContent=Number(dimensions.beam)>0?Number(dimensions.beam).toFixed(2)+' m':'—';
+  document.querySelector('#draft').textContent=Number(dimensions.draft)>0?Number(dimensions.draft).toFixed(2)+' m':'—';
+  document.querySelector('#masts').textContent='—';
+  document.querySelector('#parts').textContent=ship.userData.partNames.length;
+  document.querySelector('#description').textContent=(asset.category||'Imported vessel')+' · '+(asset.description||'Pre-built 3D vessel model.');
+  updateImportedSourcePanel(asset);
+  updateComparison();
+}
+function disposeCurrentShip(){
+  if(!ship)return;
+  gizmo.detach();
+  if(ship.userData.isImportedModel)disposeImportedModel(ship);
+  else disposeShipModel(ship);
+  ship=null;activeImportedAsset=null;
+}
 function loadShip(type,preferredPart='',reframe=true,skipSync=false){
-  if(ship){if(!skipSync)syncCurrentShipState();gizmo.detach();disposeShipModel(ship);ship=null;}
+  if(importedVesselMap.has(type)||localImportedAssets.has(type)){
+    void loadImportedShip(type,preferredPart,reframe,skipSync);
+    return;
+  }
+  shipLoadSequence++;
+  if(ship){if(!skipSync)syncCurrentShipState();disposeCurrentShip();}
   activeShipId=type;
   const design=getShipDesign(type);
   if(!design){setStatus('Unknown vessel design.',true);return;}
@@ -636,6 +729,76 @@ function loadShip(type,preferredPart='',reframe=true,skipSync=false){
     console.error(error);
   }
 }
+async function loadImportedShip(type,preferredPart='',reframe=true,skipSync=false,supplied=null){
+  const sequence=++shipLoadSequence;
+  if(ship){if(!skipSync)syncCurrentShipState();disposeCurrentShip();}
+  activeShipId=type;
+  const asset=localImportedAssets.get(type)||importedVesselMap.get(type)||supplied?.asset;
+  if(!asset){setStatus('Unknown imported vessel.',true);return;}
+  setStatus('Loading '+asset.label+'…');
+  try{
+    const localFiles=localImportedFiles.get(type);
+    const loaded=supplied||(localFiles?await loadLocalModelFiles(localFiles):await loadImportedAsset(asset));
+    if(sequence!==shipLoadSequence){
+      if(loaded.root)disposeImportedModel(loaded.root);
+      return;
+    }
+    ship=loaded.root;
+    activeImportedAsset=loaded.asset||asset;
+    ship.updateMatrixWorld(true);
+    const measuredBounds=new THREE.Box3().setFromObject(ship);
+    const measuredSize=measuredBounds.getSize(new THREE.Vector3());
+    const dimensions=activeImportedAsset.dimensions||{};
+    if(!(Number(dimensions.length)>0))activeImportedAsset.dimensions={...dimensions,length:measuredSize.z,beam:measuredSize.x,height:measuredSize.y,draft:null};
+    ship.userData.vehicle.dimensions={...activeImportedAsset.dimensions};
+    ship.userData.importedMetadata.dimensions={...activeImportedAsset.dimensions};
+    scene.add(ship);
+    const savedState=importedStateById[type];
+    if(savedState)ship.userData.applyShipState(savedState);
+    applyWireframe();
+    if(reframe)fit(ship);
+    updateImportedInfo(activeImportedAsset);
+    populatePartList();
+    updateSectionRange();
+    const chosen=preferredPart&&ship.userData.getPart(preferredPart)?preferredPart:ship.userData.partNames[0];
+    selectPart(chosen);
+    renderDesignInputs();
+    setStatus('Loaded '+activeImportedAsset.label+' · '+ship.userData.partNames.length+' editable model components.');
+  }catch(error){
+    if(sequence===shipLoadSequence)setStatus('Could not load imported model: '+(error?.message||String(error)),true);
+    console.error(error);
+  }
+}
+async function importLocalModel(files){
+  const selected=Array.from(files||[]);
+  if(!selected.length)return;
+  const before=captureDocumentSnapshot();
+  setStatus('Importing local glTF model…');
+  try{
+    const loaded=await loadLocalModelFiles(selected);
+    const asset=loaded.asset;
+    localImportedAssets.set(asset.id,asset);
+    localImportedFiles.set(asset.id,selected);
+    let option=Array.from(selector.options).find(item=>item.value===asset.id);
+    if(!option){
+      let group=selector.querySelector('optgroup[data-imported-models]');
+      if(!group){
+        group=document.createElement('optgroup');group.label='Imported 3D models · CC0 / local';group.dataset.importedModels='';
+        selector.appendChild(group);
+      }
+      option=document.createElement('option');
+      option.value=asset.id;
+      group.appendChild(option);
+    }
+    option.textContent=asset.label+' · local';
+    selector.value=asset.id;
+    await loadImportedShip(asset.id,'',true,true,loaded);
+    if(ship)commitHistory(before,'Import model '+asset.label);
+  }catch(error){
+    setStatus('Model import failed: '+(error?.message||String(error)),true);
+    console.error(error);
+  }
+}
 function changeMode(mode){
   gizmo.setMode(mode);
   document.querySelectorAll('[data-mode]').forEach(button=>button.classList.toggle('active',button.dataset.mode===mode));
@@ -644,9 +807,14 @@ function changeMode(mode){
 }
 function buildExport(){
   syncCurrentShipState();
-  return {format:'verdant-reach-ship-editor',version:2,savedAt:new Date().toISOString(),ships:overrideConfig};
+  return {format:'verdant-reach-ship-editor',version:3,savedAt:new Date().toISOString(),ships:overrideConfig,importedModels:clone(importedStateById)};
 }
 async function saveDesign(){
+  if(ship?.userData.isImportedModel){
+    syncCurrentShipState();
+    setStatus('Saved imported-model component transforms in this browser. Export JSON to keep a portable state backup; the original model file remains separate.');
+    return;
+  }
   try{
     const response=await fetch('/__ship-editor/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(buildExport().ships)});
     if(!response.ok)throw new Error('Local save endpoint returned '+response.status);
@@ -723,29 +891,68 @@ document.querySelector('#capture-preview')?.addEventListener('click',()=>{
     setStatus('Captured the current shipyard viewport as a PNG image.');
   }catch(error){setStatus('Preview capture failed: '+error.message,true);}
 });
+document.querySelector('#import-3d-file')?.addEventListener('click',()=>document.querySelector('#import-3d-input')?.click());
+document.querySelector('#import-3d-folder')?.addEventListener('click',()=>document.querySelector('#import-3d-folder-input')?.click());
+document.querySelector('#import-3d-input')?.addEventListener('change',async event=>{
+  try{await importLocalModel(event.target.files);}finally{event.target.value='';}
+});
+document.querySelector('#import-3d-folder-input')?.addEventListener('change',async event=>{
+  try{await importLocalModel(event.target.files);}finally{event.target.value='';}
+});
 document.querySelector('#import-design')?.addEventListener('click',()=>document.querySelector('#import-file')?.click());
 document.querySelector('#import-file')?.addEventListener('change',async event=>{
   const file=event.target.files?.[0];if(!file)return;
   try{
     const parsed=JSON.parse(await file.text());
-    const imported=parsed?.ships&&typeof parsed.ships==='object'?parsed.ships:parsed;
-    if(!imported||typeof imported!=='object'||Array.isArray(imported))throw new Error('The file must contain a vessel configuration object.');
+    if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw new Error('The file must contain a ship-editor backup or vessel configuration object.');
+    const isEditorBackup=parsed.format==='verdant-reach-ship-editor';
+    const imported=isEditorBackup?(parsed.ships||{}):parsed;
+    if(!imported||typeof imported!=='object'||Array.isArray(imported))throw new Error('The backup ships field must be an object.');
     const next={};
     for(const [id,config] of Object.entries(imported)){
       if(!Object.hasOwn(SHIP_DESIGNS,id))continue;
       if(!config||typeof config!=='object'||Array.isArray(config))throw new Error('Invalid configuration for '+id+'.');
       next[id]=clone(config);
     }
-    if(!Object.keys(next).length)throw new Error('No known vessel configurations were found in this file.');
+    const importedSource=isEditorBackup?(parsed.importedModels??{}):importedStateById;
+    if(!importedSource||typeof importedSource!=='object'||Array.isArray(importedSource))throw new Error('The importedModels backup field must be an object.');
+    const nextImported={};
+    for(const [id,state] of Object.entries(importedSource)){
+      if(!id.startsWith('imported-')||!state||typeof state!=='object'||Array.isArray(state))throw new Error('Invalid imported-model state for '+id+'.');
+      for(const field of ['partTransforms','hiddenParts']){
+        if(state[field]!==undefined&&(!state[field]||typeof state[field]!=='object'||Array.isArray(state[field])))throw new Error('Invalid '+field+' data for '+id+'.');
+      }
+      if(state.unlinkedParts!==undefined&&!Array.isArray(state.unlinkedParts))throw new Error('Invalid unlinkedParts data for '+id+'.');
+      nextImported[id]=clone(state);
+    }
+    if(!Object.keys(next).length&&!Object.keys(nextImported).length)throw new Error('No known vessel configurations or imported-model states were found in this file.');
     const before=captureDocumentSnapshot();
-    const previous=overrideConfig;
+    const previous=clone(overrideConfig);
+    const previousImported=clone(importedStateById);
     try{
-      overrideConfig=next;applyOverrides();
-      loadShip(activeShipId,selectedName,false,true);
-      if(!ship)throw new Error('The current vessel could not be rebuilt from this file.');
-    }catch(error){overrideConfig=previous;applyOverrides();loadShip(activeShipId,selectedName,false,true);throw error;}
+      overrideConfig=next;
+      importedStateById=nextImported;
+      applyOverrides();
+      persistImportedStates();
+      if(ship?.userData.isImportedModel){
+        await loadImportedShip(activeShipId,selectedName,false,true);
+      }else if(Object.hasOwn(SHIP_DESIGNS,activeShipId)){
+        loadShip(activeShipId,selectedName,false,true);
+      }
+      if(!ship)throw new Error('The current vessel could not be rebuilt from this backup.');
+    }catch(error){
+      overrideConfig=previous;
+      importedStateById=previousImported;
+      applyOverrides();
+      persistImportedStates();
+      if(Object.hasOwn(SHIP_DESIGNS,activeShipId))loadShip(activeShipId,selectedName,false,true);
+      else if(importedVesselMap.has(activeShipId)||localImportedAssets.has(activeShipId))await loadImportedShip(activeShipId,selectedName,false,true);
+      throw error;
+    }
     commitHistory(before,'Import '+file.name);
-    setStatus('Imported '+Object.keys(next).length+' vessel configuration(s) from '+file.name+'. Save to keep them in ForTests.');
+    const localStateCount=Object.keys(nextImported).filter(id=>id.startsWith('imported-local-')).length;
+    const note=localStateCount?' Re-import matching local GLB/glTF files after a browser restart to reconnect their saved edits.':'';
+    setStatus('Imported '+Object.keys(next).length+' procedural configuration(s) and '+Object.keys(nextImported).length+' imported-model state(s) from '+file.name+'.'+note);
   }catch(error){setStatus('Import failed: '+error.message,true);}
   finally{event.target.value='';}
 });
@@ -806,7 +1013,7 @@ const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(viewport)
 function animate(){requestAnimationFrame(animate);orbit.update();renderer.render(scene,camera);}
 loadShip(selector.value||Object.keys(SHIP_DESIGNS)[0]);animate();
 window.addEventListener('beforeunload',()=>{
-  resizeObserver.disconnect();clearMeasurement();if(ship)disposeShipModel(ship);gizmo.dispose();renderer.dispose();
+  resizeObserver.disconnect();clearMeasurement();if(ship)disposeCurrentShip();gizmo.dispose();renderer.dispose();
 });
 
   }catch(error){

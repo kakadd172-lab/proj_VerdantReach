@@ -1,7 +1,10 @@
 # Verdant Reach — Independent Ship Design Studio
 
 This workspace is deliberately isolated under `ForTests/`. The main game and
-its ship implementation are not changed by this refactor.
+its ship implementation are not changed by this refactor. The imported-vessel
+preview is stacked on the open draft PR #7 branch
+`chatgpt-v0.8.7-vessel-proportion-refinement`; merge prerequisite PR #7 before
+merging this feature PR into its eventual target.
 
 All 16 vessel types now generate their geometry independently. Each file in
 `ships/vessels/` owns its own hull breadth and cross-section mathematics,
@@ -15,6 +18,8 @@ specification into a generic ship geometry engine.
 ForTests/
 ├── index.html
 ├── preview.js
+├── historical-model-references.html
+├── HISTORICAL_ASSET_RESEARCH.md
 ├── tests/
 ├── ships/
 │   ├── index.js
@@ -112,9 +117,48 @@ Examples used in this refinement include:
 These references constrain scale and silhouette; they are not claims that a
 parametric mesh is a traced original lines plan.
 
+## Historical model research and local imports
+
+The previous sample entries (modern recreational yacht, fishing trawler and
+motor cruiser) have been removed from the historical vessel selector. They
+were importer demonstrations, not Age-of-Sail fleet assets.
+
+Open `historical-model-references.html` from the Shipyard header to inspect
+external candidate models and their source pages. The generator-by-generator
+audit is in `HISTORICAL_ASSET_RESEARCH.md`. These pages are research references
+only: **they are not bundled or editable imported models**.
+
+A source is promoted into the imported preset registry only after all of the
+following are verified: the complete model file is actually available; the
+vessel type and period are a genuine match; the model has useful ship
+components; the licence permits the intended project use; the model is
+visually inspected in the local editor; and attribution is recorded. A
+thumbnail, museum photograph, web viewer, or “downloadable” badge alone does
+not count as an integrated asset.
+
+The editor's **Import GLB / glTF** workflow remains available for local files.
+A GLB can be selected on its own. For a glTF with external `.bin` or texture
+files, choose the extracted model folder or select all companion files
+together. Relative paths are resolved against the selected glTF file, and
+duplicate companion filenames in different folders are kept distinct.
+
+Imported local meshes and groups are exposed as editable components. Move,
+rotate, scale, hide/show, isolate, detach/relink and reset work on imported
+components. Procedural hull parameters, rudder/sail simulation and animated
+sail deployment do not apply to static imported models.
+
+Local model files are never uploaded by the editor and are not embedded in a
+JSON backup. The editor stores imported component state in this browser and
+assigns a stable local-model identity from the model content and selected file
+set. After restarting the browser, re-import the same GLB/glTF file or folder
+to reconnect its saved transforms. **Export JSON** includes `importedModels`
+state; importing that backup restores the state records, and re-importing the
+matching local model applies them again.
+
 ## Editor capabilities
 
-- Preview all 16 independently generated vessel models.
+- Preview all 16 independently generated vessel models; import external GLB/glTF files locally when you have verified source assets.
+- Import local GLB/glTF files and folders, edit their components, and back up imported-model state in JSON.
 - Inspect editable components, mesh counts, materials, transformed bounds,
   hull dimensions and model metadata.
 - Move, rotate and scale parts with TransformControls or numeric inputs.
@@ -134,8 +178,8 @@ Requires Node.js 22+, npm, and a WebGL-capable browser.
 ```powershell
 cd D:\Projects\VerdantReach
 git fetch origin
-git switch --track -c chatgpt-v0.8.7-vessel-proportion-refinement origin/chatgpt-v0.8.7-vessel-proportion-refinement
-git pull --ff-only origin chatgpt-v0.8.7-vessel-proportion-refinement
+git switch --track -c chatgpt-v0.8.7-imported-ship-library origin/chatgpt-v0.8.7-imported-ship-library
+git pull --ff-only origin chatgpt-v0.8.7-imported-ship-library
 cd ForTests
 npm install
 npm run check:modules

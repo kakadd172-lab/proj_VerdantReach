@@ -111,8 +111,8 @@
       <div class="brand-mark" aria-hidden="true">✦</div>
       <div class="brand-copy"><strong>Verdant Reach Shipyard</strong><span>Modular fleet design studio</span></div>
     </div>
-    <div class="header-meta"><span class="version-pill">GAME GENERATORS · v0.8.6</span><span>Local design workspace</span></div>
-    <div class="header-actions"><button id="save-design" class="btn primary" type="button">Save changes</button><button id="export-design" class="btn" type="button">Export JSON</button></div>
+    <div class="header-meta"><span class="version-pill">EDITOR PREVIEW · v0.8.7</span><span>Local design workspace</span></div>
+    <div class="header-actions"><a class="btn" href="./historical-model-references.html" style="text-decoration:none;display:inline-flex;align-items:center">Historical model research</a><button id="save-design" class="btn primary" type="button">Save changes</button><button id="export-design" class="btn" type="button">Export JSON</button></div>
   </header>
 
   <main class="shell">
@@ -240,6 +240,21 @@
           <div id="compare-summary">Choose a second vessel to compare its principal dimensions.</div>
         </div>
       </section>
+
+      <details class="section-card" open>
+        <summary>Imported models & local files</summary>
+        <div class="section-content">
+          <p class="note">Load your own GLB/glTF model here. Imported meshes keep their materials and become selectable editor components. Historical source candidates are documented separately; external links are not bundled presets.</p>
+          <div class="action-grid">
+            <button id="import-3d-file" class="btn" type="button">Import GLB / glTF</button>
+            <button id="import-3d-folder" class="btn" type="button">Import glTF folder</button>
+          </div>
+          <input id="import-3d-input" class="hidden-input" type="file" accept=".glb,.gltf,.bin,.png,.jpg,.jpeg,.webp,.ktx2" multiple/>
+          <input id="import-3d-folder-input" class="hidden-input" type="file" webkitdirectory directory multiple/>
+          <div id="imported-asset-sources" class="note" aria-live="polite">Local imports appear in the vessel selector after you load a GLB/glTF file.</div>
+          <p class="note">A GLB is usually self-contained. For a glTF file with external textures or .bin data, select all related files together or choose the extracted model folder. Local files are not uploaded to GitHub; re-import them after restarting the browser.</p>
+        </div>
+      </details>
 
       <details class="section-card">
         <summary>Import & export</summary>
