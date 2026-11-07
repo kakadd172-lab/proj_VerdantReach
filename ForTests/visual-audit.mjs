@@ -10,7 +10,7 @@ const projectDir=dirname(fileURLToPath(import.meta.url));
 const viteCli=join(projectDir,'node_modules','vite','bin','vite.js');
 const outputDir=join(projectDir,'visual-audit');
 const baseUrl='http://127.0.0.1:5174/';
-const vessels=['galleon','carrack','first-rate','junk'];
+const vessels=['galleon','carrack','first-rate','junk','fluyt','xebec','schooner','snow'];
 let viteOutput='';
 const vite=spawn(process.execPath,[viteCli,'--host','127.0.0.1','--port','5174','--strictPort'],{cwd:projectDir,stdio:['ignore','pipe','pipe']});
 vite.stdout.on('data',c=>viteOutput+=c.toString());
@@ -62,7 +62,7 @@ try{
  assert.deepEqual(errors,[],'Browser page errors: '+errors.join(' | '));
  const fs=await import('node:fs/promises');
  await fs.writeFile(join(outputDir,'report.json'),JSON.stringify({vessels:report,errors},null,2));
- console.log('Captured front-quarter views of four target vessels plus galleon and junk plan views.');
+ console.log('Captured front-quarter views of eight target vessels plus galleon and junk plan views.');
  console.log(JSON.stringify(report,null,2));
 }finally{
  if(browser)await browser.close();
