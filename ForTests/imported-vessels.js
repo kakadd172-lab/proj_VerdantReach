@@ -1,77 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-export const IMPORTED_VESSELS = [
-  {
-    id: 'imported-sailing-sloop',
-    label: 'Cruising sloop · imported CC0 model',
-    category: 'Sailing vessel',
-    license: 'CC0 1.0 Universal',
-    description: 'A 9.6 m cruising-sloop hull combined with a separate deck-stepped mast and stowed sail set. The hull, mast and sails remain separate editable components.',
-    dimensions: { length: 9.667, beam: 2.909, height: 13.404, draft: null },
-    forwardAxis: '+Z in source; normalized to the studio forward axis',
-    sources: [
-      { name: 'Sailing yacht hull, 9.6 m, navy', url: 'https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-sailing-ya-91b7ffaa', model: 'https://cdn.3dassets.dev/assets/38303/v1/model.glb' },
-      { name: 'Yacht mast with boom and standing rigging', url: 'https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-yacht-mast-c68fd062', model: 'https://cdn.3dassets.dev/assets/38306/v1/model.glb' },
-      { name: 'Furled sail set', url: 'https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-furled-sai-4a2de20e', model: 'https://cdn.3dassets.dev/assets/38304/v1/model.glb' },
-    ],
-    async load() {
-      const loader = new GLTFLoader();
-      const loaded = await Promise.all(this.sources.map(source => loader.loadAsync(source.model)));
-      const assembly = new THREE.Group();
-      assembly.name = 'Cruising sloop assembly';
-      const hull = new THREE.Group();
-      hull.name = 'Hull · 9.6 m cruising sloop';
-      hull.add(loaded[0].scene);
-      const mast = new THREE.Group();
-      mast.name = 'Mast and standing rigging';
-      mast.position.set(0, 2.45, 0.05);
-      mast.add(loaded[1].scene);
-      const sails = new THREE.Group();
-      sails.name = 'Furled mainsail and headsail';
-      sails.position.copy(mast.position);
-      sails.add(loaded[2].scene);
-      assembly.add(hull, mast, sails);
-      // Source bow is +Z; Shipyard Studio uses -Z as forward.
-      assembly.rotation.y = Math.PI;
-      return { scene: assembly, resources: [] };
-    },
-  },
-  {
-    id: 'imported-coastal-trawler',
-    label: 'Coastal fishing trawler · imported CC0 model',
-    category: 'Working vessel',
-    license: 'CC0 1.0 Universal',
-    description: 'A complete generic coastal fishing vessel with wheelhouse, open aft deck, stern gantry, net drum, mast and deck equipment.',
-    dimensions: { length: 10.767, beam: 3.649, height: 5.355, draft: null },
-    forwardAxis: '+Z in source; normalized to the studio forward axis',
-    sources: [
-      { name: 'Coastal fishing trawler', url: 'https://3dassets.dev/assets/transport-collection-hd-fishing-trawler-9644a09d', model: 'https://cdn.3dassets.dev/assets/18727/v1/model.glb' },
-    ],
-    async load() {
-      const gltf = await new GLTFLoader().loadAsync(this.sources[0].model);
-      gltf.scene.rotation.y = Math.PI;
-      return { scene: gltf.scene, resources: [] };
-    },
-  },
-  {
-    id: 'imported-motor-cruiser',
-    label: 'Motor cruiser · imported CC0 model',
-    category: 'Leisure vessel',
-    license: 'CC0 1.0 Universal',
-    description: 'A modern 11.5 m leisure cruiser with a hard-chine hull, glazed saloon, teak cockpit, guardrails and flybridge.',
-    dimensions: { length: 11.85, beam: 3.313, height: 4.959, draft: null },
-    forwardAxis: '+Z in source; normalized to the studio forward axis',
-    sources: [
-      { name: 'Motor cruiser with flybridge, 11.5 m, navy', url: 'https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-motor-crui-f58244ee', model: 'https://cdn.3dassets.dev/assets/38308/v1/model.glb' },
-    ],
-    async load() {
-      const gltf = await new GLTFLoader().loadAsync(this.sources[0].model);
-      gltf.scene.rotation.y = Math.PI;
-      return { scene: gltf.scene, resources: [] };
-    },
-  },
-];
+export const IMPORTED_VESSELS = [];
 
 export function getImportedVessel(id) {
   return IMPORTED_VESSELS.find(asset => asset.id === id) || null;
