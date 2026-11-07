@@ -145,7 +145,12 @@ function buildRig(d,ctx){
    buildCanvasSail(ctx,'sail-'+mast.id+'-junk',mast.id,[bottomForward,topForward,topAft,bottomAft],.095,group,'x');
    const battens=part('junk-battens-'+mast.id,group);
    for(let i=1;i<=9;i++){const f=i/10,y=low+(high-low)*f,left=span*(.035+.025*f),right=span*(.965-.065*f),batten=part('batten-'+mast.id+'-'+i,battens);beam(batten,V(0,y,left),V(0,y-.025,right),Math.max(.024,radius*.30),materials.trim,'bamboo-batten');}
-   const sheets=part('junk-sheets-'+mast.id,group);tube(sheets,[V(.12,low+.18,span*.22),V(.22,low+.12,span*.7),V(.16,low+.1,span*.96)],.016,materials.rope,'junk-sheet-lines',24);continue;
+   const runningLines=part('running-rigging-'+mast.id,group);
+   tube(runningLines,[topAft,V(0,low+totalHeight*.08,span*.82),bottomAft],.014,materials.rope,'junk-running-leech-line',24);
+   tube(runningLines,[topForward,V(0,low+totalHeight*.12,span*.10),bottomForward],.014,materials.rope,'junk-running-luff-line',24);
+   const sheets=part('junk-sheets-'+mast.id,group);
+   tube(sheets,[V(.12,low+.18,span*.22),V(.22,low+.12,span*.7),V(.16,low+.1,span*.96)],.016,materials.rope,'junk-sheet-lines',24);
+   continue;
   }
   const standing=part('standing-rigging-'+mast.id),shrouds=part('shrouds-'+mast.id,standing),ratlines=part('ratlines-'+mast.id,standing),stays=part('mast-stays-'+mast.id,standing),running=part('running-rigging-'+mast.id),braces=part('running-braces-'+mast.id,running);
   const railX=halfBreadth(d,.5+mast.z*.2)*.82,pairs=d.structure.shroudPairs??2;
