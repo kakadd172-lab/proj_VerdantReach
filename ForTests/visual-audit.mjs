@@ -31,7 +31,9 @@ try{
  const capture=async name=>{
   const canvas=page.locator('#viewport canvas');
   await canvas.waitFor({state:'visible',timeout:12000});
-  await canvas.screenshot({path:join(outputDir,name),animations:'disabled',timeout:12000});
+  const bounds=await canvas.boundingBox();
+  assert.ok(bounds&&bounds.width>0&&bounds.height>0,'WebGL canvas has no visible bounds for '+name);
+  await page.screenshot({path:join(outputDir,name),clip:bounds,animations:'disabled',timeout:12000});
  };
  const clearSelection=async()=>{
   await page.locator('#part-select').evaluate(select=>{
