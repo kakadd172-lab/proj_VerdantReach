@@ -2,7 +2,7 @@
  * Common APIs for independent ForTests ship definitions.
  * No vessel catalogue is stored here; the definitions live in vessels/<id>.js.
  */
-export const SHIP_CATALOGUE_VERSION='0.8.7';
+export const SHIP_CATALOGUE_VERSION='0.8.8';
 export const SHIP_DESIGN_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
 export const SHIP_STRUCTURE_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
 export const WORLD_UNITS_PER_METRE=4/3;
@@ -45,7 +45,7 @@ function prepareDesign(data,structure){
  totalMastSpars:data.masts.length,mastHeights:data.masts.map(m=>m.height),lengthBeamRatio:data.hullLength/data.beam,
  hullLengthUnits:data.hullLength*WORLD_UNITS_PER_METRE,beamUnits:data.beam*WORLD_UNITS_PER_METRE,
  draftUnits:data.draft*WORLD_UNITS_PER_METRE,deckHeightUnits:data.freeboard*WORLD_UNITS_PER_METRE,
- partNames:[...SHIP_PART_BASE_NAMES,...frames,...stern,...(data.oars?['oars']:[]),...heads,...masts],
+ partNames:[...SHIP_PART_BASE_NAMES,...frames,...stern,...(data.oars?['oars']:[]),...heads,...masts,...(data.detailParts??[])],
  modelScaleNote:data.modelScaleNote??'Dimensions are historical reference values where stated; rig heights and unrecorded details are reconstruction estimates.',
  hullFormNote:data.hullFormNote??'Original parametric hull loft informed by the cited vessel type; not a traced CAD or surviving lines plan.'});
 }

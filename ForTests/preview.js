@@ -14,7 +14,7 @@ async function bootShipStudio(){
     const overrideResponse=await fetch('./design-overrides.json',{cache:'no-store'});
     if(!overrideResponse.ok) throw new Error('Could not read design-overrides.json (HTTP '+overrideResponse.status+').');
     const DESIGN_OVERRIDES=await overrideResponse.json();
-    const shipModule=await import('./ships/index.js?v=0.8.7');
+    const shipModule=await import('./ships/index.js?v=0.8.8');
     const {SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
       getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
       createShipModel,disposeShipModel,SHIP_MODEL_MODULE_VERSION}=shipModule;
@@ -36,9 +36,9 @@ async function bootShipStudio(){
     if(typeof getShipStructureBlueprint!=='function')apiProblems.push('ships/index.js: getShipStructureBlueprint');
     if(typeof createShipModel!=='function')apiProblems.push('ships/index.js: createShipModel');
     if(typeof disposeShipModel!=='function')apiProblems.push('ships/shared/ship-editor-kit.js: disposeShipModel');
-    if(SHIP_DESIGN_MODULE_VERSION!=='0.8.7')apiProblems.push('ships/index.js design API version '+String(SHIP_DESIGN_MODULE_VERSION));
-    if(SHIP_STRUCTURE_MODULE_VERSION!=='0.8.7')apiProblems.push('ships/index.js structure API version '+String(SHIP_STRUCTURE_MODULE_VERSION));
-    if(SHIP_MODEL_MODULE_VERSION!=='0.8.7')apiProblems.push('ships/shared/ship-editor-kit.js version '+String(SHIP_MODEL_MODULE_VERSION));
+    if(SHIP_DESIGN_MODULE_VERSION!=='0.8.8')apiProblems.push('ships/index.js design API version '+String(SHIP_DESIGN_MODULE_VERSION));
+    if(SHIP_STRUCTURE_MODULE_VERSION!=='0.8.8')apiProblems.push('ships/index.js structure API version '+String(SHIP_STRUCTURE_MODULE_VERSION));
+    if(SHIP_MODEL_MODULE_VERSION!=='0.8.8')apiProblems.push('ships/shared/ship-editor-kit.js version '+String(SHIP_MODEL_MODULE_VERSION));
     if(Object.keys(SHIP_DESIGNS||{}).length!==16)apiProblems.push('ship catalogue count '+Object.keys(SHIP_DESIGNS||{}).length);
     if(apiProblems.length){
       throw new Error('Ship module mismatch: '+apiProblems.join('; ')+'. Pull the latest ForTests files, restart Vite, then hard-refresh the preview.');
