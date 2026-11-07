@@ -116,6 +116,23 @@ function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,a
  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
  geometry.setIndex(indices);geometry.computeVertexNormals();
  mesh(cloth,geometry,materials.sail,'carrack-individually-shaped-cloth');
+
+ const panelSeams=part('panel-seams-'+name,control);
+ const vertexAt=(u,v)=>{
+  const gx=THREE.MathUtils.clamp(u,0,1)*columns,gy=THREE.MathUtils.clamp(v,0,1)*rows;
+  const x0=Math.floor(gx),x1=Math.min(columns,x0+1),y0=Math.floor(gy),y1=Math.min(rows,y0+1),fx=gx-x0,fy=gy-y0;
+  const read=(x,y)=>new THREE.Vector3(positions[(y*stride+x)*3],positions[(y*stride+x)*3+1],positions[(y*stride+x)*3+2]);
+  const p=read(x0,y0).lerp(read(x1,y0),fx).lerp(read(x0,y1).lerp(read(x1,y1),fx),fy);
+  if(axis==='x')p.x+=.004;else p.z+=.004;
+  return p;
+ };
+ const drawSeam=(label,fixed,alongU)=>{
+  const line=[];for(let i=0;i<=18;i++){const t=i/18;line.push(vertexAt(alongU?t:fixed,alongU?fixed:t));}
+  ctx.tube(panelSeams,line,.006,materials.sailShade,'sail-stitch-'+label,24);
+ };
+ for(let i=1;i<=3;i++)drawSeam('reef-'+i,i/4,true);
+ for(let i=1;i<=2;i++)drawSeam('panel-'+i,i/3,false);
+
  return control;
 }
 

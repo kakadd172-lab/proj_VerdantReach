@@ -75,7 +75,24 @@ function buildStern(d,ctx){
  const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.405,deck=deckY(d,.94),tiers=d.sternTiers||[];
  const width=d.beamUnits*.56,height=d.deckHeightUnits*.62,depth=d.hullLengthUnits*.06,transom=box(stern,width,height,depth,materials.hull,'junk-counter-transom');transom.position.set(0,deck+height*.44,baseZ);for(let side of [-1,1]){beam(gallery,V(side*width*.5,deck+.12,baseZ-depth),V(side*width*.5,deck+height*.72,baseZ+depth*.6),.045,materials.trim,'quarter-gallery-rail');for(let p=0;p<3;p++)beam(gallery,V(side*width*.5,deck+.12,baseZ-depth+p*depth*.7),V(side*width*.5,deck+height*.68,baseZ-depth+p*depth*.7),.026,materials.trim,'gallery-baluster');}for(let n=0;n<4;n++){const x=-width*.3+n*width*.2,pane=box(windows,.28,.32,.035,materials.glass,'counter-window');pane.position.set(x,deck+height*.52,baseZ+depth*.52);}
 }
-function buildBow(d,ctx){const {part,box,materials}=ctx,bow=part('bowworks'),bowsprit=part('bowsprit');}
+function buildBow(d,ctx){
+ const {part,beam,tube,materials,V}=ctx,bow=part('bowworks'),bowsprit=part('bowsprit');
+ const stem=part('junk-high-stem',bow),tip=-d.hullLengthUnits*.5;
+ const stemBottom=keelY(d,.008),stemTop=deckY(d,.025)+d.deckHeightUnits*.38;
+ beam(stem,V(0,stemBottom,tip),V(0,stemTop,tip+d.hullLengthUnits*.025),Math.max(.12,d.beamUnits*.035),materials.trim,'junk-raised-stempost');
+ const cap=part('junk-bow-cap',bow),capZ=-d.hullLengthUnits*.43,capY=deckY(d,.055)+d.deckHeightUnits*.3,capHalf=halfBreadth(d,.055)*.78;
+ beam(cap,V(-capHalf,capY,capZ),V(capHalf,capY,capZ),Math.max(.07,d.beamUnits*.018),materials.trim,'junk-bow-cross-cap');
+ const bulwark=part('junk-bow-bulwark',bow);
+ for(const side of [-1,1]){
+  const line=[];
+  for(let i=0;i<=14;i++){
+   const t=.012+.12*i/14,x=side*halfBreadth(d,t)*.84,y=deckY(d,t)+d.deckHeightUnits*.28,z=(t-.5)*d.hullLengthUnits;
+   line.push(V(x,y,z));
+   if(i%3===0)beam(bulwark,V(x,y-.24,z),V(x,y+.03,z),.035,materials.trim,'junk-bow-bulwark-post');
+  }
+  tube(bulwark,line,.045,materials.trim,'junk-raised-bow-rail',24);
+ }
+}
 function buildRudderAndHelm(d,ctx){const {part,box,beam,materials,V}=ctx,rudder=part('rudder'),config=d.rudderDetails,stern=d.hullLengthUnits*.47;rudder.position.set(0,0,stern+config.pivotOffset);const width=d.beamUnits*config.breadthFactor*1.4,height=d.draftUnits*config.depthFactor,blade=box(rudder,width,height,.22,materials.trim,'junk-rudder-blade');blade.position.set(0,-d.draftUnits*config.yFactor,0);beam(rudder,V(0,-d.draftUnits*.4,-.02),V(0,deckY(d,.97)+.22,0),Math.max(.045,d.beamUnits*.014),materials.trim,'rudder-stock');const helm=part('helm'),wheel=part('helm-wheel'),y=deckY(d,.83),z=d.hullLengthUnits*.31;beam(helm,V(0,y+.18,z),V(0,y+.9,z),.065,materials.trim,'helm-post');const ring=ctx.mesh(wheel,new ctx.THREE.TorusGeometry(.44,.045,8,20),materials.trim,'helm-wheel-ring');ring.position.set(0,y+1.02,z);for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(wheel,V(0,y+1.02,z),V(Math.cos(a)*.44,y+1.02+Math.sin(a)*.44,z),.022,materials.trim,'helm-spoke');}}
 function buildRailingsAndEquipment(d,ctx){
  const {part,beam,tube,box,materials,V}=ctx,rail=part('railings'),port=part('railings-port',rail),starboard=part('railings-starboard',rail);
@@ -118,6 +135,23 @@ function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,a
  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
  geometry.setIndex(indices);geometry.computeVertexNormals();
  mesh(cloth,geometry,materials.sail,'junk-individually-shaped-cloth');
+
+ const panelSeams=part('panel-seams-'+name,control);
+ const vertexAt=(u,v)=>{
+  const gx=THREE.MathUtils.clamp(u,0,1)*columns,gy=THREE.MathUtils.clamp(v,0,1)*rows;
+  const x0=Math.floor(gx),x1=Math.min(columns,x0+1),y0=Math.floor(gy),y1=Math.min(rows,y0+1),fx=gx-x0,fy=gy-y0;
+  const read=(x,y)=>new THREE.Vector3(positions[(y*stride+x)*3],positions[(y*stride+x)*3+1],positions[(y*stride+x)*3+2]);
+  const p=read(x0,y0).lerp(read(x1,y0),fx).lerp(read(x0,y1).lerp(read(x1,y1),fx),fy);
+  if(axis==='x')p.x+=.004;else p.z+=.004;
+  return p;
+ };
+ const drawSeam=(label,fixed,alongU)=>{
+  const line=[];for(let i=0;i<=18;i++){const t=i/18;line.push(vertexAt(alongU?t:fixed,alongU?fixed:t));}
+  ctx.tube(panelSeams,line,.006,materials.sailShade,'sail-stitch-'+label,24);
+ };
+ for(let i=1;i<=3;i++)drawSeam('reef-'+i,i/4,true);
+ for(let i=1;i<=2;i++)drawSeam('panel-'+i,i/3,false);
+
  return control;
 }
 
