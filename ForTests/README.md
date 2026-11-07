@@ -115,30 +115,35 @@ Examples used in this refinement include:
 These references constrain scale and silhouette; they are not claims that a
 parametric mesh is a traced original lines plan.
 
-## Imported model preview
+## Historical model research and local imports
 
-The editor includes a separate imported-vessel gallery alongside the 16 procedural
-vessels. The sample gallery contains a cruising-sloop assembly (hull, mast/rigging
-and furled sails), a coastal fishing trawler, and a modern motor cruiser. These
-are static CC0 preview assets, not historical galleons or animated ship rigs.
-Their source pages disclose AI-assisted asset creation and publish the CC0 1.0 terms:
+The previous sample entries (modern recreational yacht, fishing trawler and
+motor cruiser) have been removed from the historical vessel selector. They
+were importer demonstrations, not Age-of-Sail fleet assets.
 
-- [Sailing yacht hull, 9.6 m](https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-sailing-ya-91b7ffaa)
-- [Yacht mast and standing rigging](https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-yacht-mast-c68fd062)
-- [Furled sail set](https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-furled-sai-4a2de20e)
-- [Coastal fishing trawler](https://3dassets.dev/assets/transport-collection-hd-fishing-trawler-9644a09d)
-- [Motor cruiser with flybridge](https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-motor-crui-f58244ee)
+Open `historical-model-references.html` from the Shipyard header to inspect
+external candidate models and their source pages. The generator-by-generator
+audit is in `HISTORICAL_ASSET_RESEARCH.md`. These pages are research references
+only: **they are not bundled or editable imported models**.
 
-Choose an imported sample from the vessel dropdown, or use **Import GLB / glTF**
-for files. A GLB can be selected on its own. For a glTF with external `.bin` or
-texture files, choose the extracted model folder or select all companion files
+A source is promoted into the imported preset registry only after all of the
+following are verified: the complete model file is actually available; the
+vessel type and period are a genuine match; the model has useful ship
+components; the licence permits the intended project use; the model is
+visually inspected in the local editor; and attribution is recorded. A
+thumbnail, museum photograph, web viewer, or “downloadable” badge alone does
+not count as an integrated asset.
+
+The editor's **Import GLB / glTF** workflow remains available for local files.
+A GLB can be selected on its own. For a glTF with external `.bin` or texture
+files, choose the extracted model folder or select all companion files
 together. Relative paths are resolved against the selected glTF file, and
 duplicate companion filenames in different folders are kept distinct.
 
-Imported meshes and groups are exposed as editable components. Move, rotate,
-scale, hide/show, isolate, detach/relink and reset work on imported components.
-Procedural hull parameters, rudder/sail simulation and animated sail deployment
-do not apply to these static imported models.
+Imported local meshes and groups are exposed as editable components. Move,
+rotate, scale, hide/show, isolate, detach/relink and reset work on imported
+components. Procedural hull parameters, rudder/sail simulation and animated
+sail deployment do not apply to static imported models.
 
 Local model files are never uploaded by the editor and are not embedded in a
 JSON backup. The editor stores imported component state in this browser and
@@ -150,7 +155,7 @@ matching local model applies them again.
 
 ## Editor capabilities
 
-- Preview all 16 independently generated vessel models plus the separate imported-vessel gallery.
+- Preview all 16 independently generated vessel models; import external GLB/glTF files locally when you have verified source assets.
 - Import local GLB/glTF files and folders, edit their components, and back up imported-model state in JSON.
 - Inspect editable components, mesh counts, materials, transformed bounds,
   hull dimensions and model metadata.
