@@ -28,53 +28,45 @@ try{
  browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
  const page=await browser.newPage({viewport:{width:1600,height:1050},deviceScaleFactor:1});
  const errors=[];
- const capture=async name=>{
-  const viewport=page.locator('#viewport');
-  await viewport.waitFor({state:'visible',timeout:15000});
-  await viewport.screenshot({path:join(outputDir,name),animations:'disabled',timeout:30000});
- };
- const clearSelection=async()=>{
-  await page.locator('#part-select').evaluate(select=>{
-   let empty=Array.from(select.options).find(option=>option.value==='');
-   if(!empty){empty=document.createElement('option');empty.value='';empty.textContent='No selection';select.prepend(empty);}
-   select.value='';
-   select.dispatchEvent(new Event('change',{bubbles:true}));
-  });
- };
  page.on('pageerror',e=>errors.push(e.message));
  await page.goto(baseUrl,{waitUntil:'domcontentloaded',timeout:30000});
  await page.waitForFunction(()=>document.querySelectorAll('#ship-select option').length>=16,{timeout:30000});
  const report=[];
- const cameraPanel=page.locator('details.section-card').filter({hasText:'Viewport & camera'});
- if(!(await cameraPanel.evaluate(element=>element.open)))await cameraPanel.locator('summary').click();
  for(const id of vessels){
   await page.locator('#ship-select').selectOption(id);
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '),{timeout:30000});
-  await delay(650);
-  await clearSelection();
-  await delay(120);
+  await delay(900);
+  assert.ok(await page.locator('#viewport canvas').count(),id+' canvas missing');
+  await page.locator('#viewport').screenshot({path:join(outputDir,id+'.png'),animations:'disabled'});
   const metrics=await page.evaluate(()=>({
    status:document.querySelector('#status')?.textContent||'',
    parts:document.querySelector('#parts')?.textContent||'',
    description:document.querySelector('#description')?.textContent||''
   }));
-  await capture(id+'.png');
-  await page.locator('[data-camera="side"]').click();
-  await delay(250);
-  await capture(id+'-side.png');
-  await page.locator('[data-camera="top"]').click();
-  await delay(250);
-  await capture(id+'-top.png');
   report.push({id,...metrics});
  }
+ await page.locator('#ship-select').selectOption('galleon');
+ await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
+ await page.locator('details.section-card').filter({hasText:'Viewport & camera'}).locator('summary').click();
+ await page.locator('[data-camera="top"]').click();
+ await delay(600);
+ await page.locator('#viewport').screenshot({path:join(outputDir,'galleon-top.png')});
+ await page.locator('[data-camera="side"]').click();
+ await delay(600);
+ await page.locator('#viewport').screenshot({path:join(outputDir,'galleon-side.png')});
+ await page.locator('#ship-select').selectOption('junk');
+ await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
+ await page.locator('[data-camera="top"]').click();
+ await delay(600);
+ await page.locator('#viewport').screenshot({path:join(outputDir,'junk-top.png')});
  assert.deepEqual(errors,[],'Browser page errors: '+errors.join(' | '));
  const fs=await import('node:fs/promises');
  await fs.writeFile(join(outputDir,'report.json'),JSON.stringify({vessels:report,errors},null,2));
- console.log('Captured front-quarter, side and top views for '+report.length+' target vessels.');
+ console.log('Captured front-quarter views of four target vessels plus galleon and junk plan views.');
  console.log(JSON.stringify(report,null,2));
 }finally{
  if(browser)await browser.close();
  vite.kill('SIGTERM');
  await Promise.race([new Promise(resolve=>vite.once('exit',resolve)),delay(3000)]);
- if(vite.exitCode===null)vite.kill('SIGKILL');
+ if(vite.exitCode===null) vite.kill('SIGKILL');
 }
