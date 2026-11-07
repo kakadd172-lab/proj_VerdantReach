@@ -279,6 +279,52 @@ export async function loadImportedAsset(asset, localFiles = null) {
   return { asset, root: createImportedVesselWrapper(THREE, asset, loaded) };
 }
 
+function normalizeImportPath(value) {
+  const segments = [];
+  for (const segment of String(value || '').replace(/\\/g, '/').split('/')) {
+    if (!segment || segment === '.') continue;
+    if (segment === '..') segments.pop();
+    else segments.push(segment);
+  }
+  return segments.join('/');
+}
+
+export function createLocalAssetId(files, main, mainData) {
+  const list = Array.from(files || []);
+  const paths = list.map(file => normalizeImportPath(file.webkitRelativePath || file.name));
+  const firstSegments = paths.map(path => path.split('/')[0]);
+  const sharedRoot = paths.length > 1
+    && firstSegments[0]
+    && paths.every(path => path.includes('/') && path.startsWith(firstSegments[0] + '/'))
+    ? firstSegments[0] + '/'
+    : '';
+  const canonical = path => sharedRoot && path.startsWith(sharedRoot) ? path.slice(sharedRoot.length) : path;
+  const mainPath = canonical(normalizeImportPath(main.webkitRelativePath || main.name));
+  const records = list.map((file, index) => ({
+    path: canonical(paths[index]),
+    size: Number(file.size) || 0,
+    lastModified: Number(file.lastModified) || 0,
+  })).sort((a, b) => a.path.localeCompare(b.path));
+  const metadata = new TextEncoder().encode(JSON.stringify({ main: mainPath, files: records }));
+  const content = typeof mainData === 'string'
+    ? new TextEncoder().encode(mainData)
+    : new Uint8Array(mainData);
+  let first = 0x811c9dc5;
+  let second = 0x9e3779b9;
+  const update = bytes => {
+    for (let index = 0; index < bytes.length; index++) {
+      const byte = bytes[index];
+      first = Math.imul(first ^ byte, 0x01000193) >>> 0;
+      second = Math.imul(second ^ (byte + (index & 255)), 0x85ebca6b) >>> 0;
+    }
+  };
+  update(metadata);
+  update(new Uint8Array([255]));
+  update(content);
+  const hex = value => value.toString(16).padStart(8, '0');
+  return 'imported-local-' + hex(first) + hex(second);
+}
+
 export async function loadLocalModelFiles(files) {
   const list = Array.from(files || []);
   if (!list.length) throw new Error('Choose a GLB file or a glTF folder with its texture and binary files.');
@@ -286,19 +332,42 @@ export async function loadLocalModelFiles(files) {
   if (!main) throw new Error('No .glb or .gltf model file was found in the selection.');
 
   const resources = [];
-  const lookup = new Map();
+  const pathLookup = new Map();
+  const basenameLookup = new Map();
   for (const file of list) {
-    const relative = (file.webkitRelativePath || file.name).replace(/\\/g, '/');
-    lookup.set(relative, file);
-    lookup.set(file.name, file);
+    const relative = normalizeImportPath(file.webkitRelativePath || file.name);
+    pathLookup.set(relative, file);
+    if (basenameLookup.has(file.name)) basenameLookup.set(file.name, null);
+    else basenameLookup.set(file.name, file);
   }
+  const mainPath = normalizeImportPath(main.webkitRelativePath || main.name);
+  const mainDirectory = mainPath.includes('/') ? mainPath.slice(0, mainPath.lastIndexOf('/') + 1) : '';
+  const objectUrls = new Map();
   const manager = new THREE.LoadingManager();
   manager.setURLModifier(url => {
-    const decoded = decodeURIComponent(url).replace(/\\/g, '/').split('?')[0];
-    const file = lookup.get(decoded) || lookup.get(decoded.split('/').pop());
+    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(url)) return url;
+    let decoded;
+    try { decoded = decodeURIComponent(url); } catch { return url; }
+    const resourcePath = decoded.split(/[?#]/, 1)[0].replace(/\\/g, '/');
+    const candidates = [
+      normalizeImportPath(mainDirectory + resourcePath),
+      normalizeImportPath(resourcePath),
+    ];
+    let file = null;
+    for (const candidate of candidates) {
+      if (pathLookup.has(candidate)) {
+        file = pathLookup.get(candidate);
+        break;
+      }
+    }
+    if (!file) file = basenameLookup.get(candidates[candidates.length - 1].split('/').pop()) || null;
     if (!file) return url;
-    const objectUrl = URL.createObjectURL(file);
-    resources.push(objectUrl);
+    let objectUrl = objectUrls.get(file);
+    if (!objectUrl) {
+      objectUrl = URL.createObjectURL(file);
+      objectUrls.set(file, objectUrl);
+      resources.push(objectUrl);
+    }
     return objectUrl;
   });
   const loader = new GLTFLoader(manager);
@@ -307,7 +376,7 @@ export async function loadLocalModelFiles(files) {
     const data = ext === 'glb' ? await main.arrayBuffer() : await main.text();
     const gltf = await loader.parseAsync(data, '');
     const localAsset = {
-      id: 'imported-local-' + Date.now().toString(36),
+      id: createLocalAssetId(list, main, data),
       label: main.name.replace(/\.(glb|gltf)$/i, ''),
       category: 'Local import',
       license: 'User-supplied model; verify its licence before redistribution.',

@@ -1,7 +1,10 @@
 # Verdant Reach — Independent Ship Design Studio
 
 This workspace is deliberately isolated under `ForTests/`. The main game and
-its ship implementation are not changed by this refactor.
+its ship implementation are not changed by this refactor. The imported-vessel
+preview is stacked on the open draft PR #7 branch
+`chatgpt-v0.8.7-vessel-proportion-refinement`; merge prerequisite PR #7 before
+merging this feature PR into its eventual target.
 
 All 16 vessel types now generate their geometry independently. Each file in
 `ships/vessels/` owns its own hull breadth and cross-section mathematics,
@@ -112,9 +115,43 @@ Examples used in this refinement include:
 These references constrain scale and silhouette; they are not claims that a
 parametric mesh is a traced original lines plan.
 
+## Imported model preview
+
+The editor includes a separate imported-vessel gallery alongside the 16 procedural
+vessels. The sample gallery contains a cruising-sloop assembly (hull, mast/rigging
+and furled sails), a coastal fishing trawler, and a modern motor cruiser. These
+are static CC0 preview assets, not historical galleons or animated ship rigs.
+Their source pages disclose AI-assisted asset creation and publish the CC0 1.0 terms:
+
+- [Sailing yacht hull, 9.6 m](https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-sailing-ya-91b7ffaa)
+- [Yacht mast and standing rigging](https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-yacht-mast-c68fd062)
+- [Furled sail set](https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-furled-sai-4a2de20e)
+- [Coastal fishing trawler](https://3dassets.dev/assets/transport-collection-hd-fishing-trawler-9644a09d)
+- [Motor cruiser with flybridge](https://3dassets.dev/assets/marina-and-yacht-club-marina-and-yacht-club-motor-crui-f58244ee)
+
+Choose an imported sample from the vessel dropdown, or use **Import GLB / glTF**
+for files. A GLB can be selected on its own. For a glTF with external `.bin` or
+texture files, choose the extracted model folder or select all companion files
+together. Relative paths are resolved against the selected glTF file, and
+duplicate companion filenames in different folders are kept distinct.
+
+Imported meshes and groups are exposed as editable components. Move, rotate,
+scale, hide/show, isolate, detach/relink and reset work on imported components.
+Procedural hull parameters, rudder/sail simulation and animated sail deployment
+do not apply to these static imported models.
+
+Local model files are never uploaded by the editor and are not embedded in a
+JSON backup. The editor stores imported component state in this browser and
+assigns a stable local-model identity from the model content and selected file
+set. After restarting the browser, re-import the same GLB/glTF file or folder
+to reconnect its saved transforms. **Export JSON** includes `importedModels`
+state; importing that backup restores the state records, and re-importing the
+matching local model applies them again.
+
 ## Editor capabilities
 
-- Preview all 16 independently generated vessel models.
+- Preview all 16 independently generated vessel models plus the separate imported-vessel gallery.
+- Import local GLB/glTF files and folders, edit their components, and back up imported-model state in JSON.
 - Inspect editable components, mesh counts, materials, transformed bounds,
   hull dimensions and model metadata.
 - Move, rotate and scale parts with TransformControls or numeric inputs.
@@ -134,8 +171,8 @@ Requires Node.js 22+, npm, and a WebGL-capable browser.
 ```powershell
 cd D:\Projects\VerdantReach
 git fetch origin
-git switch --track -c chatgpt-v0.8.7-vessel-proportion-refinement origin/chatgpt-v0.8.7-vessel-proportion-refinement
-git pull --ff-only origin chatgpt-v0.8.7-vessel-proportion-refinement
+git switch --track -c chatgpt-v0.8.7-imported-ship-library origin/chatgpt-v0.8.7-imported-ship-library
+git pull --ff-only origin chatgpt-v0.8.7-imported-ship-library
 cd ForTests
 npm install
 npm run check:modules

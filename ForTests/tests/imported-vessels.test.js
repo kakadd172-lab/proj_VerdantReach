@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import {
   IMPORTED_VESSELS,
   createImportedVesselWrapper,
+  createLocalAssetId,
   disposeImportedModel,
 } from '../imported-vessels.js';
 
@@ -84,4 +85,58 @@ test('imported GLTF hierarchy exposes editable parts and supports transforms, vi
     disposeImportedModel(root);
   }
   assert.equal(root.parent, null);
+});
+
+
+test('local model identity is stable across re-imports and changes when the model changes', () => {
+  const main = {
+    name: 'sailboat.glb',
+    webkitRelativePath: 'fleet/sailboat.glb',
+    size: 128,
+    lastModified: 1700000000000,
+  };
+  const companion = {
+    name: 'texture.png',
+    webkitRelativePath: 'fleet/textures/texture.png',
+    size: 64,
+    lastModified: 1700000000001,
+  };
+  const files = [main, companion];
+  const content = new Uint8Array([1, 2, 3, 4]).buffer;
+  const first = createLocalAssetId(files, main, content);
+  const second = createLocalAssetId(files, main, content);
+  assert.equal(first, second);
+  assert.match(first, /^imported-local-[a-f0-9]{16}$/);
+  const changed = createLocalAssetId(files, main, new Uint8Array([1, 2, 3, 5]).buffer);
+  assert.notEqual(first, changed);
+});
+
+test('saved imported-model transforms are restored when the same asset is wrapped again', () => {
+  const scene = new THREE.Group();
+  scene.name = 'test-persisted-scene';
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(3, 1, 8), new THREE.MeshStandardMaterial());
+  hull.name = 'Hull';
+  scene.add(hull);
+  const asset = {
+    id: 'imported-test-persisted',
+    label: 'Persisted test vessel',
+    category: 'Test vessel',
+    license: 'CC0 1.0 Universal',
+    description: 'Synthetic persistence fixture.',
+    dimensions: { length: 8, beam: 3, height: 1, draft: null },
+    sources: [],
+  };
+  const partId = 'imported-001-hull';
+  const state = {
+    partTransforms: { [partId]: { x: 1.5, y: 0, z: 0, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1 } },
+    hiddenParts: {},
+    unlinkedParts: [],
+  };
+  const root = createImportedVesselWrapper(THREE, asset, { scene, resources: [] }, state);
+  try {
+    assert.equal(root.userData.getPartTransform(partId).x, 1.5);
+    assert.equal(root.userData.getShipState().partTransforms[partId].x, 1.5);
+  } finally {
+    disposeImportedModel(root);
+  }
 });

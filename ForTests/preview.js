@@ -750,6 +750,8 @@ async function loadImportedShip(type,preferredPart='',reframe=true,skipSync=fals
     const measuredSize=measuredBounds.getSize(new THREE.Vector3());
     const dimensions=activeImportedAsset.dimensions||{};
     if(!(Number(dimensions.length)>0))activeImportedAsset.dimensions={...dimensions,length:measuredSize.z,beam:measuredSize.x,height:measuredSize.y,draft:null};
+    ship.userData.vehicle.dimensions={...activeImportedAsset.dimensions};
+    ship.userData.importedMetadata.dimensions={...activeImportedAsset.dimensions};
     scene.add(ship);
     const savedState=importedStateById[type];
     if(savedState)ship.userData.applyShipState(savedState);
@@ -777,14 +779,18 @@ async function importLocalModel(files){
     const asset=loaded.asset;
     localImportedAssets.set(asset.id,asset);
     localImportedFiles.set(asset.id,selected);
-    let group=selector.querySelector('optgroup[data-imported-models]');
-    if(!group){
-      group=document.createElement('optgroup');group.label='Imported 3D models · CC0 / local';group.dataset.importedModels='';
-      selector.appendChild(group);
+    let option=Array.from(selector.options).find(item=>item.value===asset.id);
+    if(!option){
+      let group=selector.querySelector('optgroup[data-imported-models]');
+      if(!group){
+        group=document.createElement('optgroup');group.label='Imported 3D models · CC0 / local';group.dataset.importedModels='';
+        selector.appendChild(group);
+      }
+      option=document.createElement('option');
+      option.value=asset.id;
+      group.appendChild(option);
     }
-    const option=document.createElement('option');
-    option.value=asset.id;option.textContent=asset.label+' · local';
-    group.appendChild(option);
+    option.textContent=asset.label+' · local';
     selector.value=asset.id;
     await loadImportedShip(asset.id,'',true,true,loaded);
     if(ship)commitHistory(before,'Import model '+asset.label);
@@ -898,24 +904,55 @@ document.querySelector('#import-file')?.addEventListener('change',async event=>{
   const file=event.target.files?.[0];if(!file)return;
   try{
     const parsed=JSON.parse(await file.text());
-    const imported=parsed?.ships&&typeof parsed.ships==='object'?parsed.ships:parsed;
-    if(!imported||typeof imported!=='object'||Array.isArray(imported))throw new Error('The file must contain a vessel configuration object.');
+    if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw new Error('The file must contain a ship-editor backup or vessel configuration object.');
+    const isEditorBackup=parsed.format==='verdant-reach-ship-editor';
+    const imported=isEditorBackup?(parsed.ships||{}):parsed;
+    if(!imported||typeof imported!=='object'||Array.isArray(imported))throw new Error('The backup ships field must be an object.');
     const next={};
     for(const [id,config] of Object.entries(imported)){
       if(!Object.hasOwn(SHIP_DESIGNS,id))continue;
       if(!config||typeof config!=='object'||Array.isArray(config))throw new Error('Invalid configuration for '+id+'.');
       next[id]=clone(config);
     }
-    if(!Object.keys(next).length)throw new Error('No known vessel configurations were found in this file.');
+    const importedSource=isEditorBackup?(parsed.importedModels??{}):importedStateById;
+    if(!importedSource||typeof importedSource!=='object'||Array.isArray(importedSource))throw new Error('The importedModels backup field must be an object.');
+    const nextImported={};
+    for(const [id,state] of Object.entries(importedSource)){
+      if(!id.startsWith('imported-')||!state||typeof state!=='object'||Array.isArray(state))throw new Error('Invalid imported-model state for '+id+'.');
+      for(const field of ['partTransforms','hiddenParts']){
+        if(state[field]!==undefined&&(!state[field]||typeof state[field]!=='object'||Array.isArray(state[field])))throw new Error('Invalid '+field+' data for '+id+'.');
+      }
+      if(state.unlinkedParts!==undefined&&!Array.isArray(state.unlinkedParts))throw new Error('Invalid unlinkedParts data for '+id+'.');
+      nextImported[id]=clone(state);
+    }
+    if(!Object.keys(next).length&&!Object.keys(nextImported).length)throw new Error('No known vessel configurations or imported-model states were found in this file.');
     const before=captureDocumentSnapshot();
-    const previous=overrideConfig;
+    const previous=clone(overrideConfig);
+    const previousImported=clone(importedStateById);
     try{
-      overrideConfig=next;applyOverrides();
-      loadShip(activeShipId,selectedName,false,true);
-      if(!ship)throw new Error('The current vessel could not be rebuilt from this file.');
-    }catch(error){overrideConfig=previous;applyOverrides();loadShip(activeShipId,selectedName,false,true);throw error;}
+      overrideConfig=next;
+      importedStateById=nextImported;
+      applyOverrides();
+      persistImportedStates();
+      if(ship?.userData.isImportedModel){
+        await loadImportedShip(activeShipId,selectedName,false,true);
+      }else if(Object.hasOwn(SHIP_DESIGNS,activeShipId)){
+        loadShip(activeShipId,selectedName,false,true);
+      }
+      if(!ship)throw new Error('The current vessel could not be rebuilt from this backup.');
+    }catch(error){
+      overrideConfig=previous;
+      importedStateById=previousImported;
+      applyOverrides();
+      persistImportedStates();
+      if(Object.hasOwn(SHIP_DESIGNS,activeShipId))loadShip(activeShipId,selectedName,false,true);
+      else if(importedVesselMap.has(activeShipId)||localImportedAssets.has(activeShipId))await loadImportedShip(activeShipId,selectedName,false,true);
+      throw error;
+    }
     commitHistory(before,'Import '+file.name);
-    setStatus('Imported '+Object.keys(next).length+' vessel configuration(s) from '+file.name+'. Save to keep them in ForTests.');
+    const localStateCount=Object.keys(nextImported).filter(id=>id.startsWith('imported-local-')).length;
+    const note=localStateCount?' Re-import matching local GLB/glTF files after a browser restart to reconnect their saved edits.':'';
+    setStatus('Imported '+Object.keys(next).length+' procedural configuration(s) and '+Object.keys(nextImported).length+' imported-model state(s) from '+file.name+'.'+note);
   }catch(error){setStatus('Import failed: '+error.message,true);}
   finally{event.target.value='';}
 });

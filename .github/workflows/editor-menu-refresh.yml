@@ -1,25 +1,25 @@
-name: v0.8.6 shipyard editor and menu refresh
+name: v0.8.7 shipyard editor and imported-vessel preview
 
 on:
   push:
-    branches: [chatgpt-v0.8.6-editor-menu-refresh]
+    branches:
+      - main
+      - chatgpt-v0.8.6-editor-menu-refresh
+      - chatgpt-v0.8.7-vessel-proportion-refinement
+      - chatgpt-v0.8.7-imported-ship-library
     paths:
       - 'ForTests/**'
-      - 'V8/verdant-reach-v0.8.6/verdant-reach/index.html'
-      - 'V8/verdant-reach-v0.8.6/verdant-reach/src/styles.css'
       - '.github/workflows/editor-menu-refresh.yml'
   pull_request:
     paths:
       - 'ForTests/**'
-      - 'V8/verdant-reach-v0.8.6/verdant-reach/index.html'
-      - 'V8/verdant-reach-v0.8.6/verdant-reach/src/styles.css'
       - '.github/workflows/editor-menu-refresh.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: v086-editor-menu-refresh
+  group: shipyard-editor-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -31,11 +31,11 @@ jobs:
         working-directory: ForTests
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: ForTests/package.json
       - name: Install editor dependencies
@@ -52,9 +52,9 @@ jobs:
         run: npm run smoke
       - name: Upload Galleon browser screenshot
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: galleon-playwright-preview
+          name: shipyard-and-imported-vessel-previews
           path: |
             ForTests/galleon-*.png
             ForTests/imported-*.png

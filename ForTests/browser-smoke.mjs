@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -130,11 +132,13 @@ try{
     binHeader.writeUInt32LE(binChunk.length,0);binHeader.writeUInt32LE(0x004e4942,4);
     return Buffer.concat([header,jsonHeader,jsonChunk,binHeader,binChunk]);
   }
-  await page.locator('#import-3d-input').setInputFiles({
+  const localGlbPayload={
     name:'test-imported-sailboat.glb',
     mimeType:'model/gltf-binary',
     buffer:makeTestGlb(),
-  });
+    lastModified:1700000000000,
+  };
+  await page.locator('#import-3d-input').setInputFiles(localGlbPayload);
   await page.waitForFunction(()=>{
     const selector=document.querySelector('#ship-select');
     const caption=document.querySelector('#ship-caption')?.textContent||'';
@@ -157,6 +161,89 @@ try{
   await delay(350);
   await page.locator('#viewport canvas').screenshot({path:join(projectDir,'imported-local-preview.png')});
   console.log('Local GLB import passed.');
+
+  // Imported-model JSON backups must restore edits, including local-model state.
+  const localAssetId=await page.locator('#ship-select').inputValue();
+  const localPartId=await page.locator('#part-select').inputValue();
+  await page.locator('details.section-card').filter({hasText:'Precise transforms'}).locator('summary').click();
+  const importedXField=page.locator('[data-transform="x"]');
+  await importedXField.fill('0.75');
+  await importedXField.dispatchEvent('change');
+  assert.equal(await importedXField.inputValue(),'0.750','Local imported component transform was not applied.');
+  const localBackup={
+    format:'verdant-reach-ship-editor',
+    version:3,
+    savedAt:new Date().toISOString(),
+    ships:{},
+    importedModels:{
+      [localAssetId]:{
+        partTransforms:{
+          [localPartId]:{x:.75,y:0,z:0,rx:0,ry:0,rz:0,sx:1,sy:1,sz:1}
+        },
+        hiddenParts:{},
+        unlinkedParts:[],
+      }
+    }
+  };
+  await page.locator('#import-file').setInputFiles({
+    name:'local-imported-model-state.json',
+    mimeType:'application/json',
+    buffer:Buffer.from(JSON.stringify(localBackup)),
+  });
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('1 imported-model state(s)'));
+  assert.equal(await importedXField.inputValue(),'0.750','JSON backup import did not restore the local model transform.');
+
+  // Re-importing the same source must reconnect saved state without duplicating the dropdown entry.
+  const optionCountBeforeReimport=await page.locator('#ship-select option').count();
+  await page.locator('#import-3d-input').setInputFiles(localGlbPayload);
+  await page.waitForFunction(expected=>document.querySelector('#ship-select')?.value===expected
+    &&(document.querySelector('#status')?.textContent||'').startsWith('Loaded '),{timeout:15000},localAssetId);
+  assert.equal(await page.locator('#ship-select').inputValue(),localAssetId,'Re-import changed the stable local asset identity.');
+  assert.equal(await page.locator('#ship-select option').count(),optionCountBeforeReimport,'Re-import added a duplicate local model option.');
+  assert.equal(await importedXField.inputValue(),'0.750','Re-import did not reconnect the saved local-model transform.');
+  console.log('Local imported-model backup and re-import persistence passed.');
+
+  // Exercise folder import with nested binary resources and duplicate filenames.
+  const gltfFixtureDir=await mkdtemp(join(tmpdir(),'verdant-reach-gltf-folder-'));
+  try{
+    await mkdir(join(gltfFixtureDir,'geometry'),{recursive:true});
+    await mkdir(join(gltfFixtureDir,'unused'),{recursive:true});
+    const positions=Buffer.alloc(72);
+    const vertices=[[-1,0,-2],[1,0,-2],[0,2,-2],[-1,0,2],[1,0,2],[0,2,2]];
+    let positionOffset=0;
+    for(const vertex of vertices)for(const value of vertex){positions.writeFloatLE(value,positionOffset);positionOffset+=4;}
+    const indices=Buffer.alloc(12);
+    [0,1,2,3,5,4].forEach((value,index)=>indices.writeUInt16LE(value,index*2));
+    const binary=Buffer.concat([positions,indices]);
+    const gltf={
+      asset:{version:'2.0',generator:'Verdant Reach glTF folder smoke test'},
+      scene:0,
+      scenes:[{nodes:[0]}],
+      nodes:[{name:'Folder imported hull',mesh:0}],
+      meshes:[{name:'Folder hull',primitives:[{attributes:{POSITION:0},indices:1}]}],
+      buffers:[{uri:'geometry/mesh.bin',byteLength:binary.length}],
+      bufferViews:[
+        {buffer:0,byteOffset:0,byteLength:72,target:34962},
+        {buffer:0,byteOffset:72,byteLength:12,target:34963},
+      ],
+      accessors:[
+        {bufferView:0,componentType:5126,count:6,type:'VEC3',min:[-1,0,-2],max:[1,2,2]},
+        {bufferView:1,componentType:5123,count:6,type:'SCALAR',min:[0],max:[5]},
+      ],
+    };
+    await writeFile(join(gltfFixtureDir,'folder-test.gltf'),JSON.stringify(gltf));
+    await writeFile(join(gltfFixtureDir,'geometry','mesh.bin'),binary);
+    await writeFile(join(gltfFixtureDir,'unused','mesh.bin'),Buffer.from([9,8,7,6]));
+    await page.locator('#import-3d-folder-input').setInputFiles(gltfFixtureDir);
+    await page.waitForFunction(()=>document.querySelector('#ship-select')?.value?.startsWith('imported-local-')
+      &&(document.querySelector('#ship-caption')?.textContent||'').includes('folder-test')
+      &&Number(document.querySelector('#parts')?.textContent||0)>0
+      &&(document.querySelector('#status')?.textContent||'').startsWith('Loaded '),{timeout:15000});
+    assert.ok(Number(await page.locator('#parts').innerText())>0,'glTF folder import did not expose editable components.');
+    console.log('Nested glTF folder import passed.');
+  }finally{
+    await rm(gltfFixtureDir,{recursive:true,force:true});
+  }
 
   await page.locator('#ship-select').selectOption('sloop');
 
