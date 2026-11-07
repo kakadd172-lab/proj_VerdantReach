@@ -7,14 +7,14 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.7';
+} from '../ships/index.js?v=0.8.8';
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
 test('the editor uses 16 self-contained ForTests vessel modules', () => {
-  assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.7');
-  assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.7');
-  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.7');
+  assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.8');
+  assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.8');
+  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.8');
   assert.equal(ids.length, 16);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
@@ -102,6 +102,7 @@ test('all 16 independent ForTests generators build separate editable models', ()
       assert.ok(ship.userData.getPart('hull'), id + ' hull');
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
+      assert.ok(ship.userData.partNames.some((name) => name.startsWith('panel-seams-sail-')), id + ' editable sail panel seams');
       for (const partName of getShipDesign(id).partNames) {
         assert.ok(ship.userData.getPart(partName), id + ' missing editable component ' + partName);
       }
