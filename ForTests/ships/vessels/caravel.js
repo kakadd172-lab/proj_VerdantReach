@@ -68,8 +68,18 @@ function buildFramesAndPlanking(d,ctx){
  const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'caravel-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
- const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.355,deck=deckY(d,.94),tiers=d.sternTiers||[];
- tiers.forEach((tier,index)=>{const tierGroup=part('stern-tier-'+(index+1),stern),width=d.beamUnits*tier.w*(1-index*.055),depth=d.hullLengthUnits*tier.d*(1-index*.035),height=tier.h*(4/3),body=box(tierGroup,width,height,depth,materials.hull,'caravel-stern-castle-tier');body.position.set(0,deck+tiers.slice(0,index).reduce((sum,item)=>sum+item.h*(4/3)+.08,0)+height*.5,baseZ+index*depth*.22);const cap=box(tierGroup,width*1.04,.11,depth*1.04,materials.trim,'castle-tier-cap');cap.position.set(0,body.position.y+height*.53,body.position.z);const count=Math.max(2,Math.round(width/1.3));for(let n=0;n<count;n++){const x=-width*.34+width*.68*n/Math.max(1,count-1),y=body.position.y+height*.12,z=body.position.z+depth*.52,pane=box(windows,Math.max(.22,width*.065),Math.max(.24,height*.19),.035,materials.glass,'stern-window');pane.position.set(x,y,z);}for(const side of [-1,1]){const rx=side*width*.53,ry=body.position.y+height*.5;beam(gallery,V(rx,ry,body.position.z-depth*.48),V(rx,ry,body.position.z+depth*.48),.045,materials.trim,'stern-balustrade');for(let j=0;j<4;j++){const zz=body.position.z-depth*.42+j*depth*.28;beam(gallery,V(rx,ry-.42,zz),V(rx,ry+.03,zz),.025,materials.trim,'stern-baluster');}}});
+ const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern);
+ const deck=deckY(d,.94),z=d.hullLengthUnits*.355,width=d.beamUnits*.48,depth=d.hullLengthUnits*.035;
+ const counter=box(stern,width*.78,d.deckHeightUnits*.18,depth,materials.trim,'caravel-narrow-counter');
+ counter.position.set(0,deck+d.deckHeightUnits*.09,z);
+ for(const side of [-1,1]){
+  const railX=side*width*.52,railY=deck+d.deckHeightUnits*.38;
+  beam(gallery,V(railX,deck+.12,z-depth),V(railX,railY,z+depth*.8),.032,materials.trim,'caravel-quarter-gallery-rail');
+  for(let post=0;post<4;post++){
+   const pz=z-depth*.85+post*depth*.85;
+   beam(gallery,V(railX,deck+.12,pz),V(railX,railY,pz),.022,materials.trim,'caravel-gallery-baluster');
+  }
+ }
 }
 function buildBow(d,ctx){const {part,beam,box,materials,V}=ctx,bow=part('bowworks'),bowsprit=part('bowsprit'),base=deckY(d,.045)+d.deckHeightUnits*.18,tip=-d.hullLengthUnits*.5;
 const length=d.beamUnits*.92;beam(bowsprit,V(0,base,tip+d.hullLengthUnits*.12),V(0,base+d.deckHeightUnits*.32,tip-length),Math.max(.065,d.beamUnits*.02),materials.trim,'caravel-bowsprit');for(let side of [-1,1])beam(bow,V(side*.1,base+.1,tip+d.hullLengthUnits*.1),V(side*d.beamUnits*.18,base-.18,tip-d.beamUnits*.12),.035,materials.trim,'headrail');
