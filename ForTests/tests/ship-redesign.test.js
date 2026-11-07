@@ -112,19 +112,9 @@ test('all 16 independent ForTests generators build separate editable models', ()
           if (object.isMesh && (object.name === 'folded-cabin-side-rib' || object.name === 'folded-cabin-cross-rib')) foldDetails += 1;
         });
         assert.ok(foldedShells > 0, id + ' cabin should use a sculpted side-profile shell');
-        if (!['galleon','carrack','first-rate'].includes(id)) {
-          assert.ok(foldDetails >= 8, id + ' cabin should show its backward-folded roof ribs');
-        }
+        assert.ok(foldDetails >= 8, id + ' cabin should show its backward-folded roof ribs');
       }
-      if (['galleon','carrack','first-rate'].includes(id)) {
-        const roof = ship.userData.getPart('folded-cabin-roof');
-        assert.ok(roof, id + ' upper cabin should have a folded-back roof');
-        let roofShells = 0;
-        roof.traverse((object) => {
-          if (object.isMesh && object.geometry?.type === 'ExtrudeGeometry') roofShells += 1;
-        });
-        assert.ok(roofShells > 0, id + ' folded roof should be real extruded cabin geometry');
-      }
+
       if (id === 'schooner') {
         const deckhouse = ship.userData.getPart('deckhouse');
         let foldedDeckhouse = 0;
