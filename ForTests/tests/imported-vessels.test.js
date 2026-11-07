@@ -132,7 +132,11 @@ test('local model identity is stable across re-imports and changes when the mode
   const content = new Uint8Array([1, 2, 3, 4]).buffer;
   const first = createLocalAssetId(files, main, content);
   const second = createLocalAssetId(files, main, content);
+  const reselectedMain = { ...main, lastModified: main.lastModified + 86400000 };
+  const reselectedFiles = [reselectedMain, companion];
+  const afterReselecting = createLocalAssetId(reselectedFiles, reselectedMain, content);
   assert.equal(first, second);
+  assert.equal(first, afterReselecting, 'Selection timestamps must not change the model identity.');
   assert.match(first, /^imported-local-[a-f0-9]{16}$/);
   const changed = createLocalAssetId(files, main, new Uint8Array([1, 2, 3, 5]).buffer);
   assert.notEqual(first, changed);

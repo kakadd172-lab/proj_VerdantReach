@@ -200,9 +200,15 @@ try{
   // Re-importing the same source must reconnect saved state without duplicating the dropdown entry.
   const optionCountBeforeReimport=await page.locator('#ship-select option').count();
   await page.locator('#import-3d-input').setInputFiles(localGlbPayload);
-  await page.waitForFunction(expected=>document.querySelector('#ship-select')?.value===expected
-    &&(document.querySelector('#status')?.textContent||'').startsWith('Loaded '),localAssetId,{timeout:15000});
-  assert.equal(await page.locator('#ship-select').inputValue(),localAssetId,'Re-import changed the stable local asset identity.');
+  await page.waitForFunction(expected=>{
+    const selected=document.querySelector('#ship-select')?.value||'';
+    const status=document.querySelector('#status')?.textContent||'';
+    return selected!==expected||status.startsWith('Loaded ')||status.startsWith('Could not load imported model:');
+  },localAssetId,{timeout:15000});
+  const reimportedId=await page.locator('#ship-select').inputValue();
+  const reimportStatus=await page.locator('#status').innerText();
+  assert.equal(reimportedId,localAssetId,'Re-import changed the stable local asset identity. Status: '+reimportStatus);
+  assert.ok(reimportStatus.startsWith('Loaded '),'Re-import did not finish loading. Status: '+reimportStatus);
   assert.equal(await page.locator('#ship-select option').count(),optionCountBeforeReimport,'Re-import added a duplicate local model option.');
   assert.equal(await importedXField.inputValue(),'0.750','Re-import did not reconnect the saved local-model transform.');
   console.log('Local imported-model backup and re-import persistence passed.');

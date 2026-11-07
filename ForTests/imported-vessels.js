@@ -323,7 +323,6 @@ export function createLocalAssetId(files, main, mainData) {
   const records = list.map((file, index) => ({
     path: canonical(paths[index]),
     size: Number(file.size) || 0,
-    lastModified: Number(file.lastModified) || 0,
   })).sort((a, b) => a.path.localeCompare(b.path));
   const metadata = new TextEncoder().encode(JSON.stringify({ main: mainPath, files: records }));
   const content = typeof mainData === 'string'
