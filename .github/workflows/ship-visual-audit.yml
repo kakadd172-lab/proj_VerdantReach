@@ -30,7 +30,7 @@ jobs:
         run: npm run check:modules
       - name: Run geometry and editor tests
         shell: bash
-        run: npm test 2>&1 | tee test-output.log
+        run: set -o pipefail; npm test 2>&1 | tee test-output.log
       - name: Build editor
         run: npm run build
       - name: Render every ship for visual inspection
