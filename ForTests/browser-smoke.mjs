@@ -52,7 +52,7 @@ try{
   },{timeout:30000});
 
   const optionCount=await page.locator('#ship-select option').count();
-  assert.equal(optionCount,19,'Expected 16 procedural vessels plus 3 imported vessel presets.');
+  assert.equal(optionCount,16,'Expected only the 16 procedural vessels; external research candidates are not bundled presets.');
   await page.waitForFunction(()=>{
     const status=document.querySelector('#status')?.textContent||'';
     const parts=Number(document.querySelector('#parts')?.textContent||0);
@@ -72,24 +72,7 @@ try{
   await delay(800);
   await page.locator('#viewport canvas').screenshot({path:join(projectDir,'galleon-preview.png')});
   console.log('Galleon viewport screenshot saved: galleon-preview.png');
-  const importedChecks=[
-    ['imported-sailing-sloop','imported-sloop-preview.png'],
-    ['imported-coastal-trawler','imported-trawler-preview.png'],
-    ['imported-motor-cruiser','imported-motor-cruiser-preview.png'],
-  ];
-  for(const [id,screenshot] of importedChecks){
-    await page.locator('#ship-select').selectOption(id);
-    await page.waitForFunction(expected=>{
-      const status=document.querySelector('#status')?.textContent||'';
-      return status.startsWith('Loaded ')&&status.includes('editable model components.');
-    },{timeout:45000},id);
-    assert.ok(Number(await page.locator('#parts').innerText())>0,id+' registered no editable model parts.');
-    assert.ok(await page.locator('#part-select option').count()>0,id+' did not populate its component list.');
-    await delay(450);
-    await page.locator('#viewport canvas').screenshot({path:join(projectDir,screenshot)});
-    console.log(id+' loaded with '+await page.locator('#parts').innerText()+' editable model components.');
-  }
-
+  assert.ok(await page.locator('a[href="./historical-model-references.html"]').count()===1,'Historical model research link is missing.');
   // Exercise the local GLB import path using a tiny valid glTF 2.0 binary.
   function makeTestGlb(){
     const positions=Buffer.alloc(72);
