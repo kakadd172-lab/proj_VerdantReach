@@ -1,4 +1,4 @@
-name: v0.8.7 shipyard editor and imported-vessel preview
+name: v0.8.8 shipyard editor and vessel preview
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
       - chatgpt-v0.8.6-editor-menu-refresh
       - chatgpt-v0.8.7-vessel-proportion-refinement
       - chatgpt-v0.8.7-imported-ship-library
+      - chatgpt-v0.8.8-unique-vessel-refinement
     paths:
       - 'ForTests/**'
       - '.github/workflows/editor-menu-refresh.yml'
