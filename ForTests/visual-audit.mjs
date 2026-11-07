@@ -10,7 +10,7 @@ const projectDir=dirname(fileURLToPath(import.meta.url));
 const viteCli=join(projectDir,'node_modules','vite','bin','vite.js');
 const outputDir=join(projectDir,'visual-audit');
 const baseUrl='http://127.0.0.1:5174/';
-const vessels=['galleon','carrack','first-rate','junk','fluyt','xebec','schooner','snow'];
+const vessels=['barque','brig','brigantine','caravel','carrack','cutter','first-rate','fluyt','frigate','galleon','junk','pinnace','schooner','sloop','snow','xebec'];
 let viteOutput='';
 const vite=spawn(process.execPath,[viteCli,'--host','127.0.0.1','--port','5174','--strictPort'],{cwd:projectDir,stdio:['ignore','pipe','pipe']});
 vite.stdout.on('data',c=>viteOutput+=c.toString());
@@ -45,21 +45,9 @@ try{
   }));
   report.push({id,...metrics});
  }
- await page.locator('#ship-select').selectOption('galleon');
- await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
  await page.locator('details.section-card').filter({hasText:'Viewport & camera'}).locator('summary').click();
- await page.locator('[data-camera="top"]').click();
- await delay(600);
- await page.locator('#viewport').screenshot({path:join(outputDir,'galleon-top.png')});
- await page.locator('[data-camera="side"]').click();
- await delay(600);
- await page.locator('#viewport').screenshot({path:join(outputDir,'galleon-side.png')});
- await page.locator('#ship-select').selectOption('junk');
- await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
- await page.locator('[data-camera="top"]').click();
- await delay(600);
- await page.locator('#viewport').screenshot({path:join(outputDir,'junk-top.png')});
- for(const [id,angle] of [['fluyt','top'],['xebec','top'],['schooner','side'],['snow','side']]){
+ const cameraViews=[['galleon','side'],['carrack','side'],['first-rate','side'],['brig','side'],['schooner','side'],['sloop','side'],['snow','side'],['junk','top'],['xebec','top'],['fluyt','top']];
+ for(const [id,angle] of cameraViews){
   await page.locator('#ship-select').selectOption(id);
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
   await page.locator('[data-camera="'+angle+'"]').click();
@@ -69,7 +57,7 @@ try{
  assert.deepEqual(errors,[],'Browser page errors: '+errors.join(' | '));
  const fs=await import('node:fs/promises');
  await fs.writeFile(join(outputDir,'report.json'),JSON.stringify({vessels:report,errors},null,2));
- console.log('Captured front-quarter views of eight target vessels plus galleon, junk, fluyt, xebec and specialist side views.');
+ console.log('Captured front-quarter views of all 16 vessels plus 10 targeted side/top rig views.');
  console.log(JSON.stringify(report,null,2));
 }finally{
  if(browser)await browser.close();

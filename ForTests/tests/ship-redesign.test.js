@@ -172,6 +172,39 @@ test('all 16 independent ForTests generators build separate editable models', ()
         assert.ok(ship.userData.getPart(id + '-forecastle-deck'), id + ' raised forecastle deck');
         assert.ok(ship.userData.getPart('forecastle-side-sheathing'), id + ' forecastle side sheathing');
       }
+
+      const sailCloths = [];
+      ship.traverse((object) => {
+        if (!object.isMesh || object.name !== 'sail-shaped-cloth') return;
+        const bounds = object.geometry.boundingBox;
+        assert.ok(bounds, id + ' sail geometry should have calculated bounds');
+        const dimensions = [
+          bounds.max.x - bounds.min.x,
+          bounds.max.y - bounds.min.y,
+          bounds.max.z - bounds.min.z,
+        ].sort((a, b) => a - b);
+        assert.ok(dimensions[0] > .025, id + ' sail should have visible cloth fullness');
+        assert.ok(dimensions[1] > .7, id + ' sail should have useful area in its second dimension');
+        assert.ok(dimensions[2] > 1.2, id + ' sail should not collapse into a narrow strip');
+        sailCloths.push(object);
+      });
+      assert.ok(sailCloths.length > 0, id + ' should generate sail cloth');
+      for (const mast of getShipDesign(id).masts.filter((item) => item.rig === 'square' && (item.squares ?? 2) > 0)) {
+        const course = ship.userData.getPart('sail-' + mast.id + '-course');
+        assert.ok(course, id + ' ' + mast.id + ' should have its lower square course');
+        let courseWidth = 0;
+        let courseHeight = 0;
+        course.traverse((object) => {
+          if (!object.isMesh || object.name !== 'sail-shaped-cloth') return;
+          const bounds = object.geometry.boundingBox;
+          courseWidth = Math.max(courseWidth, bounds.max.x - bounds.min.x);
+          courseHeight = Math.max(courseHeight, bounds.max.y - bounds.min.y);
+        });
+        assert.ok(courseWidth >= ship.userData.shipDimensionsUnits.length * .32,
+          id + ' ' + mast.id + ' course yard/sail should be proportioned to hull length');
+        assert.ok(courseHeight >= mast.height * .25,
+          id + ' ' + mast.id + ' course should use a substantial part of the mast height');
+      }
       assert.ok(ship.userData.partNames.some((name) => name.startsWith('panel-seams-sail-')), id + ' editable sail panel seams');
       for (const partName of getShipDesign(id).partNames) {
         assert.ok(ship.userData.getPart(partName), id + ' missing editable component ' + partName);

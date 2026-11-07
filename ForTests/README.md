@@ -134,3 +134,20 @@ ribs, side windows and trim. The small craft keep their open-boat forms rather
 than receiving an invented enclosed cabin. The galleon, carrack and first-rate
 retain their multi-tier aftercastles and carry the folded roof profile on the
 upper cabin; the schooner's low deckhouse uses its own folded profile.
+
+
+### Fleet-wide sail proportion pass
+
+All 16 independent rig generators now derive sail cloth fullness from the
+actual sail span and height, rather than a tiny fixed displacement. Square
+courses, topsails and topgallants are spaced over more of the mast and sized
+from hull length, with a broad lower course and progressively narrower upper
+sails. Gaff and trysail panels use taller, more balanced trapezoids; lateen
+yards and sails have a longer working span; Chinese junk sails have broader
+trapezoidal cloth and nine individually generated battens. Headsails are
+placed as a staggered fan along the fore stay. Mast lower/top sections are
+also tapered instead of using constant-diameter rods.
+
+The geometry tests check that generated cloth has real three-dimensional
+fullness and usable sail area, and that square lower courses remain in scale
+with each hull.
