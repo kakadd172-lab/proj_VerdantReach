@@ -311,8 +311,10 @@ try{
 
   // Component transform -> undo -> redo -> reset -> undo -> redo.
   await page.locator('#part-select').selectOption('mast-single');
-  await page.locator('details.section-card').filter({hasText:'Precise transforms'}).locator('summary').click();
+  const preciseTransformsPanel=page.locator('details.section-card').filter({hasText:'Precise transforms'});
+  await preciseTransformsPanel.evaluate(panel=>{panel.open=true;});
   const xField=page.locator('[data-transform="x"]');
+  assert.ok(await xField.isVisible(),'Precise transform inputs must be visible before editing.');
   await xField.fill('1.25');
   await xField.dispatchEvent('change');
   assert.ok(await page.locator('#undo').isEnabled(),'Undo did not enable after numeric transform.');
