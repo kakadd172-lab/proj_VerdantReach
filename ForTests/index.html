@@ -112,7 +112,7 @@
       <div class="brand-copy"><strong>Verdant Reach Shipyard</strong><span>Modular fleet design studio</span></div>
     </div>
     <div class="header-meta"><span class="version-pill">EDITOR PREVIEW · v0.8.7</span><span>Local design workspace</span></div>
-    <div class="header-actions"><button id="save-design" class="btn primary" type="button">Save changes</button><button id="export-design" class="btn" type="button">Export JSON</button></div>
+    <div class="header-actions"><a class="btn" href="./historical-model-references.html" style="text-decoration:none;display:inline-flex;align-items:center">Historical model research</a><button id="save-design" class="btn primary" type="button">Save changes</button><button id="export-design" class="btn" type="button">Export JSON</button></div>
   </header>
 
   <main class="shell">
@@ -148,11 +148,6 @@
           <option value="junk">Chinese ocean junk</option>
           <option value="first-rate">First-rate ship of the line</option>
           <option value="pinnace">Ship’s pinnace</option>
-          <optgroup label="Imported 3D models · CC0" data-imported-models>
-            <option value="imported-sailing-sloop">Cruising sloop · imported model</option>
-            <option value="imported-coastal-trawler">Coastal fishing trawler · imported model</option>
-            <option value="imported-motor-cruiser">Motor cruiser · imported model</option>
-          </optgroup>
         </select>
       </section>
 
@@ -249,14 +244,14 @@
       <details class="section-card" open>
         <summary>Imported models & local files</summary>
         <div class="section-content">
-          <p class="note">Choose one of the CC0 sample vessels in the dropdown above, or load your own GLB/glTF model. Imported meshes keep their materials and become selectable editor components.</p>
+          <p class="note">Load your own GLB/glTF model here. Imported meshes keep their materials and become selectable editor components. Historical source candidates are documented separately; external links are not bundled presets.</p>
           <div class="action-grid">
             <button id="import-3d-file" class="btn" type="button">Import GLB / glTF</button>
             <button id="import-3d-folder" class="btn" type="button">Import glTF folder</button>
           </div>
           <input id="import-3d-input" class="hidden-input" type="file" accept=".glb,.gltf,.bin,.png,.jpg,.jpeg,.webp,.ktx2" multiple/>
           <input id="import-3d-folder-input" class="hidden-input" type="file" webkitdirectory directory multiple/>
-          <div id="imported-asset-sources" class="note" aria-live="polite">Select an imported vessel to see its licence and source links.</div>
+          <div id="imported-asset-sources" class="note" aria-live="polite">Local imports appear in the vessel selector after you load a GLB/glTF file.</div>
           <p class="note">A GLB is usually self-contained. For a glTF file with external textures or .bin data, select all related files together or choose the extracted model folder. Local files are not uploaded to GitHub; re-import them after restarting the browser.</p>
         </div>
       </details>
