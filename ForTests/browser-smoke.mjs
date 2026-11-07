@@ -245,10 +245,26 @@ try{
     await writeFile(join(gltfFixtureDir,'geometry','mesh.bin'),binary);
     await writeFile(join(gltfFixtureDir,'unused','mesh.bin'),Buffer.from([9,8,7,6]));
     await page.locator('#import-3d-folder-input').setInputFiles(gltfFixtureDir);
-    await page.waitForFunction(()=>document.querySelector('#ship-select')?.value?.startsWith('imported-local-')
-      &&(document.querySelector('#ship-caption')?.textContent||'').includes('folder-test')
-      &&Number(document.querySelector('#parts')?.textContent||0)>0
-      &&(document.querySelector('#status')?.textContent||'').startsWith('Loaded '),undefined,{timeout:15000});
+    const selectedFolderFiles=await page.locator('#import-3d-folder-input').evaluate(input=>
+      Array.from(input.files||[]).map(file=>({name:file.name,relativePath:file.webkitRelativePath,size:file.size})));
+    console.log('glTF folder input files: '+JSON.stringify(selectedFolderFiles));
+    await page.waitForFunction(()=>{
+      const status=document.querySelector('#status')?.textContent||'';
+      return status.startsWith('Loaded ')
+        ||status.startsWith('Model import failed:')
+        ||status.startsWith('Could not load imported model:');
+    },undefined,{timeout:20000}).catch(async error=>{
+      const status=await page.locator('#status').innerText();
+      const selected=await page.locator('#ship-select').inputValue();
+      throw new Error('glTF folder import did not settle. Status: '+status+' · selected: '+selected
+        +' · files: '+JSON.stringify(selectedFolderFiles)+' · '+error.message);
+    });
+    const folderStatus=await page.locator('#status').innerText();
+    const folderSelected=await page.locator('#ship-select').inputValue();
+    assert.ok(folderStatus.startsWith('Loaded '),'glTF folder importer failed. Status: '+folderStatus
+      +' · selected: '+folderSelected+' · files: '+JSON.stringify(selectedFolderFiles));
+    assert.ok(folderSelected.startsWith('imported-local-')&&(await page.locator('#ship-caption').innerText()).includes('folder-test'),
+      'glTF folder selection did not load the expected local model.');
     assert.ok(Number(await page.locator('#parts').innerText())>0,'glTF folder import did not expose editable components.');
     console.log('Nested glTF folder import passed.');
   }finally{
