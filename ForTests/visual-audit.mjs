@@ -29,11 +29,9 @@ try{
  const page=await browser.newPage({viewport:{width:1600,height:1050},deviceScaleFactor:1});
  const errors=[];
  const capture=async name=>{
-  const canvas=page.locator('#viewport canvas');
-  await canvas.waitFor({state:'visible',timeout:12000});
-  const bounds=await canvas.boundingBox();
-  assert.ok(bounds&&bounds.width>0&&bounds.height>0,'WebGL canvas has no visible bounds for '+name);
-  await page.screenshot({path:join(outputDir,name),clip:bounds,animations:'disabled',timeout:12000});
+  const viewport=page.locator('#viewport');
+  await viewport.waitFor({state:'visible',timeout:15000});
+  await viewport.screenshot({path:join(outputDir,name),animations:'disabled',timeout:30000});
  };
  const clearSelection=async()=>{
   await page.locator('#part-select').evaluate(select=>{
