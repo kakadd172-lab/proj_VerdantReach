@@ -13,6 +13,8 @@ export const XebecDefinition = defineVesselSpec({
     hullLength: 27.0, beam: 6.2, draft: 2.15, freeboard: 1.15,
     rig: 'Three long lateen yards; low profile and optional banks of oars.',
     hullProfile: 'Very slender shallow-water hull, overhanging beak, low freeboard and projecting stern platform.',
+    signatureFeatures: ["Rowing thwarts","Oarlocks","Raised stern platform rail","Lateen mast partners"],
+    detailParts: ["xebec-rowing-benches","xebec-oarlocks","xebec-aft-platform-rails","xebec-lateen-partners"],
     reference: 'Dimensions are a game-design estimate. The Channel Islands Maritime Museum documents the narrow hull, projecting head and stern platform, and usual three-lateen-mast family.',
     sources: [{ label: 'Channel Islands Maritime Museum — L’Indiscret xebec', url: 'https://maritime-museum.org/north-gallery/lindiscret-xebec/' }],
     hull: { fullness: 0.48, entry: 0.9, stern: 'counter', sternWidth: 0.22, tumblehome: 0.0, sheer: 0.06, bowRise: 0.18, sternRise: 0.14, keelDepth: 0.02, deckCamber: 0.08 },
@@ -27,7 +29,7 @@ export const XebecDefinition = defineVesselSpec({
     ],
     headsails: 0, oars: true,
   },
-  structure: { frameCount: 30, beamStation: .49, forebody: 1.3, aftbody: 1.18, foreTip: .001, aftTip: .025, bottomFlat: .11, bilge: .055, flare: .045, tumble: .005, sheer: .78, lowerMastRatio: .58, shroudPairs: 2, ratlines: 7, yardSpread: 1.13 },
+  structure: { frameCount: 30, strakeRows: 9, deckSeamCount: 10, beamStation: .49, forebody: 1.3, aftbody: 1.18, foreTip: .001, aftTip: .025, bottomFlat: .11, bilge: .055, flare: .045, tumble: .005, sheer: .78, lowerMastRatio: .58, shroudPairs: 2, ratlines: 7, yardSpread: 1.13 },
 });
 
 
@@ -61,12 +63,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'xebec-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=8;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'xebec-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'xebec-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'xebec-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),y=deckY(d,.96),z=d.hullLengthUnits*.44,platform=part('xebec-quarter-platform',stern),w=d.beamUnits*.64,depth=d.hullLengthUnits*.09;const floor=box(platform,w,.16,depth,materials.deck,'projecting-stern-platform');floor.position.set(0,y+.28,z+.12);for(const side of [-1,1])beam(gallery,V(side*w*.5,y+.28,z-depth*.55),V(side*w*.5,y+.65,z+depth*.5),.035,materials.trim,'platform-gallery-rail');const counter=part('counter-gallery',stern),rail=box(counter,w*.82,.42,.08,materials.hull,'xebec-counter');rail.position.set(0,y+.48,z+depth*.54);}
 function buildBow(d,ctx){const {part,beam,box,materials,V}=ctx,bow=part('bowworks'),bowsprit=part('bowsprit'),base=deckY(d,.045)+d.deckHeightUnits*.18,tip=-d.hullLengthUnits*.5;
@@ -82,6 +84,17 @@ function buildRailingsAndEquipment(d,ctx){
  const oarsGroup=part('oars'),oarCount=16;for(let i=0;i<oarCount;i++){const t=.18+i/(oarCount-1)*.64,z=(t-.5)*d.hullLengthUnits,y=deckY(d,t)-.1;for(let side of [-1,1]){beam(oarsGroup,V(side*halfBreadth(d,t)*.72,y,z),V(side*halfBreadth(d,t)*1.55,y-.28,z-.9),.035,materials.trim,'xebec-sweep-oar-'+side+'-'+i,7);}}
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,materials,V}=ctx;
+ const benches=part('xebec-rowing-benches'),locks=part('xebec-oarlocks'),partners=part('xebec-lateen-partners');
+ for(let i=0;i<7;i++){const t=.2+i*.1,z=(t-.5)*d.hullLengthUnits,y=deckY(d,t)+.18,half=halfBreadth(d,t)*.66,w=half*2,seat=box(benches,w,.12,.38,materials.plank,'rowing-thwart');seat.position.set(0,y,z);
+  for(let side of [-1,1]){const x=side*halfBreadth(d,t)*.88;beam(locks,V(x,y-.02,z),V(x,y+.22,z),.025,materials.trim,'oarlock-stanchion');beam(locks,V(x-side*.12,y+.22,z),V(x+side*.12,y+.22,z),.025,materials.trim,'oarlock-yoke');}
+ }
+ for(const mast of d.masts){const z=mast.z*d.hullLengthUnits,y=deckY(d,.5+mast.z*.45),w=d.beamUnits*.13,collar=box(partners,w,.13,w,materials.trim,'lateen-mast-partner');collar.position.set(0,y+.07,z);}
+ const rails=part('xebec-aft-platform-rails'),ry=deckY(d,.93)+.35,rz=d.hullLengthUnits*.43,rw=d.beamUnits*.3;
+ beam(rails,V(-rw,ry,rz),V(rw,ry,rz),.04,materials.trim,'stern-platform-rail');
+ for(let side of [-1,1])for(let i=0;i<3;i++){const x=side*rw,z=rz-.25+i*.25;beam(rails,V(x,ry-.22,z),V(x,ry,z),.028,materials.trim,'stern-platform-stanchion');}
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -208,6 +221,7 @@ function generateXebecGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);
