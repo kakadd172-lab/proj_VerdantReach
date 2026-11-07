@@ -104,6 +104,6 @@ export function finishShipModel(ctx,transforms={},saved={}){
 }
 export function shipModelSummary(v){
  const d=v?.design||v;if(!d?.id)return null;
- return {id:d.id,label:d.label,dimensions:d.hullLength.toFixed(1)+' × '+d.beam.toFixed(1)+' m',ratio:d.lengthBeamRatio.toFixed(2),rig:d.rig,period:d.era,hullProfile:d.hullProfile,hullFormNote:d.hullFormNote,modelScaleNote:d.modelScaleNote,reference:d.reference,sources:(d.sources||[]).map(s=>({...s})),mastCount:d.mastCount,partCount:d.partNames.length,parts:d.partNames};
+ return {id:d.id,label:d.label,dimensions:d.hullLength.toFixed(1)+' × '+d.beam.toFixed(1)+' m',ratio:d.lengthBeamRatio.toFixed(2),rig:d.rig,period:d.era,signatureFeatures:[...(d.signatureFeatures??[])],hullProfile:d.hullProfile,hullFormNote:d.hullFormNote,modelScaleNote:d.modelScaleNote,reference:d.reference,sources:(d.sources||[]).map(s=>({...s})),mastCount:d.mastCount,partCount:d.partNames.length,parts:d.partNames};
 }
 export function disposeShipModel(group){if(!group)return;for(const g of new Set(group.userData.ownedGeometries||[]))g.dispose();for(const m of new Set(group.userData.ownedMaterials||[]))m.dispose();group.parent?.remove(group);}

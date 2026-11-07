@@ -6,11 +6,27 @@ preview is stacked on the open draft PR #7 branch
 `chatgpt-v0.8.7-vessel-proportion-refinement`; merge prerequisite PR #7 before
 merging this feature PR into its eventual target.
 
-All 16 vessel types now generate their geometry independently. Each file in
+All 16 vessel types now generate their geometry independently. The 0.8.8 refinement adds a unique deck-detail stage to every vessel, class-specific surface-detail density, and deck-plank seams that follow each calculated deck edge. Each file in
 `ships/vessels/` owns its own hull breadth and cross-section mathematics,
 surface loft, deck plan, framing/planking, stern, bow, rudder/helm, railings,
 anchors, deck fittings, and rig/sail construction. A vessel does not pass its
 specification into a generic ship geometry engine.
+
+
+## 0.8.8 generator refinement
+
+Every generator now adds its own editable deck layout and named fittings. The
+small craft are treated as working boats; trade vessels receive cargo access and
+handling details; older European vessels receive distinct forecastle, stern and
+mast-support arrangements; and the junk and xebec receive their own cultural and
+rigging-related deck language. The frigate and first-rate hull forms are presented
+as non-combat passenger/transport refits. Their generated deck-gun and gunport
+geometry has been removed.
+
+The refinement also introduces per-vessel strake-row and deck-seam counts and
+uses each hull's own deck-edge breadth to place deck-plank seams. This does not
+turn the parametric models into exact reconstructions from original ship plans;
+source dimensions and reconstructed details remain labelled separately.
 
 ## Layout
 
