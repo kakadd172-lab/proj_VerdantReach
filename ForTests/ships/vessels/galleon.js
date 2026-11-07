@@ -68,7 +68,7 @@ function buildFramesAndPlanking(d,ctx){
  const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'galleon-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
- const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*0.355,deck=deckY(d,.94),tiers=d.sternTiers||[];
+ const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),sideWindows=part('stern-side-windows',stern),baseZ=d.hullLengthUnits*0.355,deck=deckY(d,.94),tiers=d.sternTiers||[];
  tiers.forEach((tier,index)=>{
   const tierGroup=part('stern-tier-'+(index+1),stern),width=d.beamUnits*tier.w*(1-index*.055)*1,depth=d.hullLengthUnits*tier.d*(1-index*.035),height=tier.h*(4/3);
   const baseY=deck+tiers.slice(0,index).reduce((sum,item)=>sum+item.h*(4/3)+.08,0),centerZ=baseZ+index*depth*.22;
@@ -78,14 +78,22 @@ function buildStern(d,ctx){
   profile.lineTo(-width*0.34,height);
   profile.quadraticCurveTo(-width*0.41710,height*.82,-width*0.43,height*.62);
   profile.closePath();
-  const bevel=Math.max(.025,Math.min(width,height,depth)*.018);
-  const geometry=new ctx.THREE.ExtrudeGeometry(profile,{depth,steps:1,curveSegments:8,bevelEnabled:true,bevelSegments:3,bevelSize:bevel,bevelThickness:bevel});
+  const bevel=Math.max(.035,Math.min(width,height,depth)*.035);
+  const geometry=new ctx.THREE.ExtrudeGeometry(profile,{depth,steps:1,curveSegments:10,bevelEnabled:true,bevelSegments:4,bevelSize:bevel,bevelThickness:bevel});
   geometry.translate(0,0,-depth*.5);
+  const vertices=geometry.attributes.position;
+  for(let vertex=0;vertex<vertices.count;vertex++){
+   const localZ=vertices.getZ(vertex),along=ctx.THREE.MathUtils.clamp((localZ+depth*.5)/depth,0,1);
+   const taper=1-.16*along;
+   vertices.setX(vertex,vertices.getX(vertex)*taper);
+   vertices.setY(vertex,vertices.getY(vertex)+height*.035*along);
+  }
+  vertices.needsUpdate=true;geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.computeBoundingSphere();
   const body=ctx.mesh(tierGroup,geometry,materials.hull,'galleon-tapered-stern-tier');body.position.set(0,baseY,centerZ);
-  const cap=box(tierGroup,width*1.035,.12,depth*1.06,materials.trim,'galleon-tier-cornice');cap.position.set(0,baseY+height+.035,centerZ);
+  const cap=box(tierGroup,width*1.035,.075,depth*1.025,materials.trim,'galleon-tier-cornice');cap.position.set(0,baseY+height+.025,centerZ);
   const bandY=baseY+height*.13,bandZ=centerZ+depth*.515;
   beam(gallery,V(-width*.455,bandY,bandZ),V(width*.455,bandY,bandZ),.032,materials.trim,'stern-moulding');
-  const count=Math.max(2,Math.round(width/1.3)),paneW=Math.max(.22,width*.052),paneH=Math.max(.24,height*.17),windowY=baseY+height*.47,faceZ=centerZ+depth*.5+bevel*.8;
+  const count=Math.max(2,Math.round(width/1.3)),paneW=Math.max(.22,width*.052),paneH=Math.max(.24,height*.17),windowY=baseY+height*.47,faceZ=centerZ+depth*.5+bevel*.9;
   for(let n=0;n<count;n++){
    const x=-width*.32+width*.64*n/Math.max(1,count-1),pane=box(windows,paneW,paneH,.045,materials.glass,'stern-window');pane.position.set(x,windowY,faceZ);
    const fx=paneW*.62,fy=paneH*.62,fz=faceZ+.028;
@@ -96,33 +104,27 @@ function buildStern(d,ctx){
    beam(windows,V(x,windowY-fy*.9,fz+.008),V(x,windowY+fy*.9,fz+.008),.012,materials.trim,'stern-window-mullion');
   }
   for(const side of [-1,1]){
+   for(let windowIndex=0;windowIndex<3;windowIndex++){
+    const along=(windowIndex+1)/4,zOffset=(along-.5)*depth*.72;
+    const taper=1-.16*along,x=side*(width*.455*taper+.04),z=centerZ+zOffset,y=baseY+height*.49;
+    const paneDepth=Math.max(.28,depth*.11),paneHeight=Math.max(.28,height*.19);
+    const pane=box(sideWindows,.045,paneHeight*.76,paneDepth*.76,materials.glass,'stern-side-window');pane.position.set(x,y,z);
+    const fx=side*(x+side*.032),halfZ=paneDepth*.5,halfY=paneHeight*.5;
+    beam(sideWindows,V(fx,y-halfY,z-halfZ),V(fx,y-halfY,z+halfZ),.02,materials.brass,'gallery-window-sill');
+    beam(sideWindows,V(fx,y+halfY,z-halfZ),V(fx,y+halfY,z+halfZ),.02,materials.brass,'gallery-window-head');
+    beam(sideWindows,V(fx,y-halfY,z-halfZ),V(fx,y+halfY,z-halfZ),.02,materials.trim,'gallery-window-jamb');
+    beam(sideWindows,V(fx,y-halfY,z+halfZ),V(fx,y+halfY,z+halfZ),.02,materials.trim,'gallery-window-jamb');
+    beam(sideWindows,V(fx+side*.01,y-halfY*.8,z),V(fx+side*.01,y+halfY*.8,z),.014,materials.trim,'gallery-window-mullion');
+   }
    const railX=side*width*.49,railY=baseY+height*.22;
    beam(gallery,V(railX,railY,centerZ-depth*.42),V(railX,railY,centerZ+depth*.62),.035,materials.trim,'quarter-gallery-rail');
    beam(gallery,V(railX,railY-.12,centerZ-depth*.42),V(railX,railY-.12,centerZ+depth*.62),.025,materials.trim,'quarter-gallery-lower-rail');
    for(let post=0;post<5;post++){const z=centerZ-depth*.38+post*depth*.245;beam(gallery,V(railX,railY-.16,z),V(railX,railY+.035,z),.022,materials.trim,'quarter-gallery-baluster');}
   }
-  const balcony=box(tierGroup,width*1.12,.09,depth*1.18,materials.deck,'galleon-stern-gallery-balcony');balcony.position.set(0,baseY+height*.11,centerZ+depth*.22);
+  const balcony=box(tierGroup,width*1.1,.075,depth*1.12,materials.deck,'galleon-stern-gallery-balcony');balcony.position.set(0,baseY+height*.11,centerZ+depth*.22);
   beam(gallery,V(-width*.55,baseY+height*.17,centerZ+depth*.78),V(width*.55,baseY+height*.17,centerZ+depth*.78),.035,materials.trim,'aft-balcony-rail');
   for(let post=-2;post<=2;post++){const x=post*width*.22;beam(gallery,V(x,baseY+height*.1,centerZ+depth*.78),V(x,baseY+height*.2,centerZ+depth*.78),.022,materials.trim,'aft-balcony-post');}
  });
-}
-function buildBow(d,ctx){const {part,beam,box,tube,materials,V}=ctx,bow=part('bowworks'),bowsprit=part('bowsprit'),base=deckY(d,.045)+d.deckHeightUnits*.18,tip=-d.hullLengthUnits*.5;
- const forecastle=part('galleon-forecastle',bow),forecastleDeck=part('galleon-forecastle-deck',forecastle),along=20,across=18,positions=[],faces=[];
- for(let i=0;i<=along;i++){const t=.045+.175*i/along,half=halfBreadth(d,t)*.86,z=(t-.5)*d.hullLengthUnits;for(let j=0;j<=across;j++){const u=j/across*2-1,camber=d.hull.deckCamber*d.deckHeightUnits*(1-u*u);positions.push(u*half,deckY(d,t)+d.deckHeightUnits*0.19+camber,z);}}
- for(let i=0;i<along;i++)for(let j=0;j<across;j++){const a=i*(across+1)+j;faces.push(a,a+1,a+across+1,a+1,a+across+2,a+across+1);}
- const deckGeometry=new ctx.THREE.BufferGeometry();deckGeometry.setAttribute('position',new ctx.THREE.Float32BufferAttribute(positions,3));deckGeometry.setIndex(faces);deckGeometry.computeVertexNormals();
- ctx.mesh(forecastleDeck,deckGeometry,materials.deck,'galleon-raised-forecastle-platform');
- for(const side of [-1,1]){
-  const railLine=[];
-  for(let i=0;i<=20;i++){const t=.045+.175*i/20,x=side*halfBreadth(d,t)*.86,y=deckY(d,t)+d.deckHeightUnits*0.19+.34,z=(t-.5)*d.hullLengthUnits;railLine.push(V(x,y,z));if(i%4===0)beam(forecastle,V(x,y-.28,z),V(x,y+.04,z),.042,materials.trim,'forecastle-bulwark-stanchion');}
-  tube(forecastle,railLine,.048,materials.trim,'forecastle-top-rail',48);tube(forecastle,railLine.map(p=>V(p.x,p.y-.16,p.z)),.026,materials.trim,'forecastle-lower-rail',48);
- }
- const aftZ=(.22-.5)*d.hullLengthUnits,aftHalf=halfBreadth(d,.22)*.82,aftY=deckY(d,.22)+d.deckHeightUnits*0.19;beam(forecastle,V(-aftHalf,aftY+.08,aftZ),V(aftHalf,aftY+.08,aftZ),.045,materials.trim,'forecastle-aft-cross-rail');
- const beakhead=part('galleon-beakhead',bow),length=d.beamUnits*.78;
- beam(beakhead,V(0,base,tip+d.hullLengthUnits*.08),V(0,base+d.deckHeightUnits*.42,tip-length),d.beamUnits*.04,materials.trim,'beakhead-stem');
- const platform=box(beakhead,d.beamUnits*.34,.14,length*.82,materials.deck,'beakhead-platform');platform.position.set(0,base+d.deckHeightUnits*.24,tip-length*.52);
- for(const side of [-1,1])beam(beakhead,V(0,base+d.deckHeightUnits*.24,tip-length*.9),V(side*d.beamUnits*.19,base+d.deckHeightUnits*.2,tip),.035,materials.trim,'beakhead-cheek');
- if(d.headsails>0){const lashing=part('bowsprit-gammoning',bow);beam(lashing,V(0,base+.12,tip+d.hullLengthUnits*.08),V(0,base+d.deckHeightUnits*.28,tip-d.beamUnits*.5),.026,materials.rope,'gammoning-line');}
 }
 function buildRudderAndHelm(d,ctx){const {part,box,beam,materials,V}=ctx,rudder=part('rudder'),config=d.rudderDetails,stern=d.hullLengthUnits*.47;rudder.position.set(0,0,stern+config.pivotOffset);const width=d.beamUnits*config.breadthFactor*1,height=d.draftUnits*config.depthFactor,blade=box(rudder,width,height,.22,materials.trim,'galleon-rudder-blade');blade.position.set(0,-d.draftUnits*config.yFactor,0);beam(rudder,V(0,-d.draftUnits*.4,-.02),V(0,deckY(d,.97)+.22,0),Math.max(.045,d.beamUnits*.014),materials.trim,'rudder-stock');const helm=part('helm'),wheel=part('helm-wheel'),y=deckY(d,.83),z=d.hullLengthUnits*.31;beam(helm,V(0,y+.18,z),V(0,y+.9,z),.065,materials.trim,'helm-post');const ring=ctx.mesh(wheel,new ctx.THREE.TorusGeometry(.44,.045,8,20),materials.trim,'helm-wheel-ring');ring.position.set(0,y+1.02,z);for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(wheel,V(0,y+1.02,z),V(Math.cos(a)*.44,y+1.02+Math.sin(a)*.44,z),.022,materials.trim,'helm-spoke');}}
 function buildRailingsAndEquipment(d,ctx){
@@ -130,18 +132,18 @@ function buildRailingsAndEquipment(d,ctx){
  for(const [side,group] of [[-1,port],[1,starboard]]){const points=[];for(let i=0;i<=42;i++){const t=.08+.84*i/42,x=side*halfBreadth(d,t)*.88,y=deckY(d,t)+.56,z=(t-.5)*d.hullLengthUnits;points.push(V(x,y,z));if(i%4===0)beam(group,V(x,y-.48,z),V(x,y+.02,z),.035,materials.trim,'gunwale-rail-post-'+i);}tube(group,points,.052,materials.trim,'galleon-gunwale-rail',64);}
  const fittings=part('deck-fittings');
  for(let h=0;h<2;h++){const t=.32+h*.13,z=(t-.5)*d.hullLengthUnits,group=part('cargo-hatch-'+h,fittings),size=d.beamUnits*.2,cover=box(group,size,.12,size*.84,materials.plank,'hatch-cover');cover.position.set(0,deckY(d,t)+.12,z);}
- const gunLevels=[0.74,0.52];
+ const gunLevels=[0.74,0.52],portHeight=Math.max(.48,d.deckHeightUnits*.24),portLength=Math.max(.68,d.beamUnits*.055);
  for(let level=0;level<gunLevels.length;level++)for(let side of [-1,1]){const count=12;for(let i=0;i<count;i++){
-  const t=.16+i/Math.max(1,count-1)*.68,point=hullPoint(d,t,Math.asin(2*gunLevels[level]-1)),x=side*(Math.abs(point.x)+.065),y=point.y,z=point.z;
-  const portHole=box(fittings,.07,.34,.42,materials.lower,'gunport-'+level+'-'+side+'-'+i);portHole.position.set(x,y,z);
-  const frameX=side*(Math.abs(point.x)+.11);
-  beam(fittings,V(frameX,y-.19,z-.23),V(frameX,y-.19,z+.23),.024,materials.trim,'gunport-sill');
-  beam(fittings,V(frameX,y+.19,z-.23),V(frameX,y+.19,z+.23),.024,materials.trim,'gunport-lintel');
-  beam(fittings,V(frameX,y-.19,z-.23),V(frameX,y+.19,z-.23),.024,materials.trim,'gunport-jamb');
-  beam(fittings,V(frameX,y-.19,z+.23),V(frameX,y+.19,z+.23),.024,materials.trim,'gunport-jamb');
+  const t=.16+i/Math.max(1,count-1)*.68,point=hullPoint(d,t,Math.asin(2*gunLevels[level]-1)),x=side*(Math.abs(point.x)+.045),y=point.y,z=point.z;
+  const portHole=box(fittings,.065,portHeight*.78,portLength*.78,materials.lower,'gunport-'+level+'-'+side+'-'+i);portHole.position.set(x,y,z);
+  const frameX=side*(Math.abs(point.x)+.095),halfH=portHeight*.5,halfL=portLength*.5;
+  beam(fittings,V(frameX,y-halfH,z-halfL),V(frameX,y-halfH,z+halfL),.026,materials.trim,'gunport-sill');
+  beam(fittings,V(frameX,y+halfH,z-halfL),V(frameX,y+halfH,z+halfL),.026,materials.trim,'gunport-lintel');
+  beam(fittings,V(frameX,y-halfH,z-halfL),V(frameX,y+halfH,z-halfL),.026,materials.trim,'gunport-jamb');
+  beam(fittings,V(frameX,y-halfH,z+halfL),V(frameX,y+halfH,z+halfL),.026,materials.trim,'gunport-jamb');
   const cannon=part('deck-gun-'+level+'-'+side+'-'+i,fittings);
-  beam(cannon,V(frameX+side*.01,y,z),V(frameX+side*.43,y,z),.058,materials.iron,'cannon-barrel',12);
-  for(let wheel=0;wheel<2;wheel++){const w=ctx.mesh(cannon,new ctx.THREE.CylinderGeometry(.085,.085,.055,10),materials.trim,'gun-carriage-wheel');w.rotation.z=Math.PI/2;w.position.set(frameX+side*.14,y-.13,z+(wheel-.5)*.28);}
+  beam(cannon,V(frameX+side*.015,y,z),V(frameX+side*.62,y,z),.078,materials.iron,'cannon-barrel',12);
+  for(let wheel=0;wheel<2;wheel++){const w=ctx.mesh(cannon,new ctx.THREE.CylinderGeometry(.095,.095,.06,10),materials.trim,'gun-carriage-wheel');w.rotation.z=Math.PI/2;w.position.set(frameX+side*.17,y-.15,z+(wheel-.5)*.3);}
  }}
 }
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
