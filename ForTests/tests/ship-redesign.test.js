@@ -35,7 +35,8 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     id,
     readFileSync(new URL('../ships/vessels/' + id + '.js', import.meta.url), 'utf8'),
   ]));
-  const algorithms = { halfBreadth: [], deckY: [], keelY: [], hullPoint: [], deckBreadthRatio: [], buildSignatureDeckFeatures: [] };
+  const algorithms = { halfBreadth: [], deckY: [], keelY: [], hullPoint: [], deckBreadthRatio: [] };
+  const signatureBodies = [];
   for (const [id, source] of sources) {
     for (const required of [
       'function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildSignatureDeckFeatures(',
@@ -50,12 +51,17 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     assert.ok(source.includes('half=halfBreadth(d,t)*deckBreadthRatio(d)'), id + ' deck must meet its own hull edge.');
     assert.ok(!/createVesselModel|createShipModelFromVessel|ship-model-builder|hull-math/.test(source),
       id + ' still calls the old shared geometry engine');
+    const signatureStart = source.indexOf('function buildSignatureDeckFeatures(');
+    const signatureEnd = source.indexOf('\nfunction buildCanvasSail(', signatureStart);
+    assert.ok(signatureStart >= 0 && signatureEnd > signatureStart, id + ' complete signature deck routine');
+    signatureBodies.push(source.slice(signatureStart, signatureEnd).trim());
     for (const name of Object.keys(algorithms)) {
       const match = source.match(new RegExp('function ' + name + '\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\}'));
       assert.ok(match, id + ' has a readable local ' + name + ' function');
       algorithms[name].push(match[1].trim());
     }
   }
+  assert.equal(new Set(signatureBodies).size, 16, 'All 16 ships must have a unique complete signature deck routine');
   for (const [name, bodies] of Object.entries(algorithms)) {
     assert.equal(new Set(bodies).size, 16, 'All 16 ships must have their own ' + name + ' algorithm');
   }

@@ -50,9 +50,10 @@ for(const id of ids){
  const detailNames=JSON.parse(details[1].replaceAll("'",'"'));
  assert.ok(detailNames.length>=3,id+' must declare multiple unique details.');
  for(const detail of detailNames)assert.ok(source.includes("part('"+detail+"')"),id+' detail part is declared but never constructed: '+detail);
- const signature=source.match(/function buildSignatureDeckFeatures\([^)]*\)\s*\{([\s\S]*?)\}/);
- assert.ok(signature,id+' must own a readable signature deck routine.');
- signatureFingerprints.add(signature[1].trim());
+ const signatureStart=source.indexOf('function buildSignatureDeckFeatures(');
+ const signatureEnd=source.indexOf('\nfunction buildCanvasSail(',signatureStart);
+ assert.ok(signatureStart>=0&&signatureEnd>signatureStart,id+' must own a complete signature deck routine.');
+ signatureFingerprints.add(source.slice(signatureStart,signatureEnd).trim());
  assert.ok(source.includes('buildCanvasSail(ctx,'),id+' must use its local sail builder.');
  assert.ok(registry.includes("./vessels/"+id+".js"),id+' missing from the registry.');
  assert.ok(!source.includes('../V8/')&&!source.includes('V8/verdant-reach'),id+' must not import main-game code.');
