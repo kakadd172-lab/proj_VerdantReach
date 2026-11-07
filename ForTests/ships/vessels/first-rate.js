@@ -274,6 +274,35 @@ function buildRig(d,ctx){
   tube(stays,[lowerAft,lowerForward],.011,materials.rope,'headsail-foot-'+(i+1),18);
  }
 }
+function buildFoldedCabinRoof(d,ctx){
+ const {part,beam,materials,V,THREE,mesh}=ctx,tiers=d.sternTiers||[];
+ if(!tiers.length)return;
+ const index=tiers.length-1,tier=tiers[index];
+ const width=d.beamUnits*tier.w*(1-index*.055)*1.03*.98;
+ const depth=d.hullLengthUnits*tier.d*(1-index*.035)*.94;
+ const height=Math.max(.46,d.deckHeightUnits*.36);
+ const baseY=deckY(d,.94)+tiers.slice(0,index).reduce((sum,item)=>sum+item.h*(4/3)+.08,0)+tier.h*(4/3)+.035;
+ const centerZ=d.hullLengthUnits*0.355+index*depth*.22,z0=centerZ-depth*.5;
+ const profile=new THREE.Shape();
+ profile.moveTo(0,0);profile.lineTo(0,height*.65);
+ profile.quadraticCurveTo(depth*.055,height*.99,depth*.17,height);
+ profile.lineTo(depth*.29,height*.93);profile.lineTo(depth*.42,height*.80);
+ profile.lineTo(depth*.55,height*.66);profile.lineTo(depth*.68,height*.53);
+ profile.lineTo(depth*.81,height*.42);profile.lineTo(depth*.92,height*.34);
+ profile.lineTo(depth,height*.28);profile.lineTo(depth,0);profile.closePath();
+ const bevel=Math.min(.035,width*.008,height*.025);
+ const geometry=new THREE.ExtrudeGeometry(profile,{depth:width,steps:1,curveSegments:6,bevelEnabled:true,bevelSegments:2,bevelSize:bevel,bevelThickness:bevel});
+ geometry.rotateY(-Math.PI/2);geometry.translate(width*.5,baseY,z0);geometry.computeVertexNormals();
+ const cabin=part('folded-cabin-roof');
+ mesh(cabin,geometry,materials.hull,'first-rate-folded-back-cabin-roof');
+ const folds=[[0,.65],[.17,1],[.29,.93],[.42,.80],[.55,.66],[.68,.53],[.81,.42],[.92,.34],[1,.28]];
+ const radius=Math.max(.02,d.beamUnits*.0025);
+ for(let i=1;i<folds.length;i++){
+  const [a,ra]=folds[i-1],[b,rb]=folds[i],za=z0+depth*a,zb=z0+depth*b,ya=baseY+height*ra,yb=baseY+height*rb;
+  for(const side of [-1,1])beam(cabin,V(side*width*.51,ya,za),V(side*width*.51,yb,zb),radius,materials.trim,'folded-roof-side-rib');
+  if(i<folds.length-1)beam(cabin,V(-width*.51,yb,zb),V(width*.51,yb,zb),radius*.8,materials.trim,'folded-roof-cross-rib');
+ }
+}
 function buildAnchors(d,ctx){
  const {part,beam,tube,materials,V}=ctx,anchors=part('anchors');
  for(const side of [-1,1]){
@@ -312,6 +341,7 @@ function generateFirstRateGeometry(vessel,componentTransforms={},savedState={}){
  buildFramesAndPlanking(ctx.design,ctx);
  buildStern(ctx.design,ctx);
  ensureSternTierComponents(ctx.design,ctx);
+ buildFoldedCabinRoof(ctx.design,ctx);
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);

@@ -123,3 +123,14 @@ balustrades and visible corbel supports. Galleon and carrack forecastles also
 have raised side sheathing and an aft bulkhead connecting the higher deck to
 the hull structure. The larger ships' gunports are laid onto the hull section
 surface with separate frames and editable cannon assemblies.
+
+
+### Folded-back cabin silhouettes
+
+Aft cabins are shaped in vessel-local proportions from each hull's beam, stern
+deck height and stern-tier dimensions. Their side profile rises at the forward
+bulkhead and folds down in successive rearward roof panels, with visible fold
+ribs, side windows and trim. The small craft keep their open-boat forms rather
+than receiving an invented enclosed cabin. The galleon, carrack and first-rate
+retain their multi-tier aftercastles and carry the folded roof profile on the
+upper cabin; the schooner's low deckhouse uses its own folded profile.

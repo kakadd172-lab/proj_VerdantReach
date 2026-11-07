@@ -102,6 +102,37 @@ test('all 16 independent ForTests generators build separate editable models', ()
       assert.ok(ship.userData.getPart('hull'), id + ' hull');
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
+      if (id !== 'pinnace') {
+        const cabin = ship.userData.getPart('stern-tier-1');
+        assert.ok(cabin, id + ' should have a proportioned aft cabin');
+        let foldedShells = 0;
+        let foldDetails = 0;
+        cabin.traverse((object) => {
+          if (object.isMesh && object.geometry?.type === 'ExtrudeGeometry') foldedShells += 1;
+          if (object.isMesh && (object.name === 'folded-cabin-side-rib' || object.name === 'folded-cabin-cross-rib')) foldDetails += 1;
+        });
+        assert.ok(foldedShells > 0, id + ' cabin should use a sculpted side-profile shell');
+        if (!['galleon','carrack','first-rate'].includes(id)) {
+          assert.ok(foldDetails >= 8, id + ' cabin should show its backward-folded roof ribs');
+        }
+      }
+      if (['galleon','carrack','first-rate'].includes(id)) {
+        const roof = ship.userData.getPart('folded-cabin-roof');
+        assert.ok(roof, id + ' upper cabin should have a folded-back roof');
+        let roofShells = 0;
+        roof.traverse((object) => {
+          if (object.isMesh && object.geometry?.type === 'ExtrudeGeometry') roofShells += 1;
+        });
+        assert.ok(roofShells > 0, id + ' folded roof should be real extruded cabin geometry');
+      }
+      if (id === 'schooner') {
+        const deckhouse = ship.userData.getPart('deckhouse');
+        let foldedDeckhouse = 0;
+        deckhouse.traverse((object) => {
+          if (object.isMesh && object.geometry?.type === 'ExtrudeGeometry') foldedDeckhouse += 1;
+        });
+        assert.ok(foldedDeckhouse > 0, 'schooner deckhouse should have a folded-back side silhouette');
+      }
       if (getShipDesign(id).headsails > 0) {
         assert.ok(ship.userData.partNames.some((name) => name.startsWith('head-stays-')), id + ' should generate correctly anchored headsails');
       }

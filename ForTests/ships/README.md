@@ -31,3 +31,14 @@ Capital vessels use their own tapered, bevelled stern-tier profiles and
 corbel-supported port/starboard galleries. The galleon and carrack also own
 raised forecastle side sheathing and aft bulkheads; no common geometry builder
 is used for these additions.
+
+
+## Aft cabin side profiles
+
+Aft cabin volumes are built to each vessel's hull proportions. The forward
+bulkhead rises first, then the cabin roof folds aft and down in distinct
+panel sections, finished with side rails, transverse fold ribs and small
+side windows. These profiles are generated independently inside the vessel
+modules. Open tenders remain open rather than receiving cabins. Tall
+aftercastles receive a folded-back upper roof while retaining their separate
+gallery and tier geometry.
