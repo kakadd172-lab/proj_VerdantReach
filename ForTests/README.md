@@ -18,6 +18,8 @@ specification into a generic ship geometry engine.
 ForTests/
 ├── index.html
 ├── preview.js
+├── historical-model-references.html
+├── HISTORICAL_ASSET_RESEARCH.md
 ├── tests/
 ├── ships/
 │   ├── index.js
