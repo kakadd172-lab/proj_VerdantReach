@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verdant Reach — Historical Ship Model Research</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,"Segoe UI",sans-serif;background:#101818;color:#e8eadf}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 14% -15%,rgba(90,123,101,.16),transparent 43%),#101818}
+main{max-width:1100px;margin:0 auto;padding:28px 20px 60px}
+a{color:#c6d5b6}h1,h2{font-family:Georgia,serif;font-weight:500}h1{font-size:clamp(28px,4vw,42px);margin:8px 0 12px}
+p{color:#bdcabc;line-height:1.65}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.back{display:inline-block;border:1px solid #43564c;border-radius:8px;padding:9px 12px;text-decoration:none}
+.notice{border:1px solid #806e4c;background:#29271f;border-radius:12px;padding:15px;margin:20px 0;color:#e0d7bf;line-height:1.6}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin-top:20px}
+.card{border:1px solid #31413b;background:#172222;border-radius:14px;overflow:hidden}
+.card-body{padding:17px}.card h2{font-size:22px;margin:0 0 8px}
+.viewer{aspect-ratio:4/3;background:#0c1415}.viewer iframe{width:100%;height:100%;border:0}
+.meta{display:flex;gap:8px;flex-wrap:wrap;margin:11px 0}
+.tag{border:1px solid #40544a;border-radius:20px;padding:5px 8px;color:#c2d0c0;font-size:12px}
+.card a{display:inline-block;margin-top:6px}
+table{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px}
+th,td{text-align:left;vertical-align:top;padding:10px 11px;border-bottom:1px solid #34443d}
+th{color:#d8c79f;font-weight:600}
+footer{margin-top:32px;border-top:1px solid #34443d;padding-top:16px}
+@media(max-width:600px){main{padding:20px 14px}table{font-size:12px}}
+</style>
+</head>
+<body>
+<main>
+<div class="top">
+<div><small>VERDANT REACH · FORTESTS</small><h1>Historical ship model research</h1></div>
+<a class="back" href="./index.html">← Back to Shipyard Studio</a>
+</div>
+<p>This page is an inspection shortlist, not a list of imported assets. The two 3D viewers below are real, downloadable model pages whose ship types can be identified, but their stated historical contexts are earlier than the project's 1600s–1800s target. They are useful for comparing vessel forms only; neither is currently a production-ready period match.</p>
+<div class="notice"><strong>Nothing on this page is bundled into the game yet.</strong> A 3D viewer or source page is not the same thing as a local GLB/glTF file. The modern yacht, fishing trawler and motor cruiser demo presets have been removed from the editor. The local GLB/glTF import tool remains available.</div>
+
+<section class="grid">
+<article class="card">
+<div class="card-body">
+<div class="meta"><span class="tag">CC BY</span><span class="tag">75.7k triangles</span><span class="tag">15th century · earlier than target</span></div>
+<h2>Portuguese Caravel</h2>
+<p>Ginny Sutton's model is explicitly based on a 15th-century Portuguese caravel. It is a type-specific reference, but it predates the 1600s–1800s setting, so it is not being accepted as the final in-period caravel asset.</p>
+<a href="https://sketchfab.com/3d-models/caravel-ship-c9819a0e8a57429f888b74978219fb7a" target="_blank" rel="noopener">Open model viewer, licence and download page ↗</a>
+</div>
+<div class="viewer"><iframe title="Portuguese Caravel model viewer" loading="lazy" allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen src="https://sketchfab.com/models/c9819a0e8a57429f888b74978219fb7a/embed?autostart=0&amp;ui_infos=1"></iframe></div>
+<div class="card-body"><p><small>Creator attribution: Ginny Sutton. CC BY requires attribution if the model is reused or redistributed.</small></p></div>
+</article>
+
+<article class="card">
+<div class="card-body">
+<div class="meta"><span class="tag">CC BY</span><span class="tag">23.4k triangles</span><span class="tag">Earlier trading context</span></div>
+<h2>Chinese Merchant Junk</h2>
+<p>Nisa Nurul Azizah's model is described as a Chinese merchant junk travelling to Sumatra during the Sriwijaya period. It is a useful junk-type reference, but its stated context is earlier than the requested Age-of-Sail period.</p>
+<a href="https://sketchfab.com/3d-models/chinese-junk-ship-a331d56c34ff4d958763114dc8e7c275" target="_blank" rel="noopener">Open model viewer, licence and download page ↗</a>
+</div>
+<div class="viewer"><iframe title="Chinese Merchant Junk model viewer" loading="lazy" allow="autoplay; fullscreen; xr-spatial-tracking" allowfullscreen src="https://sketchfab.com/models/a331d56c34ff4d958763114dc8e7c275/embed?autostart=0&amp;ui_infos=1"></iframe></div>
+<div class="card-body"><p><small>Creator attribution: Nisa Nurul Azizah. CC BY requires attribution if the model is reused or redistributed.</small></p></div>
+</article>
+</section>
+
+<h2 style="margin-top:32px">The full generator audit</h2>
+<p>The matching table, source notes, historical-period checks and reasons for rejecting candidates are documented in <a href="./HISTORICAL_ASSET_RESEARCH.md">HISTORICAL_ASSET_RESEARCH.md</a>. Every one of the sixteen generator IDs is covered there.</p>
+<table>
+<thead><tr><th>Generator</th><th>Result of this research pass</th></tr></thead>
+<tbody>
+<tr><td>sloop, schooner, brigantine, brig, snow, cutter</td><td>No period-correct downloadable model accepted yet. One fictional schooner listing was rejected as a historical match.</td></tr>
+<tr><td>barque</td><td>Museum historical reference identified; not a downloadable 3D asset.</td></tr>
+<tr><td>caravel</td><td>Downloadable 15th-century type reference; earlier than target period.</td></tr>
+<tr><td>carrack, galleon, xebec, pinnace</td><td>No verified period-correct civilian model file accepted yet.</td></tr>
+<tr><td>fluyt</td><td>17th-century museum cross-section reference; not a complete downloadable ship.</td></tr>
+<tr><td>junk</td><td>Downloadable merchant-junk reference; earlier historical context.</td></tr>
+<tr><td>frigate, first-rate</td><td>Not being sourced as third-party combat-class assets in this pass.</td></tr>
+</tbody></table>
+<footer>
+<p><strong>Integration standard:</strong> a model only enters the editor after its actual file is acquired, its period/type and licence are verified, the mesh is inspected locally, and its editable parts and dimensions are checked. Source links alone do not count as integration.</p>
+<p><a href="./README.md">Open ForTests documentation</a></p>
+</footer>
+</main>
+</body>
+</html>
