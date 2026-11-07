@@ -35,7 +35,7 @@ try{
  for(const id of vessels){
   await page.locator('#ship-select').selectOption(id);
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '),{timeout:30000});
-  await page.locator('#reset-camera').click();
+  // loadShip() reframes the camera automatically for each vessel.
   await delay(900);
   const canvas=page.locator('#viewport canvas');
   assert.ok(await canvas.count(),id+' canvas missing');
@@ -51,6 +51,7 @@ try{
  }
  await page.locator('#ship-select').selectOption('galleon');
  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
+ await page.locator('details.section-card').filter({hasText:'Viewport & camera'}).locator('summary').click();
  await page.locator('[data-camera="top"]').click();
  await delay(600);
  await page.locator('#viewport').screenshot({path:join(outputDir,'galleon-top.png')});
