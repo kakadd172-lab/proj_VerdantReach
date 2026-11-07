@@ -1,0 +1,45 @@
+name: v0.8.8 ship visual audit
+on:
+  push:
+    branches: [chatgpt-v0.8.8-vessel-form-refinement]
+    paths:
+      - 'ForTests/**'
+      - '.github/workflows/ship-visual-audit.yml'
+permissions:
+  contents: read
+concurrency:
+  group: v088-ship-visual-audit
+  cancel-in-progress: true
+jobs:
+  visual-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ForTests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify vessel modules
+        run: npm run check:modules
+      - name: Run geometry and editor tests
+        run: npm test
+      - name: Build editor
+        run: npm run build
+      - name: Run browser smoke test
+        run: npm run smoke
+      - name: Render every ship for visual inspection
+        run: npm run visual-audit
+      - name: Upload visual audit renders
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verdantreach-v088-ship-renders
+          path: ForTests/visual-audit/
+          if-no-files-found: warn
+          retention-days: 7
