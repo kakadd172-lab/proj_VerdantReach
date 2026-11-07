@@ -146,6 +146,21 @@ export function createImportedVesselWrapper(THREE_NS, asset, loaded, savedState 
     model.userData.shipPart = true;
   }
 
+  const convertTransformRecord = (record, fromParent, toParent) => {
+    if (!record || !fromParent || !toParent) return record;
+    fromParent.updateWorldMatrix(true, false);
+    toParent.updateWorldMatrix(true, false);
+    const local = new THREE_NS.Matrix4().compose(record.position, record.quaternion, record.scale);
+    const world = fromParent.matrixWorld.clone().multiply(local);
+    const converted = toParent.matrixWorld.clone().invert().multiply(world);
+    const position = new THREE_NS.Vector3();
+    const quaternion = new THREE_NS.Quaternion();
+    const scale = new THREE_NS.Vector3();
+    converted.decompose(position, quaternion, scale);
+    const rotation = new THREE_NS.Euler().setFromQuaternion(quaternion, 'XYZ');
+    return { ...record, parent: toParent, position, quaternion, rotation, scale };
+  };
+
   const clamp = (value, min, max) => Math.max(min, Math.min(max, Number(value) || 0));
   const api = {
     partNames: [...registry.keys()],
@@ -209,26 +224,31 @@ export function createImportedVesselWrapper(THREE_NS, asset, loaded, savedState 
     detachPart(name) {
       const object = registry.get(name);
       if (!object || object.parent === unlinked) return false;
+      const previousParent = object.parent;
+      const previousBase = base.get(name);
+      if (!previousParent || !previousBase) return false;
       root.updateMatrixWorld(true);
-      const world = object.matrixWorld.clone();
       unlinked.updateMatrixWorld(true);
-      object.parent?.remove(object);
+      const world = object.matrixWorld.clone();
+      const nextBase = convertTransformRecord(previousBase, previousParent, unlinked);
+      previousParent.remove(object);
       unlinked.add(object);
       unlinked.updateMatrixWorld(true);
       unlinked.matrixWorld.clone().invert().multiply(world).decompose(object.position, object.quaternion, object.scale);
-      base.set(name, { ...base.get(name), position: object.position.clone(), quaternion: object.quaternion.clone(), rotation: object.rotation.clone(), scale: object.scale.clone() });
+      base.set(name, nextBase);
       unlinkedParts.push(name);
       return true;
     },
     relinkPart(name) {
       const object = registry.get(name), record = original.get(name);
       if (!object || !record || object.parent !== unlinked) return false;
-      unlinked.updateMatrixWorld(true);
+      root.updateMatrixWorld(true);
       const world = object.matrixWorld.clone();
-      record.parent.updateMatrixWorld(true);
+      const nextBase = convertTransformRecord(base.get(name), unlinked, record.parent);
       record.parent.add(object);
+      record.parent.updateWorldMatrix(true, false);
       record.parent.matrixWorld.clone().invert().multiply(world).decompose(object.position, object.quaternion, object.scale);
-      base.set(name, { ...base.get(name), position: object.position.clone(), quaternion: object.quaternion.clone(), rotation: object.rotation.clone(), scale: object.scale.clone() });
+      base.set(name, nextBase);
       const at = unlinkedParts.indexOf(name);
       if (at >= 0) unlinkedParts.splice(at, 1);
       return true;
