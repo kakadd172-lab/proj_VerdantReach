@@ -86,11 +86,12 @@ function buildCanvasSail(ctx,name,mastId,corners,fullness=.09,parent=ctx.root,ax
  const control=part(name,parent);control.userData.sailControl={mastId,clothPart:'cloth-'+name};
  const cloth=part('cloth-'+name,control),points=corners.map(point=>point?.isVector3?point.clone():V(...point));
  const span=(points[0].distanceTo(points[3])+points[1].distanceTo(points[2]))*.5,height=(points[0].distanceTo(points[1])+points[3].distanceTo(points[2]))*.5;
- const reference=Math.max(.35,span,height*.52),camber=reference*THREE.MathUtils.clamp(fullness,.035,.15);
+ const sailProfile={camberScale:1.15,chordPower:1.08,verticalPower:0.86,leechBias:0.16,twistFactor:0.024};
+ const reference=Math.max(.35,span,height*.52),camber=reference*THREE.MathUtils.clamp(fullness,.035,.15)*sailProfile.camberScale;
  const rows=18,columns=24,positions=[],indices=[];
  for(let row=0;row<=rows;row++){const v=row/rows;for(let col=0;col<=columns;col++){
   const u=col/columns,lower=points[0].clone().lerp(points[3],u),upper=points[1].clone().lerp(points[2],u),p=lower.lerp(upper,v);
-  const chord=Math.pow(Math.max(0,Math.sin(Math.PI*u)),1.22),vertical=Math.pow(Math.max(0,Math.sin(Math.PI*v)),.92),belly=camber*chord*vertical*(1+.10*(1-2*u)),twist=reference*.018*Math.sin(Math.PI*u)*Math.sin(Math.PI*v)*(v-.5);
+  const chord=Math.pow(Math.max(0,Math.sin(Math.PI*u)),sailProfile.chordPower),vertical=Math.pow(Math.max(0,Math.sin(Math.PI*v)),sailProfile.verticalPower),belly=camber*chord*vertical*(1+sailProfile.leechBias*(1-2*u)),twist=reference*sailProfile.twistFactor*Math.sin(Math.PI*u)*Math.sin(Math.PI*v)*(v-.5);
   if(axis==='x'){p.x+=belly;p.z+=twist;}else{p.z+=belly;p.x+=twist;}
   positions.push(p.x,p.y,p.z);
  }}
