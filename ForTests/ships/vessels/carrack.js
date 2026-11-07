@@ -73,10 +73,10 @@ function buildStern(d,ctx){
   const tierGroup=part('stern-tier-'+(index+1),stern),width=d.beamUnits*tier.w*(1-index*.055)*1.04,depth=d.hullLengthUnits*tier.d*(1-index*.035),height=tier.h*(4/3);
   const baseY=deck+tiers.slice(0,index).reduce((sum,item)=>sum+item.h*(4/3)+.08,0),centerZ=baseZ+index*depth*.22;
   const profile=new ctx.THREE.Shape();
-  profile.moveTo(-width*.5,0);profile.lineTo(width*.5,0);profile.lineTo(width*0.45,height*.62);
-  profile.quadraticCurveTo(width*0.43650,height*.82,width*0.36,height);
-  profile.lineTo(-width*0.36,height);
-  profile.quadraticCurveTo(-width*0.43650,height*.82,-width*0.45,height*.62);
+  profile.moveTo(-width*.5,0);profile.lineTo(width*.5,0);profile.lineTo(width*0.37,height*.62);
+  profile.quadraticCurveTo(width*0.35890,height*.82,width*0.28,height);
+  profile.lineTo(-width*0.28,height);
+  profile.quadraticCurveTo(-width*0.35890,height*.82,-width*0.37,height*.62);
   profile.closePath();
   const bevel=Math.max(.035,Math.min(width,height,depth)*.035);
   const geometry=new ctx.THREE.ExtrudeGeometry(profile,{depth,steps:1,curveSegments:10,bevelEnabled:true,bevelSegments:4,bevelSize:bevel,bevelThickness:bevel});
@@ -84,7 +84,7 @@ function buildStern(d,ctx){
   const vertices=geometry.attributes.position;
   for(let vertex=0;vertex<vertices.count;vertex++){
    const localZ=vertices.getZ(vertex),along=ctx.THREE.MathUtils.clamp((localZ+depth*.5)/depth,0,1);
-   const taper=1-.16*along;
+   const taper=1-.30*along;
    vertices.setX(vertex,vertices.getX(vertex)*taper);
    vertices.setY(vertex,vertices.getY(vertex)+height*.035*along);
   }
@@ -92,7 +92,7 @@ function buildStern(d,ctx){
   const body=ctx.mesh(tierGroup,geometry,materials.hull,'carrack-tapered-stern-tier');body.position.set(0,baseY,centerZ);
   const cap=box(tierGroup,width*1.035,.075,depth*1.025,materials.trim,'carrack-tier-cornice');cap.position.set(0,baseY+height+.025,centerZ);
   const bandY=baseY+height*.13,bandZ=centerZ+depth*.515;
-  beam(gallery,V(-width*.455,bandY,bandZ),V(width*.455,bandY,bandZ),.032,materials.trim,'stern-moulding');
+  beam(gallery,V(-width*.375,bandY,bandZ),V(width*.455,bandY,bandZ),.032,materials.trim,'stern-moulding');
   const count=Math.max(2,Math.round(width/1.25)),paneW=Math.max(.22,width*.052),paneH=Math.max(.24,height*.17),windowY=baseY+height*.47,faceZ=centerZ+depth*.5+bevel*.9;
   for(let n=0;n<count;n++){
    const x=-width*.32+width*.64*n/Math.max(1,count-1),pane=box(windows,paneW,paneH,.045,materials.glass,'stern-window');pane.position.set(x,windowY,faceZ);
@@ -106,7 +106,7 @@ function buildStern(d,ctx){
   for(const side of [-1,1]){
    for(let windowIndex=0;windowIndex<3;windowIndex++){
     const along=(windowIndex+1)/4,zOffset=(along-.5)*depth*.72;
-    const taper=1-.16*along,x=side*(width*.455*taper+.04),z=centerZ+zOffset,y=baseY+height*.49;
+    const taper=1-.30*along,x=side*(width*.455*taper+.04),z=centerZ+zOffset,y=baseY+height*.49;
     const paneDepth=Math.max(.28,depth*.11),paneHeight=Math.max(.28,height*.19);
     const pane=box(sideWindows,.045,paneHeight*.76,paneDepth*.76,materials.glass,'stern-side-window');pane.position.set(x,y,z);
     const fx=side*(x+side*.032),halfZ=paneDepth*.5,halfY=paneHeight*.5;
@@ -116,7 +116,18 @@ function buildStern(d,ctx){
     beam(sideWindows,V(fx,y-halfY,z+halfZ),V(fx,y+halfY,z+halfZ),.02,materials.trim,'gallery-window-jamb');
     beam(sideWindows,V(fx+side*.01,y-halfY*.8,z),V(fx+side*.01,y+halfY*.8,z),.014,materials.trim,'gallery-window-mullion');
    }
-   const railX=side*width*.49,railY=baseY+height*.22;
+   const galleryDeck=box(tierGroup,.18,.075,depth*1.18,materials.deck,'carrack-side-gallery-walkway');
+  galleryDeck.position.set(side*width*.50,baseY+height*.30,centerZ+depth*.05);
+  const galleryRailX=side*width*.59,galleryRailY=baseY+height*.36;
+  beam(gallery,V(galleryRailX,galleryRailY,centerZ-depth*.57),V(galleryRailX,galleryRailY,centerZ+depth*.57),.034,materials.trim,'side-gallery-top-rail');
+  beam(gallery,V(galleryRailX,galleryRailY-.13,centerZ-depth*.57),V(galleryRailX,galleryRailY-.13,centerZ+depth*.57),.024,materials.trim,'side-gallery-lower-rail');
+  for(let support=0;support<5;support++){
+   const z=centerZ-depth*.48+support*depth*.24;
+   beam(gallery,V(side*width*.43,baseY+height*.18,z),V(side*width*.53,baseY+height*.30,z),.04,materials.trim,'gallery-cantilever-support');
+   beam(gallery,V(galleryRailX,galleryRailY-.16,z),V(galleryRailX,galleryRailY+.025,z),.022,materials.trim,'side-gallery-baluster');
+   beam(gallery,V(side*width*.425,baseY+height*.2,z),V(side*width*.425,baseY+height*.82,z),.055,materials.trim,'stern-side-pilaster');
+  }
+  const railX=side*width*.49,railY=baseY+height*.22;
    beam(gallery,V(railX,railY,centerZ-depth*.42),V(railX,railY,centerZ+depth*.62),.035,materials.trim,'quarter-gallery-rail');
    beam(gallery,V(railX,railY-.12,centerZ-depth*.42),V(railX,railY-.12,centerZ+depth*.62),.025,materials.trim,'quarter-gallery-lower-rail');
    for(let post=0;post<5;post++){const z=centerZ-depth*.38+post*depth*.245;beam(gallery,V(railX,railY-.16,z),V(railX,railY+.035,z),.022,materials.trim,'quarter-gallery-baluster');}
@@ -160,6 +171,24 @@ function buildBow(d,ctx){
  const aftZ=(.22-.5)*d.hullLengthUnits,aftHalf=halfBreadth(d,.22)*.82;
  const aftY=deckY(d,.22)+d.deckHeightUnits*0.26;
  beam(forecastle,V(-aftHalf,aftY+.08,aftZ),V(aftHalf,aftY+.08,aftZ),.045,materials.trim,'forecastle-aft-cross-rail');
+ const sheathing=part('forecastle-side-sheathing',forecastle);
+ for(const [side,label] of [[-1,'port'],[1,'starboard']]){
+  const verts=[],faces=[];
+  for(let i=0;i<=along;i++){
+   const t=.045+.175*i/along,z=(t-.5)*d.hullLengthUnits,half=halfBreadth(d,t)*.86;
+   const lowerY=deckY(d,t)+.035,upperY=deckY(d,t)+d.deckHeightUnits*.26+.015;
+   verts.push(side*half*.98,lowerY,z,side*half,upperY,z);
+  }
+  for(let i=0;i<along;i++){
+   const a=i*2;faces.push(a,a+1,a+2,a+1,a+3,a+2);
+  }
+  const wallGeometry=new ctx.THREE.BufferGeometry();
+  wallGeometry.setAttribute('position',new ctx.THREE.Float32BufferAttribute(verts,3));
+  wallGeometry.setIndex(faces);wallGeometry.computeVertexNormals();
+  ctx.mesh(sheathing,wallGeometry,materials.hull,'forecastle-side-panel-'+label);
+ }
+ const aftBulkhead=box(forecastle,halfBreadth(d,.22)*1.62,d.deckHeightUnits*.26,.12,materials.hull,'forecastle-aft-bulkhead');
+ aftBulkhead.position.set(0,deckY(d,.22)+d.deckHeightUnits*.13,(.22-.5)*d.hullLengthUnits);
  const beakhead=part('carrack-beakhead',bow),length=d.beamUnits*.78;
  beam(beakhead,V(0,base,tip+d.hullLengthUnits*.08),V(0,base+d.deckHeightUnits*.42,tip-length),d.beamUnits*.04,materials.trim,'beakhead-stem');
  const platform=box(beakhead,d.beamUnits*.34,.14,length*.82,materials.deck,'beakhead-platform');

@@ -124,6 +124,7 @@ test('all 16 independent ForTests generators build separate editable models', ()
       if (['galleon','carrack'].includes(id)) {
         assert.ok(ship.userData.getPart(id + '-forecastle'), id + ' raised forecastle assembly');
         assert.ok(ship.userData.getPart(id + '-forecastle-deck'), id + ' raised forecastle deck');
+        assert.ok(ship.userData.getPart('forecastle-side-sheathing'), id + ' forecastle side sheathing');
       }
       assert.ok(ship.userData.partNames.some((name) => name.startsWith('panel-seams-sail-')), id + ' editable sail panel seams');
       for (const partName of getShipDesign(id).partNames) {

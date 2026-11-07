@@ -76,10 +76,10 @@ function buildStern(d,ctx){
   const tierGroup=part('stern-tier-'+(index+1),stern),width=d.beamUnits*tier.w*(1-index*.055)*1.03,depth=d.hullLengthUnits*tier.d*(1-index*.035),height=tier.h*(4/3);
   const baseY=deck+tiers.slice(0,index).reduce((sum,item)=>sum+item.h*(4/3)+.08,0),centerZ=baseZ+index*depth*.22;
   const profile=new ctx.THREE.Shape();
-  profile.moveTo(-width*.5,0);profile.lineTo(width*.5,0);profile.lineTo(width*0.47,height*.62);
-  profile.quadraticCurveTo(width*0.45590,height*.82,width*0.4,height);
-  profile.lineTo(-width*0.4,height);
-  profile.quadraticCurveTo(-width*0.45590,height*.82,-width*0.47,height*.62);
+  profile.moveTo(-width*.5,0);profile.lineTo(width*.5,0);profile.lineTo(width*0.39,height*.62);
+  profile.quadraticCurveTo(width*0.37780,height*.82,width*0.30,height);
+  profile.lineTo(-width*0.30,height);
+  profile.quadraticCurveTo(-width*0.37780,height*.82,-width*0.39,height*.62);
   profile.closePath();
   const bevel=Math.max(.035,Math.min(width,height,depth)*.035);
   const geometry=new ctx.THREE.ExtrudeGeometry(profile,{depth,steps:1,curveSegments:10,bevelEnabled:true,bevelSegments:4,bevelSize:bevel,bevelThickness:bevel});
@@ -87,7 +87,7 @@ function buildStern(d,ctx){
   const vertices=geometry.attributes.position;
   for(let vertex=0;vertex<vertices.count;vertex++){
    const localZ=vertices.getZ(vertex),along=ctx.THREE.MathUtils.clamp((localZ+depth*.5)/depth,0,1);
-   const taper=1-.16*along;
+   const taper=1-.30*along;
    vertices.setX(vertex,vertices.getX(vertex)*taper);
    vertices.setY(vertex,vertices.getY(vertex)+height*.035*along);
   }
@@ -109,7 +109,7 @@ function buildStern(d,ctx){
   for(const side of [-1,1]){
    for(let windowIndex=0;windowIndex<3;windowIndex++){
     const along=(windowIndex+1)/4,zOffset=(along-.5)*depth*.72;
-    const taper=1-.16*along,x=side*(width*.455*taper+.04),z=centerZ+zOffset,y=baseY+height*.49;
+    const taper=1-.30*along,x=side*(width*.455*taper+.04),z=centerZ+zOffset,y=baseY+height*.49;
     const paneDepth=Math.max(.28,depth*.11),paneHeight=Math.max(.28,height*.19);
     const pane=box(sideWindows,.045,paneHeight*.76,paneDepth*.76,materials.glass,'stern-side-window');pane.position.set(x,y,z);
     const fx=side*(x+side*.032),halfZ=paneDepth*.5,halfY=paneHeight*.5;
@@ -119,7 +119,18 @@ function buildStern(d,ctx){
     beam(sideWindows,V(fx,y-halfY,z+halfZ),V(fx,y+halfY,z+halfZ),.02,materials.trim,'gallery-window-jamb');
     beam(sideWindows,V(fx+side*.01,y-halfY*.8,z),V(fx+side*.01,y+halfY*.8,z),.014,materials.trim,'gallery-window-mullion');
    }
-   const railX=side*width*.49,railY=baseY+height*.22;
+   const galleryDeck=box(tierGroup,.18,.075,depth*1.18,materials.deck,'first-rate-side-gallery-walkway');
+  galleryDeck.position.set(side*width*.50,baseY+height*.30,centerZ+depth*.05);
+  const galleryRailX=side*width*.59,galleryRailY=baseY+height*.36;
+  beam(gallery,V(galleryRailX,galleryRailY,centerZ-depth*.57),V(galleryRailX,galleryRailY,centerZ+depth*.57),.034,materials.trim,'side-gallery-top-rail');
+  beam(gallery,V(galleryRailX,galleryRailY-.13,centerZ-depth*.57),V(galleryRailX,galleryRailY-.13,centerZ+depth*.57),.024,materials.trim,'side-gallery-lower-rail');
+  for(let support=0;support<5;support++){
+   const z=centerZ-depth*.48+support*depth*.24;
+   beam(gallery,V(side*width*.43,baseY+height*.18,z),V(side*width*.53,baseY+height*.30,z),.04,materials.trim,'gallery-cantilever-support');
+   beam(gallery,V(galleryRailX,galleryRailY-.16,z),V(galleryRailX,galleryRailY+.025,z),.022,materials.trim,'side-gallery-baluster');
+   beam(gallery,V(side*width*.425,baseY+height*.2,z),V(side*width*.425,baseY+height*.82,z),.055,materials.trim,'stern-side-pilaster');
+  }
+  const railX=side*width*.49,railY=baseY+height*.22;
    beam(gallery,V(railX,railY,centerZ-depth*.42),V(railX,railY,centerZ+depth*.62),.035,materials.trim,'quarter-gallery-rail');
    beam(gallery,V(railX,railY-.12,centerZ-depth*.42),V(railX,railY-.12,centerZ+depth*.62),.025,materials.trim,'quarter-gallery-lower-rail');
    for(let post=0;post<5;post++){const z=centerZ-depth*.38+post*depth*.245;beam(gallery,V(railX,railY-.16,z),V(railX,railY+.035,z),.022,materials.trim,'quarter-gallery-baluster');}
