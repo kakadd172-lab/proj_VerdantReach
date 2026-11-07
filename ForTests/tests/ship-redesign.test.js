@@ -116,9 +116,11 @@ test('all 16 independent ForTests generators build separate editable models', ()
         });
         assert.ok(framedSideWindows >= 6, id + ' should have framed gallery windows visible from port and starboard');
         let galleryWalkways = 0;
-        let gallerySupports = 0;
         sternTier.traverse((object) => {
           if (object.isMesh && object.name === id + '-side-gallery-walkway') galleryWalkways += 1;
+        });
+        let gallerySupports = 0;
+        ship.userData.getPart('stern-gallery').traverse((object) => {
           if (object.isMesh && object.name === 'gallery-cantilever-support') gallerySupports += 1;
         });
         assert.ok(galleryWalkways >= 2, id + ' should have separate port and starboard stern gallery walkways');
