@@ -31,11 +31,6 @@ jobs:
       - name: Run geometry and editor tests
         shell: bash
         run: set -o pipefail; npm test 2>&1 | tee test-output.log
-      - name: Build editor
-        run: npm run build
-      - name: Render every ship for visual inspection
-        if: always()
-        run: npm run visual-audit
       - name: Upload geometry test output
         if: always()
         uses: actions/upload-artifact@v4
@@ -44,6 +39,11 @@ jobs:
           path: ForTests/test-output.log
           if-no-files-found: warn
           retention-days: 7
+      - name: Build editor
+        run: npm run build
+      - name: Render every ship for visual inspection
+        if: always()
+        run: npm run visual-audit
       - name: Upload visual audit renders
         if: always()
         uses: actions/upload-artifact@v4
