@@ -27,3 +27,22 @@ To add a ship, implement its geometry in a new `vessels/<id>.js` module, then
 register it in `index.js`. Keep museum measurements, archaeological evidence,
 and reconstructed details clearly distinguished in the vessel's `reference`,
 `sources`, and `modelScaleNote` fields.
+## 0.8.8 — distinct deck layouts and working-ship fittings
+
+Every vessel now owns a separate `buildSignatureDeckFeatures()` routine and a
+list of named `detailParts`, which are registered as editable editor components.
+The additions are vessel-specific rather than a shared prop preset:
+
+- Sloop and schooner: cabins, binnacle, cargo boom, deck winch/capstan and mast partners.
+- Brigantine, brig and snow: quarterdeck access, companionways, mast partners and working deck machinery; the snow also has its separate trysail-mast support.
+- Cutter and pinnace: open cockpit/boat details, windlass or removable mast step, tiller and oarlock infrastructure.
+- Caravel, carrack and galleon: different forecastle/beakhead arrangements, mast partners, stern walkways and capstans.
+- Fluyt and barque: cargo hatch coamings, winches, deckhouses and loading booms.
+- Xebec and junk: rowing thwarts and oarlocks or broad cargo covers, raised bulwark treatment and an axial-rudder tiller.
+- Frigate and first-rate hull forms: converted to non-combat passenger/transport presentation layouts, without generated deck-gun or gunport geometry.
+
+Each module sets its own strake-row and deck-seam density. Deck seams now follow
+its calculated deck-edge breadth instead of a fixed generic multiplier. These
+are original parametric reconstructions informed by the reference notes; they are
+not traced historical lines plans. All new named detail groups are registered
+through the editor's existing per-part transform, hide, detach and save-state API.

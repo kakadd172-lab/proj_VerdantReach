@@ -13,6 +13,8 @@ export const SchoonerDefinition = defineVesselSpec({
     hullLength: 22.17, beam: 6.30, draft: 2.25, freeboard: 1.48,
     rig: 'Two fore-and-aft gaff masts with staysails; a fast, manageable trading rig.',
     hullProfile: 'Long working hull, fine bow, modest counter stern and low deckhouse.',
+    signatureFeatures: ["Aft deckhouse","Cargo winch","Mainmast loading boom","Mast partners"],
+    detailParts: ["schooner-deckhouse","schooner-winch","schooner-cargo-boom","schooner-mast-partners"],
     reference: 'Smithsonian HMS Berbice record: typical late-18th-century schooner 72 ft 9 in × 20 ft 8 in (22.17 × 6.30 m).',
     sources: [{ label: 'Smithsonian — Schooner HMS Berbice', url: 'https://collections.si.edu/search/detail/edanmdm%3Anmah_844171?print=yes' }],
     hull: { fullness: 0.56, entry: 0.74, stern: 'counter', sternWidth: 0.31, tumblehome: 0.07, sheer: 0.1, bowRise: 0.22, sternRise: 0.24, keelDepth: 0.08, deckCamber: 0.1 },
@@ -26,7 +28,7 @@ export const SchoonerDefinition = defineVesselSpec({
     ],
     headsails: 3, oars: false,
   },
-  structure: { frameCount: 26, beamStation: .48, forebody: .72, aftbody: .96, foreTip: .006, aftTip: .075, bottomFlat: .18, bilge: .11, flare: .15, tumble: .06, sheer: 1.0, lowerMastRatio: .62, shroudPairs: 2, ratlines: 9, yardSpread: .92 },
+  structure: { frameCount: 26, strakeRows: 10, deckSeamCount: 12, beamStation: .48, forebody: .72, aftbody: .96, foreTip: .006, aftTip: .075, bottomFlat: .18, bilge: .11, flare: .15, tumble: .06, sheer: 1.0, lowerMastRatio: .62, shroudPairs: 2, ratlines: 9, yardSpread: .92 },
 });
 
 
@@ -77,12 +79,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'schooner-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=8;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'schooner-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'schooner-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'schooner-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
  const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.405,deck=deckY(d,.94),tiers=d.sternTiers||[];
@@ -101,6 +103,19 @@ function buildRailingsAndEquipment(d,ctx){
  
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const house=part('schooner-deckhouse'),y=deckY(d,.84),z=d.hullLengthUnits*.325,w=d.beamUnits*.28,h=d.deckHeightUnits*.38,depth=d.hullLengthUnits*.07,body=box(house,w,h,depth,materials.hull,'schooner-deckhouse-body');body.position.set(0,y+h*.5,z);
+ const roof=box(house,w*1.1,.1,depth*1.08,materials.trim,'deckhouse-roof');roof.position.set(0,y+h+.05,z);
+ for(let side of [-1,1]){const pane=box(house,.24,.27,.035,materials.glass,'deckhouse-window');pane.position.set(side*w*.5,y+h*.58,z);}
+ const winch=part('schooner-winch'),wy=deckY(d,.47),wz=-d.hullLengthUnits*.03;for(let side of [-1,1]){const post=box(winch,.12,.65,.12,materials.trim,'winch-post');post.position.set(side*.43,wy+.325,wz);}
+ beam(winch,V(-.48,wy+.62,wz),V(.48,wy+.62,wz),.09,materials.trim,'winch-axle');
+ const drum=mesh(winch,new THREE.CylinderGeometry(.15,.15,.72,12),materials.hull,'winch-drum');drum.rotation.z=Math.PI/2;drum.position.set(0,wy+.62,wz);
+ const boom=part('schooner-cargo-boom'),main=d.masts.find(m=>m.id==='main')||d.masts[d.masts.length-1],mz=main.z*d.hullLengthUnits,by=deckY(d,.5+main.z*.45)+.3;
+ beam(boom,V(0,by+1.15,mz),V(d.beamUnits*.62,by+1.4,mz+d.hullLengthUnits*.16),.075,materials.trim,'cargo-loading-boom');
+ ctx.tube(boom,[V(0,by+1.15,mz),V(d.beamUnits*.28,by+.35,mz+d.hullLengthUnits*.08),V(d.beamUnits*.62,by+1.4,mz+d.hullLengthUnits*.16)],.017,materials.rope,'cargo-tackle',18);
+ const partners=part('schooner-mast-partners');for(const mast of d.masts){const z=mast.z*d.hullLengthUnits,y=deckY(d,.5+mast.z*.45)+.09,r=d.beamUnits*.055,collar=box(partners,r*2,.12,r*2.8,materials.trim,'mast-partner-collar');collar.position.set(0,y,z);for(let side of [-1,1])beam(partners,V(side*r,y-.02,z),V(side*r*1.55,y+.16,z+.28),.025,materials.trim,'partner-knee');}
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -227,6 +242,7 @@ function generateSchoonerGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);

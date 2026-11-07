@@ -13,6 +13,8 @@ export const BrigDefinition = defineVesselSpec({
     hullLength: 33.7, beam: 9.75, draft: 3.7, freeboard: 2.0,
     rig: 'Two square-rigged masts, with staysails and a spanker aft.',
     hullProfile: 'Deep working hull, rounded floor, transom counter and raised quarterdeck.',
+    signatureFeatures: ["Aft deckhouse","Deck capstan","Companionway","Mast partners"],
+    detailParts: ["brig-deckhouse","brig-capstan","brig-companionway","brig-mast-partners"],
     reference: 'Representative size envelope informed by documented early-19th-century brigs; USS Niagara dimensions are 33.7 m LBP × 9.8 m beam.',
     sources: [{ label: 'Tall Ship Guide — USS Niagara brig dimensions', url: 'https://classic-sailing.com/wp-content/uploads/2021/03/Tall-Ship-Guide-Online-Version-22-03-2021.pdf' }],
     hull: { fullness: 0.7, entry: 0.65, stern: 'counter', sternWidth: 0.36, tumblehome: 0.1, sheer: 0.14, bowRise: 0.3, sternRise: 0.3, keelDepth: 0.13, deckCamber: 0.16 },
@@ -26,7 +28,7 @@ export const BrigDefinition = defineVesselSpec({
     ],
     headsails: 3, oars: false,
   },
-  structure: { frameCount: 32, beamStation: .52, forebody: .98, aftbody: 1.0, foreTip: .003, aftTip: .10, bottomFlat: .35, bilge: .22, flare: .08, tumble: .11, sheer: 1.0, lowerMastRatio: .64, shroudPairs: 3, ratlines: 10, yardSpread: 1.04 },
+  structure: { frameCount: 32, strakeRows: 11, deckSeamCount: 12, beamStation: .52, forebody: .98, aftbody: 1.0, foreTip: .003, aftTip: .10, bottomFlat: .35, bilge: .22, flare: .08, tumble: .11, sheer: 1.0, lowerMastRatio: .64, shroudPairs: 3, ratlines: 10, yardSpread: 1.04 },
 });
 
 
@@ -77,12 +79,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'brig-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=8;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'brig-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'brig-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'brig-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
  const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.405,deck=deckY(d,.94),tiers=d.sternTiers||[];
@@ -101,6 +103,17 @@ function buildRailingsAndEquipment(d,ctx){
  
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const house=part('brig-deckhouse'),y=deckY(d,.84),z=d.hullLengthUnits*.32,w=d.beamUnits*.25,h=.65,body=box(house,w,h,d.hullLengthUnits*.07,materials.hull,'aft-deckhouse');body.position.set(0,y+h*.5,z);
+ const roof=box(house,w*1.08,.11,d.hullLengthUnits*.078,materials.trim,'deckhouse-roof');roof.position.set(0,y+h+.055,z);
+ for(let side of [-1,1]){const pane=box(house,.22,.25,.035,materials.glass,'cabin-light');pane.position.set(side*w*.5,y+h*.6,z);}
+ const hatch=part('brig-companionway'),hy=deckY(d,.63),hz=d.hullLengthUnits*.09,hw=d.beamUnits*.23,coaming=box(hatch,hw,.17,d.hullLengthUnits*.075,materials.trim,'companionway-coaming');coaming.position.set(0,hy+.08,hz);
+ const lid=box(hatch,hw*.82,.06,d.hullLengthUnits*.06,materials.plank,'hatch-lid');lid.position.set(0,hy+.18,hz);
+ const capstan=part('brig-capstan'),cy=deckY(d,.48),cz=-d.hullLengthUnits*.025,drum=mesh(capstan,new THREE.CylinderGeometry(.22,.26,.58,14),materials.trim,'capstan-drum');drum.position.set(0,cy+.29,cz);
+ for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(capstan,V(Math.cos(a)*.39,cy+.6,cz+Math.sin(a)*.39),V(Math.cos(a)*.67,cy+.6,cz+Math.sin(a)*.67),.034,materials.trim,'capstan-bar');}
+ const partners=part('brig-mast-partners');for(const mast of d.masts){const z=mast.z*d.hullLengthUnits,y=deckY(d,.5+mast.z*.45),r=d.beamUnits*.06,collar=box(partners,r*2,.15,r*2.35,materials.trim,'mast-partner');collar.position.set(0,y+.08,z);}
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -227,6 +240,7 @@ function generateBrigGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);

@@ -13,6 +13,8 @@ export const JunkDefinition = defineVesselSpec({
     hullLength: 34.0, beam: 8.8, draft: 2.45, freeboard: 2.15,
     rig: 'Three heavy, largely unstayed masts with broad battened lug sails and independent sheet groups.',
     hullProfile: 'Broad, comparatively flat-bottomed hull with rocker, high bow and stern, and overhanging upper works.',
+    signatureFeatures: ["Aft deckhouse","Broad cargo hatch covers","Axial rudder tiller","Continuous bulwark cap"],
+    detailParts: ["junk-deckhouse","junk-cargo-hatches","junk-axial-rudder-tiller","junk-bulwark-cap"],
     reference: 'A representative classic Chinese junk: relatively flat-bottomed with rocker fore and aft, overhanging weather decks, a shallow central keel, heavy masts with little standing rigging, and a balanced axial rudder. The 34.0 × 8.8 m dimensions are a game-scale reconstruction, not a measurement of one documented vessel.',
     sources: [
       { label: 'Royal Museums Greenwich — Chinese pole junk model', url: 'https://www.rmg.co.uk/collections/objects/rmgc-object-68643' },
@@ -30,7 +32,7 @@ export const JunkDefinition = defineVesselSpec({
     ],
     headsails: 0, oars: false,
   },
-  structure: { frameCount: 32, beamStation: .5, forebody: .82, aftbody: .84, foreTip: .08, aftTip: .12, bottomFlat: .62, bilge: .09, flare: .035, tumble: .015, sheer: 1.24, lowerMastRatio: .7, shroudPairs: 0, ratlines: 0, yardSpread: 1.02 },
+  structure: { frameCount: 32, strakeRows: 6, deckSeamCount: 10, beamStation: .5, forebody: .82, aftbody: .84, foreTip: .08, aftTip: .12, bottomFlat: .62, bilge: .09, flare: .035, tumble: .015, sheer: 1.24, lowerMastRatio: .7, shroudPairs: 0, ratlines: 0, yardSpread: 1.02 },
 });
 
 
@@ -64,12 +66,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'junk-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=5;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'junk-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'junk-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'junk-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
  const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.405,deck=deckY(d,.94),tiers=d.sternTiers||[];
@@ -86,6 +88,17 @@ function buildRailingsAndEquipment(d,ctx){
  
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const house=part('junk-deckhouse'),hy=deckY(d,.87),hz=d.hullLengthUnits*.34,hw=d.beamUnits*.34,hh=.62,hd=d.hullLengthUnits*.075,body=box(house,hw,hh,hd,materials.hull,'junk-deckhouse-body');body.position.set(0,hy+hh*.5,hz);
+ const roof=box(house,hw*1.08,.1,hd*1.08,materials.trim,'deckhouse-roof');roof.position.set(0,hy+hh+.05,hz);
+ for(let side of [-1,1])for(let i=0;i<2;i++){const pane=box(house,.22,.26,.035,materials.glass,'deckhouse-window');pane.position.set(side*hw*.5,hy+hh*.56,hz+(i-.5)*hd*.45);}
+ const hatches=part('junk-cargo-hatches');for(let i=0;i<2;i++){const t=.42+i*.16,z=(t-.5)*d.hullLengthUnits,w=d.beamUnits*.43,y=deckY(d,t),cover=box(hatches,w,.1,d.hullLengthUnits*.11,materials.plank,'broad-hold-cover');cover.position.set(0,y+.06,z);for(let side of [-1,1]){const coaming=box(hatches,.12,.2,d.hullLengthUnits*.12,materials.trim,'hold-coaming');coaming.position.set(side*w*.5,y+.1,z);}}
+ const tiller=part('junk-axial-rudder-tiller'),ty=deckY(d,.96),tz=d.hullLengthUnits*.44;
+ beam(tiller,V(0,ty+.12,tz),V(d.beamUnits*.52,ty+.32,tz-d.hullLengthUnits*.08),.09,materials.trim,'axial-rudder-tiller');
+ ctx.tube(tiller,[V(d.beamUnits*.42,ty+.32,tz-d.hullLengthUnits*.08),V(d.beamUnits*.5,ty+.28,tz+d.hullLengthUnits*.03),V(d.beamUnits*.43,ty+.18,tz+d.hullLengthUnits*.1)],.022,materials.rope,'tiller-control-line',16);
+ const cap=part('junk-bulwark-cap'),pts=[];for(let i=0;i<=42;i++){const t=.06+.88*i/42,z=(t-.5)*d.hullLengthUnits,x=halfBreadth(d,t)*deckBreadthRatio(d);pts.push(V(x,deckY(d,t)+.27,z));}ctx.tube(cap,pts,.07,materials.trim,'bulwark-cap-rail',64);ctx.tube(cap,pts.map(p=>V(-p.x,p.y,p.z)),.07,materials.trim,'bulwark-cap-rail-port',64);
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -213,6 +226,7 @@ function generateJunkGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);

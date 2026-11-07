@@ -13,6 +13,8 @@ export const FluytDefinition = defineVesselSpec({
     hullLength: 32.75, beam: 6.7, draft: 2.5, freeboard: 1.75,
     rig: 'Three-masted early fluit reconstruction: square-rigged fore and main masts, a lateen mizzen and a spritsail arrangement; exact sail plan is reconstructed.',
     hullProfile: 'Long, narrow early-fluit cargo hull with a full but fine-ended lower body, rounded bilges, a pinched-in upper deck and rounded stern; less box-like than several later fluits.',
+    signatureFeatures: ["Cargo boom","Narrow cargo hatch coamings","Rounded stern deckhouse","Cargo winch"],
+    detailParts: ["fluyt-cargo-boom","fluyt-hatch-coamings","fluyt-stern-deckhouse","fluyt-winch"],
     reference: 'Based directly on the early fluit Witte Swaen, built in 1636: archaeological survey estimates 32.75 ± 2% m length between stem and sternpost and 6.7 ± 2% m breadth (length-to-breadth ratio about 4.88 ± 0.14). The wreck preserves evidence for a three-mast arrangement.',
     sources: [{ label: 'Archaeological survey — Witte Swaen (1636), 2024', url: 'https://doi.org/10.1080/10572414.2024.2413068' }, { label: 'Deutsches Historisches Museum — Fluyt', url: 'https://www.dhm.de/mediathek/en/ship-types/milestones-in-the-history-of-european-shipbuilding/09-fluyt/' }],
     hull: { fullness: 0.96, entry: 0.5, stern: 'round', sternWidth: 0.26, tumblehome: 0.25, sheer: 0.08, bowRise: 0.18, sternRise: 0.17, keelDepth: 0.04, deckCamber: 0.12 },
@@ -27,7 +29,7 @@ export const FluytDefinition = defineVesselSpec({
     ],
     headsails: 1, oars: false,
   },
-  structure: { frameCount: 34, beamStation: .54, forebody: .68, aftbody: .75, foreTip: .01, aftTip: .08, bottomFlat: .51, bilge: .36, flare: .035, tumble: .27, sheer: .82, lowerMastRatio: .65, shroudPairs: 2, ratlines: 9, yardSpread: .94 },
+  structure: { frameCount: 34, strakeRows: 11, deckSeamCount: 12, beamStation: .54, forebody: .68, aftbody: .75, foreTip: .01, aftTip: .08, bottomFlat: .51, bilge: .36, flare: .035, tumble: .27, sheer: .82, lowerMastRatio: .65, shroudPairs: 2, ratlines: 9, yardSpread: .94 },
 });
 
 
@@ -61,12 +63,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'fluyt-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=8;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'fluyt-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'fluyt-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'fluyt-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){const {THREE,part,mesh,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),y=deckY(d,.95),z=d.hullLengthUnits*.385,w=d.beamUnits*.54,h=d.deckHeightUnits*.72,shell=part('fluyt-round-stern',stern);const dome=mesh(shell,new THREE.SphereGeometry(1,28,16,0,Math.PI*2,0,Math.PI*.58),materials.hull,'rounded-fluyt-afterbody');dome.scale.set(w*.5,h,w*.42);dome.position.set(0,y+h*.28,z);const counter=box(shell,w*.72,h*.24,d.beamUnits*.08,materials.trim,'narrow-stern-counter');counter.position.set(0,y+h*.6,z+d.hullLengthUnits*.035);for(const side of [-1,1])beam(gallery,V(side*w*.43,y+h*.6,z-.5),V(side*w*.43,y+h*.6,z+.8),.035,materials.trim,'round-stern-rail');}
 function buildBow(d,ctx){const {part,beam,box,materials,V}=ctx,bow=part('bowworks'),bowsprit=part('bowsprit'),base=deckY(d,.045)+d.deckHeightUnits*.18,tip=-d.hullLengthUnits*.5;
@@ -82,6 +84,18 @@ function buildRailingsAndEquipment(d,ctx){
  
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const hatches=part('fluyt-hatch-coamings');for(let i=0;i<4;i++){const t=.32+i*.13,z=(t-.5)*d.hullLengthUnits,w=d.beamUnits*(i===1||i===2?.38:.31),depth=d.hullLengthUnits*.064,y=deckY(d,t),rim=box(hatches,w,.13,depth,materials.trim,'narrow-hold-coaming');rim.position.set(0,y+.065,z);for(let side of [-1,1]){const cleat=box(hatches,.09,.1,.16,materials.hull,'cargo-cleat');cleat.position.set(side*w*.54,y+.09,z);}}
+ const house=part('fluyt-stern-deckhouse'),hy=deckY(d,.88),hz=d.hullLengthUnits*.38,hw=d.beamUnits*.32,hh=.5,hd=d.hullLengthUnits*.045,body=box(house,hw,hh,hd,materials.hull,'roundhouse-body');body.position.set(0,hy+hh*.5,hz);
+ const roof=mesh(house,new THREE.SphereGeometry(1,20,12,0,Math.PI*2,0,Math.PI*.52),materials.trim,'rounded-roof');roof.scale.set(hw*.55,.16,hd*.8);roof.position.set(0,hy+hh,hz);
+ const winch=part('fluyt-winch'),wy=deckY(d,.52),wz=-d.hullLengthUnits*.03;for(let side of [-1,1]){const post=box(winch,.1,.42,.11,materials.trim,'winch-post');post.position.set(side*.37,wy+.21,wz);}
+ beam(winch,V(-.42,wy+.43,wz),V(.42,wy+.43,wz),.06,materials.trim,'winch-axle');
+ const drum=mesh(winch,new THREE.CylinderGeometry(.13,.13,.68,12),materials.hull,'winch-drum');drum.rotation.z=Math.PI/2;drum.position.set(0,wy+.43,wz);
+ const boom=part('fluyt-cargo-boom'),mast=d.masts[1],mz=mast.z*d.hullLengthUnits,by=deckY(d,.5+mast.z*.45);
+ beam(boom,V(0,by+1.25,mz),V(d.beamUnits*.48,by+1.5,mz+d.hullLengthUnits*.12),.07,materials.trim,'cargo-boom');
+ ctx.tube(boom,[V(0,by+1.25,mz),V(d.beamUnits*.25,by+.3,mz+d.hullLengthUnits*.06),V(d.beamUnits*.48,by+1.5,mz+d.hullLengthUnits*.12)],.016,materials.rope,'cargo-boom-tackle',18);
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -208,6 +222,7 @@ function generateFluytGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);

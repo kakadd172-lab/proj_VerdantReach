@@ -13,6 +13,8 @@ export const SnowDefinition = defineVesselSpec({
     hullLength: 28.5, beam: 7.8, draft: 3.0, freeboard: 1.8,
     rig: 'Square fore and main; a separate trysail mast sits immediately abaft the mainmast.',
     hullProfile: 'Compact two-masted working hull with a rounded bow and low counter stern.',
+    signatureFeatures: ["Snow-mast partners","Aft cabin","Deck capstan","Companionway"],
+    detailParts: ["snow-trysail-partners","snow-cabin","snow-capstan","snow-companionway"],
     reference: 'Dimensions are a representative game reconstruction; the defining snow-mast and trysail arrangement follows the Society for Nautical Research description.',
     sources: [{ label: 'Society for Nautical Research — The Snow', url: 'https://snr.org.uk/snow/' }],
     hull: { fullness: 0.67, entry: 0.66, stern: 'counter', sternWidth: 0.32, tumblehome: 0.1, sheer: 0.12, bowRise: 0.24, sternRise: 0.28, keelDepth: 0.12, deckCamber: 0.14 },
@@ -27,7 +29,7 @@ export const SnowDefinition = defineVesselSpec({
     ],
     headsails: 2, oars: false,
   },
-  structure: { frameCount: 28, beamStation: .50, forebody: .91, aftbody: 1.08, foreTip: .004, aftTip: .07, bottomFlat: .29, bilge: .17, flare: .1, tumble: .09, sheer: 1.04, lowerMastRatio: .64, shroudPairs: 3, ratlines: 9, yardSpread: .98 },
+  structure: { frameCount: 28, strakeRows: 10, deckSeamCount: 11, beamStation: .50, forebody: .91, aftbody: 1.08, foreTip: .004, aftTip: .07, bottomFlat: .29, bilge: .17, flare: .1, tumble: .09, sheer: 1.04, lowerMastRatio: .64, shroudPairs: 3, ratlines: 9, yardSpread: .98 },
 });
 
 
@@ -61,12 +63,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'snow-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=8;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'snow-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'snow-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'snow-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
  const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.405,deck=deckY(d,.94),tiers=d.sternTiers||[];
@@ -85,6 +87,17 @@ function buildRailingsAndEquipment(d,ctx){
  
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const trysail=d.masts.find(m=>m.id==='trysail'),partners=part('snow-trysail-partners');
+ if(trysail){const z=trysail.z*d.hullLengthUnits,y=deckY(d,.5+trysail.z*.45),w=d.beamUnits*.12;const collar=box(partners,w,.18,d.beamUnits*.18,materials.trim,'snow-mast-collar');collar.position.set(0,y+.09,z);for(let side of [-1,1])beam(partners,V(side*w*.42,y-.02,z),V(side*w*.85,y+.22,z+.28),.035,materials.trim,'trysail-mast-knee');}
+ const cabin=part('snow-cabin'),y=deckY(d,.85),z=d.hullLengthUnits*.34,w=d.beamUnits*.26,h=.58,depth=d.hullLengthUnits*.06;
+ const body=box(cabin,w,h,depth,materials.hull,'aft-cabin-body');body.position.set(0,y+h*.5,z);const roof=box(cabin,w*1.08,.1,depth*1.1,materials.trim,'aft-cabin-roof');roof.position.set(0,y+h+.05,z);
+ for(let side of [-1,1]){const pane=box(cabin,.22,.23,.035,materials.glass,'cabin-window');pane.position.set(side*w*.5,y+h*.58,z);}
+ const ladder=part('snow-companionway'),ly=deckY(d,.71),lz=d.hullLengthUnits*.2;for(let i=0;i<5;i++)beam(ladder,V(-.22,ly+i*.1,lz+i*.12),V(.22,ly+i*.1,lz+i*.12),.025,materials.trim,'companionway-rung');
+ const capstan=part('snow-capstan'),cy=deckY(d,.48),cz=-d.hullLengthUnits*.025,drum=mesh(capstan,new THREE.CylinderGeometry(.2,.24,.52,12),materials.trim,'capstan-drum');drum.position.set(0,cy+.26,cz);
+ for(let i=0;i<6;i++){const a=i*Math.PI/3;beam(capstan,V(Math.cos(a)*.36,cy+.53,cz+Math.sin(a)*.36),V(Math.cos(a)*.6,cy+.53,cz+Math.sin(a)*.6),.03,materials.trim,'capstan-bar');}
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -211,6 +224,7 @@ function generateSnowGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);

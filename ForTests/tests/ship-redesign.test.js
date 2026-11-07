@@ -7,14 +7,14 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.7';
+} from '../ships/index.js?v=0.8.8';
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
 test('the editor uses 16 self-contained ForTests vessel modules', () => {
-  assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.7');
-  assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.7');
-  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.7');
+  assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.8');
+  assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.8');
+  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.8');
   assert.equal(ids.length, 16);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
@@ -36,25 +36,32 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     readFileSync(new URL('../ships/vessels/' + id + '.js', import.meta.url), 'utf8'),
   ]));
   const algorithms = { halfBreadth: [], deckY: [], keelY: [], hullPoint: [], deckBreadthRatio: [] };
+  const signatureBodies = [];
   for (const [id, source] of sources) {
     for (const required of [
-      'function halfBreadth(', 'function hullPoint(', 'function buildHull(',
+      'function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildSignatureDeckFeatures(',
       'function buildFramesAndPlanking(', 'function buildStern(', 'function buildBow(',
       'function buildRudderAndHelm(', 'function buildRailingsAndEquipment(',
       'function buildAnchors(', 'function buildCanvasSail(', 'buildAnchors(ctx.design,ctx)', 'buildCanvasSail(ctx,', 'function ensureSternTierComponents(', 'function buildRig(', 'function generate',
     ]) assert.ok(source.includes(required), id + ' must own ' + required);
     assert.ok(source.includes('createShipContext('), id + ' must construct its own context');
     assert.ok(source.includes('finishShipModel('), id + ' must finish through editor support');
+    assert.ok(source.includes('buildSignatureDeckFeatures(ctx.design,ctx);'), id + ' must build its own signature fittings');
     assert.ok(source.includes('const v=1-Math.pow(Math.max(0,Math.sin(a)),'), id + ' hull section must trace one keel-to-gunwale half-profile on each side.');
     assert.ok(source.includes('half=halfBreadth(d,t)*deckBreadthRatio(d)'), id + ' deck must meet its own hull edge.');
     assert.ok(!/createVesselModel|createShipModelFromVessel|ship-model-builder|hull-math/.test(source),
       id + ' still calls the old shared geometry engine');
+    const signatureStart = source.indexOf('function buildSignatureDeckFeatures(');
+    const signatureEnd = source.indexOf('\nfunction buildCanvasSail(', signatureStart);
+    assert.ok(signatureStart >= 0 && signatureEnd > signatureStart, id + ' complete signature deck routine');
+    signatureBodies.push(source.slice(signatureStart, signatureEnd).trim());
     for (const name of Object.keys(algorithms)) {
       const match = source.match(new RegExp('function ' + name + '\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\}'));
       assert.ok(match, id + ' has a readable local ' + name + ' function');
       algorithms[name].push(match[1].trim());
     }
   }
+  assert.equal(new Set(signatureBodies).size, 16, 'All 16 ships must have a unique complete signature deck routine');
   for (const [name, bodies] of Object.entries(algorithms)) {
     assert.equal(new Set(bodies).size, 16, 'All 16 ships must have their own ' + name + ' algorithm');
   }
@@ -127,11 +134,27 @@ test('each vessel has an independent design, structure profile and generator', (
     assert.ok(Array.isArray(design.masts) && design.masts.length > 0, id + ' rig');
     assert.ok(Array.isArray(design.partNames) && design.partNames.length > 10, id + ' parts');
     assert.ok(structure.frameCount >= 12, id + ' frames');
+    assert.ok(structure.strakeRows >= 4 && structure.strakeRows <= 16, id + ' class-specific strake density');
+    assert.ok(structure.deckSeamCount >= 6 && structure.deckSeamCount <= 16, id + ' class-specific deck seam density');
+    assert.ok(design.signatureFeatures?.length >= 3, id + ' documented visual signatures');
+    assert.ok(design.detailParts?.length >= 3, id + ' dedicated editable deck-detail components');
+    for (const detail of design.detailParts) assert.ok(design.partNames.includes(detail), id + ' registered detail ' + detail);
     assert.equal(module.design.id, id, id + ' module design');
     assert.equal(module.structure.frameCount, structure.frameCount, id + ' module structure');
     assert.ok(Object.isFrozen(design), id + ' design is immutable');
     assert.ok(Object.isFrozen(structure), id + ' structure is immutable');
   }
+});
+
+test('naval-derived models are non-combat passenger refits', () => {
+  for (const id of ['frigate', 'first-rate']) {
+    const source = readFileSync(new URL('../ships/vessels/' + id + '.js', import.meta.url), 'utf8');
+    assert.ok(!source.includes('cannon-barrel'), id + ' must not generate cannon barrels');
+    assert.ok(!source.includes('deck-gun-'), id + ' must not generate deck-gun parts');
+    assert.ok(!source.includes('gunport-'), id + ' must not generate gunport parts');
+  }
+  assert.match(getShipDesign('frigate').label, /passenger/i);
+  assert.match(getShipDesign('first-rate').label, /transport/i);
 });
 
 test('all 16 independent ForTests generators build separate editable models', () => {

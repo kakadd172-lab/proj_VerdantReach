@@ -13,6 +13,8 @@ export const PinnaceDefinition = defineVesselSpec({
     hullLength: 9.75, beam: 2.65, draft: 0.72, freeboard: 0.72,
     rig: 'Open tender with rowing benches and a small removable lateen sail.',
     hullProfile: 'Open double-ended tender hull with fine ends, shallow draft and narrow beam.',
+    signatureFeatures: ["Rowing thwarts","Oarlocks","Removable mast step","Tiller handle"],
+    detailParts: ["pinnace-rowing-thwarts","pinnace-oarlocks","pinnace-mast-step","pinnace-tiller"],
     reference: 'Length is anchored to the Royal Museums Greenwich 32 ft (9.75 m) 1838 William Symonds pinnace design; beam, draft and the removable lateen sail remain reconstruction choices.',
     sources: [{ label: 'Royal Museums Greenwich — 32-foot pinnace (1838)', url: 'https://www.rmg.co.uk/collections/objects/rmgc-object-66736' }],
     hull: { fullness: 0.48, entry: 0.84, stern: 'double-ended', sternWidth: 0.06, tumblehome: 0.04, sheer: 0.06, bowRise: 0.12, sternRise: 0.12, keelDepth: 0.03, deckCamber: 0.05 },
@@ -23,7 +25,7 @@ export const PinnaceDefinition = defineVesselSpec({
     masts: [{ id: 'single', z: -0.02, height: 7.2, rig: 'lateen', span: 0.3, squares: 0 }],
     headsails: 0, oars: true,
   },
-  structure: { frameCount: 16, beamStation: .5, forebody: .84, aftbody: .85, foreTip: .002, aftTip: .004, bottomFlat: .18, bilge: .075, flare: .08, tumble: .035, sheer: .91, lowerMastRatio: .6, shroudPairs: 1, ratlines: 5, yardSpread: .74 },
+  structure: { frameCount: 16, strakeRows: 5, deckSeamCount: 6, beamStation: .5, forebody: .84, aftbody: .85, foreTip: .002, aftTip: .004, bottomFlat: .18, bilge: .075, flare: .08, tumble: .035, sheer: .91, lowerMastRatio: .6, shroudPairs: 1, ratlines: 5, yardSpread: .74 },
 });
 
 import * as THREE from 'three';
@@ -56,12 +58,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.06+.88*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'pinnace-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=4;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'pinnace-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-5;line<=5;line++){const u=line/6,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'pinnace-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'pinnace-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){const {part,beam,box,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),transom=part('open-transom',stern),z=d.hullLengthUnits*.43,y=deckY(d,.94);beam(transom,V(-d.beamUnits*.24,y,z),V(d.beamUnits*.24,y,z),.055,materials.trim,'pinnace-transom');const seat=part('stern-seat',stern),thwart=box(seat,d.beamUnits*.38,.11,.34,materials.plank,'stern-thwart');thwart.position.set(0,y-.18,z-.35);}
 function buildBow(d,ctx){const {part,box,materials}=ctx,bow=part('bowworks'),bowsprit=part('bowsprit');const thwart=part('bow-thwart',bow),seat=box(thwart,d.beamUnits*.52,.1,.34,materials.plank,'forward-thwart');seat.position.set(0,deckY(d,.12)-.16,-d.hullLengthUnits*.34);}
@@ -75,6 +77,16 @@ function buildRailingsAndEquipment(d,ctx){
  const oarsGroup=part('oars'),oarCount=5;for(let i=0;i<oarCount;i++){const t=.18+i/(oarCount-1)*.64,z=(t-.5)*d.hullLengthUnits,y=deckY(d,t)-.1;for(let side of [-1,1]){beam(oarsGroup,V(side*halfBreadth(d,t)*.72,y,z),V(side*halfBreadth(d,t)*1.55,y-.28,z-.9),.025,materials.trim,'pinnace-sweep-oar-'+side+'-'+i,7);}}
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const benches=part('pinnace-rowing-thwarts'),locks=part('pinnace-oarlocks');
+ for(let i=0;i<5;i++){const t=.2+i*.145,z=(t-.5)*d.hullLengthUnits,y=deckY(d,t)+.18,w=halfBreadth(d,t)*1.35,seat=box(benches,w,.11,.29,materials.plank,'rowing-thwart');seat.position.set(0,y,z);
+  for(let side of [-1,1]){const x=side*halfBreadth(d,t)*.91;beam(locks,V(x,y-.02,z),V(x,y+.17,z),.021,materials.trim,'oarlock-post');beam(locks,V(x-side*.09,y+.17,z),V(x+side*.09,y+.17,z),.022,materials.trim,'oarlock-crosspiece');}
+ }
+ const mastStep=part('pinnace-mast-step'),my=deckY(d,.47),mz=d.masts[0].z*d.hullLengthUnits,foot=box(mastStep,d.beamUnits*.17,.16,.42,materials.trim,'mast-step-block');foot.position.set(0,my+.08,mz);
+ const socket=mesh(mastStep,new THREE.CylinderGeometry(.14,.17,.22,12),materials.hull,'removable-mast-socket');socket.position.set(0,my+.26,mz);
+ const tiller=part('pinnace-tiller'),ty=deckY(d,.94),tz=d.hullLengthUnits*.43;beam(tiller,V(0,ty+.25,tz),V(d.beamUnits*.38,ty+.45,tz-d.hullLengthUnits*.1),.045,materials.trim,'tiller-handle');
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -201,6 +213,7 @@ function generatePinnaceGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);

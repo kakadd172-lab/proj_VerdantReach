@@ -13,6 +13,8 @@ export const SloopDefinition = defineVesselSpec({
     hullLength: 17.22, beam: 4.34, draft: 1.9, freeboard: 1.35,
     rig: 'Single gaff mainsail with headsails; local rigs varied by island and decade.',
     hullProfile: 'Fine entry, moderately full working body, low quarter, shallow-to-moderate draft.',
+    signatureFeatures: ["Low quarter cabin","Helm binnacle","Deck capstan","Short cargo derrick"],
+    detailParts: ["sloop-companionway","sloop-binnacle","sloop-capstan","sloop-cargo-boom"],
     reference: 'Reader’s Point, Jamaica: surviving hull length 17.22 m and maximum beam 4.34 m; original rig is not preserved, so the single-mast sail plan is a regional reconstruction.',
     sources: [
       { label: 'Texas A&M — Reader’s Point Jamaican merchant sloop', url: 'https://oaktrust.library.tamu.edu/items/bfbc382b-2aea-4705-bf65-67e97ec2b87b' },
@@ -26,7 +28,7 @@ export const SloopDefinition = defineVesselSpec({
     masts: [{ id: 'single', z: -0.035, height: 13.8, rig: 'gaff', span: 0.42, squares: 0 }],
     headsails: 2, oars: false,
   },
-  structure: { frameCount: 22, beamStation: .49, forebody: .76, aftbody: 1.02, foreTip: .008, aftTip: .055, bottomFlat: .21, bilge: .12, flare: .12, tumble: .035, sheer: 1.08, lowerMastRatio: .64, shroudPairs: 2, ratlines: 8, yardSpread: .94 },
+  structure: { frameCount: 22, strakeRows: 9, deckSeamCount: 10, beamStation: .49, forebody: .76, aftbody: 1.02, foreTip: .008, aftTip: .055, bottomFlat: .21, bilge: .12, flare: .12, tumble: .035, sheer: 1.08, lowerMastRatio: .64, shroudPairs: 2, ratlines: 8, yardSpread: .94 },
 });
 
 
@@ -77,12 +79,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'sloop-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=8;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'sloop-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'sloop-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'sloop-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
  const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.405,deck=deckY(d,.94),tiers=d.sternTiers||[];
@@ -101,6 +103,21 @@ function buildRailingsAndEquipment(d,ctx){
  
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const cabin=part('sloop-companionway'),cy=deckY(d,.82),cz=d.hullLengthUnits*.315,cw=d.beamUnits*.31,ch=d.deckHeightUnits*.43,cd=d.hullLengthUnits*.062,body=box(cabin,cw,ch,cd,materials.hull,'low-quarter-cabin');body.position.set(0,cy+ch*.48,cz);
+ const roof=box(cabin,cw*1.08,.11,cd*1.1,materials.trim,'cabin-roof');roof.position.set(0,cy+ch+.045,cz);
+ for(const side of [-1,1]){const pane=box(cabin,.23,.25,.035,materials.glass,'cabin-side-window');pane.position.set(side*cw*.49,cy+ch*.55,cz);}
+ const binnacle=part('sloop-binnacle'),by=deckY(d,.76),bz=d.hullLengthUnits*.245,pedestal=box(binnacle,.22,.48,.22,materials.trim,'binnacle-pedestal');pedestal.position.set(0,by+.24,bz);
+ const casework=box(binnacle,.32,.18,.3,materials.hull,'binnacle-case');casework.position.set(0,by+.55,bz);
+ const glass=box(binnacle,.25,.025,.22,materials.glass,'compass-glass');glass.position.set(0,by+.65,bz);
+ const capstan=part('sloop-capstan'),ty=deckY(d,.55),tz=-d.hullLengthUnits*.02,drum=mesh(capstan,new THREE.CylinderGeometry(.19,.23,.48,12),materials.trim,'capstan-drum');drum.position.set(0,ty+.24,tz);
+ const head=mesh(capstan,new THREE.CylinderGeometry(.27,.25,.09,12),materials.hull,'capstan-head');head.position.set(0,ty+.51,tz);
+ for(let i=0;i<6;i++){const a=i*Math.PI/3;beam(capstan,V(Math.cos(a)*.36,ty+.54,tz+Math.sin(a)*.36),V(Math.cos(a)*.64,ty+.54,tz+Math.sin(a)*.64),.035,materials.trim,'capstan-bar');}
+ const boom=part('sloop-cargo-boom'),mast=d.masts[0],mz=mast.z*d.hullLengthUnits,base=deckY(d,.5)+.25;
+ beam(boom,V(0,base+1.45,mz),V(d.beamUnits*.55,base+1.8,mz+d.hullLengthUnits*.17),.075,materials.trim,'cargo-boom');
+ ctx.tube(boom,[V(0,base+1.45,mz),V(d.beamUnits*.26,base+.55,mz+d.hullLengthUnits*.12),V(d.beamUnits*.55,base+1.8,mz+d.hullLengthUnits*.17)],.018,materials.rope,'cargo-boom-tackle',18);
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -227,6 +244,7 @@ function generateSloopGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);

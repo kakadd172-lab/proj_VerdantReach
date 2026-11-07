@@ -28,7 +28,7 @@ for(const path of ['ship-designs.js','ship-structures.js','ship-hull-parameteriz
 }
 assert.ok(!existsSync(join(shipRoot,'shared','define-vessel.js')),'Unused wrapper helper remains.');
 
-const hullFingerprints=new Set(),deckFingerprints=new Set(),keelFingerprints=new Set(),sectionFingerprints=new Set(),deckEdgeFingerprints=new Set(),sailFingerprints=new Set();
+const hullFingerprints=new Set(),deckFingerprints=new Set(),keelFingerprints=new Set(),sectionFingerprints=new Set(),deckEdgeFingerprints=new Set(),sailFingerprints=new Set(),signatureFingerprints=new Set();
 for(const id of ids){
  const path=join(shipRoot,'vessels',id+'.js');assert.ok(existsSync(path),'Missing independent vessel module: '+id);
  const source=readFileSync(path,'utf8');
@@ -37,11 +37,23 @@ for(const id of ids){
   'function halfBreadth(','function hullPoint(','function buildHull(','function buildFramesAndPlanking(',
   'function buildStern(','function ensureSternTierComponents(','function buildBow(','function buildRudderAndHelm(',
   'function buildRailingsAndEquipment(','function buildAnchors(','function buildCanvasSail(',
-  'function buildRig(','function generate'+pascal(id)+'Geometry(','function create'+pascal(id)+'Model('
+  'function buildRig(','function buildSignatureDeckFeatures(','function generate'+pascal(id)+'Geometry(','function create'+pascal(id)+'Model('
  ])assert.ok(source.includes(required),id+' missing its own '+required);
  assert.ok(!/createVesselModel|createShipModelFromVessel|ship-model-builder|hull-math/.test(source),id+' still depends on the old shared geometry path.');
  assert.ok(source.includes("from '../shared/ship-editor-kit.js'"),id+' should only use the low-level editor kit.');
  assert.ok(source.includes('buildAnchors(ctx.design,ctx)'),id+' must invoke its own anchor builder.');
+ assert.ok(source.includes('buildSignatureDeckFeatures(ctx.design,ctx);'),id+' must build its own deck signatures.');
+ assert.ok(source.includes('strakeRows:')&&source.includes('deckSeamCount:'),id+' must set its own surface-detail density.');
+ assert.ok(source.includes('deckBreadthRatio(d)*.96'),id+' deck seams must follow the calculated deck edge.');
+ const details=source.match(/detailParts:\s*(\[[^\]]*\])/);
+ assert.ok(details,id+' must declare editor-visible detail parts.');
+ const detailNames=JSON.parse(details[1].replaceAll("'",'"'));
+ assert.ok(detailNames.length>=3,id+' must declare multiple unique details.');
+ for(const detail of detailNames)assert.ok(source.includes("part('"+detail+"')"),id+' detail part is declared but never constructed: '+detail);
+ const signatureStart=source.indexOf('function buildSignatureDeckFeatures(');
+ const signatureEnd=source.indexOf('\nfunction buildCanvasSail(',signatureStart);
+ assert.ok(signatureStart>=0&&signatureEnd>signatureStart,id+' must own a complete signature deck routine.');
+ signatureFingerprints.add(source.slice(signatureStart,signatureEnd).trim());
  assert.ok(source.includes('buildCanvasSail(ctx,'),id+' must use its local sail builder.');
  assert.ok(registry.includes("./vessels/"+id+".js"),id+' missing from the registry.');
  assert.ok(!source.includes('../V8/')&&!source.includes('V8/verdant-reach'),id+' must not import main-game code.');
@@ -69,13 +81,18 @@ assert.equal(keelFingerprints.size,16,'Each vessel must implement its own keel r
 assert.equal(sectionFingerprints.size,16,'Each vessel must implement its own hull section function.');
 assert.equal(deckEdgeFingerprints.size,16,'Each vessel must implement its own deck-edge breadth calculation.');
 assert.equal(sailFingerprints.size,16,'Each vessel must implement its own sail surface profile.');
+assert.equal(signatureFingerprints.size,16,'Each vessel must implement a unique signature deck routine.');
+for(const id of ['frigate','first-rate']){
+ const source=readFileSync(join(shipRoot,'vessels',id+'.js'),'utf8');
+ assert.ok(!/cannon-barrel|deck-gun-|gunport-/.test(source),id+' passenger refit must not generate combat deck geometry.');
+}
 
 const preview=readFileSync(join(here,'preview.js'),'utf8');
-assert.ok(preview.includes("./ships/index.js?v=0.8.7"),'Preview must load the independent generator registry.');
+assert.ok(preview.includes("./ships/index.js?v=0.8.8"),'Preview must load the independent generator registry.');
 for(const legacy of ['ship-model-builder.js','hull-math.js','./ship-designs.js','./ship-structures.js','./ship-hull-parameterization.js','./ship-models.js']){
  assert.ok(!preview.includes(legacy),'Preview still references obsolete module '+legacy);
 }
-for(const version of ["SHIP_DESIGN_MODULE_VERSION!=='0.8.7'","SHIP_STRUCTURE_MODULE_VERSION!=='0.8.7'","SHIP_MODEL_MODULE_VERSION!=='0.8.7'"]){
+for(const version of ["SHIP_DESIGN_MODULE_VERSION!=='0.8.8'","SHIP_STRUCTURE_MODULE_VERSION!=='0.8.8'","SHIP_MODEL_MODULE_VERSION!=='0.8.8'"]){
  assert.ok(preview.includes(version),'Preview version guard not updated: '+version);
 }
 const pkg=JSON.parse(readFileSync(join(here,'package.json'),'utf8'));

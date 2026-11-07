@@ -13,6 +13,8 @@ export const CutterDefinition = defineVesselSpec({
     hullLength: 16.8, beam: 5.1, draft: 2.0, freeboard: 1.35,
     rig: 'Single tall gaff mast with a large headsail spread from a long bowsprit.',
     hullProfile: 'Fine entry, full forefoot, low freeboard, compact counter stern.',
+    signatureFeatures: ["Open aft cockpit","Foredeck windlass","Single mast partners","Small companionway"],
+    detailParts: ["cutter-cockpit-coaming","cutter-windlass","cutter-mast-partners","cutter-companionway"],
     reference: 'The Royal Museums Greenwich collection preserves an 1780 cutter drawing with body plan, sternboard detail, sheer lines and longitudinal half-breadth. The 16.8 × 5.1 m dimensions used here remain a representative reconstruction, not a transcription of that unnamed plan.',
     sources: [{ label: 'Royal Museums Greenwich — Cutter (1780), technical drawing CCB0493', url: 'https://www.rmg.co.uk/collections/objects/rmgc-object-458456' }],
     hull: { fullness: 0.6, entry: 0.72, stern: 'counter', sternWidth: 0.27, tumblehome: 0.04, sheer: 0.11, bowRise: 0.22, sternRise: 0.22, keelDepth: 0.08, deckCamber: 0.1 },
@@ -23,7 +25,7 @@ export const CutterDefinition = defineVesselSpec({
     masts: [{ id: 'single', z: -0.03, height: 16.1, rig: 'gaff', span: 0.5, squares: 0 }],
     headsails: 4, oars: false,
   },
-  structure: { frameCount: 21, beamStation: .47, forebody: .69, aftbody: 1.04, foreTip: .003, aftTip: .045, bottomFlat: .16, bilge: .09, flare: .17, tumble: .025, sheer: 1.14, lowerMastRatio: .61, shroudPairs: 2, ratlines: 8, yardSpread: .96 },
+  structure: { frameCount: 21, strakeRows: 8, deckSeamCount: 9, beamStation: .47, forebody: .69, aftbody: 1.04, foreTip: .003, aftTip: .045, bottomFlat: .16, bilge: .09, flare: .17, tumble: .025, sheer: 1.14, lowerMastRatio: .61, shroudPairs: 2, ratlines: 8, yardSpread: .96 },
 });
 
 
@@ -57,12 +59,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'cutter-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=8;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'cutter-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'cutter-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'cutter-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
  const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.405,deck=deckY(d,.94),tiers=d.sternTiers||[];
@@ -81,6 +83,16 @@ function buildRailingsAndEquipment(d,ctx){
  
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const cockpit=part('cutter-cockpit-coaming'),t0=.73,t1=.94;
+ for(const side of [-1,1]){const pts=[];for(let i=0;i<=14;i++){const t=t0+(t1-t0)*i/14,z=(t-.5)*d.hullLengthUnits,x=side*halfBreadth(d,t)*.76;pts.push(V(x,deckY(d,t)+.24,z));if(i%3===0)beam(cockpit,V(x,deckY(d,t),z),V(x,deckY(d,t)+.24,z),.025,materials.trim,'cockpit-coaming-stanchion');}ctx.tube(cockpit,pts,.035,materials.trim,'cockpit-coaming-rail',22);}
+ const fore=part('cutter-windlass'),wy=deckY(d,.16),wz=-d.hullLengthUnits*.32;for(let side of [-1,1]){const support=box(fore,.12,.45,.14,materials.trim,'windlass-support');support.position.set(side*d.beamUnits*.2,wy+.22,wz);}
+ beam(fore,V(-d.beamUnits*.24,wy+.48,wz),V(d.beamUnits*.24,wy+.48,wz),.075,materials.trim,'windlass-spindle');
+ const drum=mesh(fore,new THREE.CylinderGeometry(.13,.13,d.beamUnits*.4,12),materials.hull,'windlass-drum');drum.rotation.z=Math.PI/2;drum.position.set(0,wy+.48,wz);
+ const mast=d.masts[0],partners=part('cutter-mast-partners'),mz=mast.z*d.hullLengthUnits,my=deckY(d,.5+mast.z*.45),pw=d.beamUnits*.14,collar=box(partners,pw,.15,pw,materials.trim,'single-mast-collar');collar.position.set(0,my+.08,mz);
+ const hatch=part('cutter-companionway'),hy=deckY(d,.68),hz=d.hullLengthUnits*.2,rim=box(hatch,d.beamUnits*.23,.13,d.hullLengthUnits*.055,materials.trim,'small-hatch-coaming');rim.position.set(0,hy+.07,hz);
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -207,6 +219,7 @@ function generateCutterGeometry(vessel,componentTransforms={},savedState={}){
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);
