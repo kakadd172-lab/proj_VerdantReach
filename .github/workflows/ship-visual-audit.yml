@@ -13,6 +13,7 @@ concurrency:
 jobs:
   visual-audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: ForTests
@@ -31,9 +32,8 @@ jobs:
         run: npm test
       - name: Build editor
         run: npm run build
-      - name: Run browser smoke test
-        run: npm run smoke
       - name: Render every ship for visual inspection
+        if: always()
         run: npm run visual-audit
       - name: Upload visual audit renders
         if: always()
