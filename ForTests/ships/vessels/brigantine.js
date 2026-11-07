@@ -13,6 +13,8 @@ export const BrigantineDefinition = defineVesselSpec({
     hullLength: 30.0, beam: 8.5, draft: 3.15, freeboard: 1.95,
     rig: 'Square foremast; mainmast with fore-and-aft sail and a square topsail.',
     hullProfile: 'Balanced single-deck hull with rounded bilges, compact counter and modest quarterdeck.',
+    signatureFeatures: ["Quarterdeck stair","Deck capstan","Companionway","Mast partners"],
+    detailParts: ["brigantine-quarterdeck-stairs","brigantine-capstan","brigantine-companionway","brigantine-mast-partners"],
     reference: 'Mercurio reconstruction (laid down 1805): approximately 30 m × 8.5 m; the museum describes a two-masted rig with square sails and a large trapezoidal sail.',
     sources: [{ label: 'Museo nazionale di archeologia del mare — Mercurio reconstruction', url: 'https://museocaorle.cultura.gov.it/en/oggetti/reconstruction-of-mercury/' }],
     hull: { fullness: 0.68, entry: 0.62, stern: 'counter', sternWidth: 0.38, tumblehome: 0.11, sheer: 0.13, bowRise: 0.25, sternRise: 0.35, keelDepth: 0.12, deckCamber: 0.14 },
@@ -26,7 +28,7 @@ export const BrigantineDefinition = defineVesselSpec({
     ],
     headsails: 3, oars: false,
   },
-  structure: { frameCount: 30, beamStation: .51, forebody: .94, aftbody: .98, foreTip: .004, aftTip: .09, bottomFlat: .32, bilge: .19, flare: .09, tumble: .10, sheer: 1.02, lowerMastRatio: .65, shroudPairs: 3, ratlines: 9, yardSpread: 1.02 },
+  structure: { frameCount: 30, strakeRows: 10, deckSeamCount: 11, beamStation: .51, forebody: .94, aftbody: .98, foreTip: .004, aftTip: .09, bottomFlat: .32, bilge: .19, flare: .09, tumble: .10, sheer: 1.02, lowerMastRatio: .65, shroudPairs: 3, ratlines: 9, yardSpread: 1.02 },
 });
 
 
@@ -77,12 +79,12 @@ function buildFramesAndPlanking(d,ctx){
  for(let i=0;i<d.structure.frameCount;i++){const t=0.025+.95*i/Math.max(1,d.structure.frameCount-1),frame=part('frame-'+String(i+1).padStart(2,'0')),line=[];
   const pieces=44;for(let j=0;j<=pieces;j++)line.push(hullPoint(d,t,j/pieces*Math.PI*2));tube(frame,line,Math.max(.035,d.beamUnits*.006),materials.trim,'brigantine-frame-rising',pieces);
  }
- const strakes=part('hull-strakes'),rows=8;
+ const strakes=part('hull-strakes'),rows=d.structure.strakeRows??8;
  for(const side of [-1,1])for(let row=0;row<rows;row++){const level=.12+row*.76/Math.max(1,rows-1),line=[];
   for(let i=0;i<=68;i++){const t=.018+.964*i/68,a=Math.acos(2*level-1),q=hullPoint(d,t,side<0?-a:a);q.x=Math.abs(q.x)*side;q.y+=.018;line.push(q);}
   tube(strakes,line,Math.max(.015,d.beamUnits*.0032),row===0?materials.lower:materials.plank,'brigantine-strake-'+side+'-'+row,72);
  }
- const seams=part('deck-planks');for(let line=-9;line<=9;line++){const u=line/10,points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*.9;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'brigantine-deck-seam-'+line,48);}
+ const seams=part('deck-planks'),seamCount=d.structure.deckSeamCount??9;for(let line=-seamCount;line<=seamCount;line++){const u=line/(seamCount+1),points=[];for(let i=0;i<=42;i++){const t=.04+.92*i/42,half=halfBreadth(d,t)*deckBreadthRatio(d)*.96;points.push(V(u*half,deckY(d,t)+d.hull.deckCamber*d.deckHeightUnits*(1-u*u)+.025,(t-.5)*d.hullLengthUnits));}tube(seams,points,.012,materials.plank,'brigantine-deck-seam-'+line,48);}
 }
 function buildStern(d,ctx){
  const {part,box,beam,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),baseZ=d.hullLengthUnits*.405,deck=deckY(d,.94),tiers=d.sternTiers||[];
@@ -101,6 +103,17 @@ function buildRailingsAndEquipment(d,ctx){
  
 }
 
+function buildSignatureDeckFeatures(d,ctx){
+ const {part,beam,box,mesh,materials,V,THREE}=ctx;
+ const stairs=part('brigantine-quarterdeck-stairs'),start=deckY(d,.68),end=deckY(d,.84)+.48,z0=d.hullLengthUnits*.17,w=d.beamUnits*.22;
+ for(let i=0;i<6;i++){const f=i/5,step=box(stairs,w,.12,.34,materials.plank,'quarterdeck-step');step.position.set(0,start+(end-start)*f+.08,z0+f*d.hullLengthUnits*.105);}
+ for(let side of [-1,1])beam(stairs,V(side*w*.5,start,z0),V(side*w*.5,end+.2,z0+d.hullLengthUnits*.105),.045,materials.trim,'stair-handrail');
+ const hatch=part('brigantine-companionway'),hy=deckY(d,.72),hz=d.hullLengthUnits*.235,hw=d.beamUnits*.25,rim=box(hatch,hw,.16,d.hullLengthUnits*.09,materials.trim,'companionway-coaming');rim.position.set(0,hy+.08,hz);
+ const cover=box(hatch,hw*.8,.055,d.hullLengthUnits*.075,materials.plank,'sliding-hatch-cover');cover.position.set(0,hy+.18,hz);
+ const capstan=part('brigantine-capstan'),cy=deckY(d,.49),cz=-d.hullLengthUnits*.015,drum=mesh(capstan,new THREE.CylinderGeometry(.22,.25,.54,14),materials.trim,'capstan-drum');drum.position.set(0,cy+.27,cz);
+ for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(capstan,V(Math.cos(a)*.38,cy+.55,cz+Math.sin(a)*.38),V(Math.cos(a)*.64,cy+.55,cz+Math.sin(a)*.64),.032,materials.trim,'capstan-bar');}
+ const partners=part('brigantine-mast-partners');for(const mast of d.masts){const z=mast.z*d.hullLengthUnits,y=deckY(d,.5+mast.z*.45),r=d.beamUnits*.06,collar=box(partners,r*2,.16,r*2.4,materials.trim,'mast-partner');collar.position.set(0,y+.08,z);}
+}
 function buildCanvasSail(ctx,name,mastId,corners,fullness=.075,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
@@ -227,6 +240,7 @@ function generateBrigantineGeometry(vessel,componentTransforms={},savedState={})
  buildBow(ctx.design,ctx);
  buildRudderAndHelm(ctx.design,ctx);
  buildRailingsAndEquipment(ctx.design,ctx);
+ buildSignatureDeckFeatures(ctx.design,ctx);
  buildAnchors(ctx.design,ctx);
  buildRig(ctx.design,ctx);
  return finishShipModel(ctx,componentTransforms,savedState);
