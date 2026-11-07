@@ -10,7 +10,7 @@ const projectDir=dirname(fileURLToPath(import.meta.url));
 const viteCli=join(projectDir,'node_modules','vite','bin','vite.js');
 const outputDir=join(projectDir,'visual-audit');
 const baseUrl='http://127.0.0.1:5174/';
-const vessels=['sloop','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','fluyt','xebec','junk','first-rate','pinnace'];
+const vessels=['galleon','carrack','first-rate','junk'];
 let viteOutput='';
 const vite=spawn(process.execPath,[viteCli,'--host','127.0.0.1','--port','5174','--strictPort'],{cwd:projectDir,stdio:['ignore','pipe','pipe']});
 vite.stdout.on('data',c=>viteOutput+=c.toString());
@@ -30,52 +30,51 @@ try{
  const errors=[];
  const capture=async name=>{
   const canvas=page.locator('#viewport canvas');
-  await canvas.waitFor({state:'visible',timeout:15000});
-  await canvas.screenshot({path:join(outputDir,name),animations:'disabled',timeout:15000});
+  await canvas.waitFor({state:'visible',timeout:12000});
+  await canvas.screenshot({path:join(outputDir,name),animations:'disabled',timeout:12000});
+ };
+ const clearSelection=async()=>{
+  await page.locator('#part-select').evaluate(select=>{
+   let empty=Array.from(select.options).find(option=>option.value==='');
+   if(!empty){empty=document.createElement('option');empty.value='';empty.textContent='No selection';select.prepend(empty);}
+   select.value='';
+   select.dispatchEvent(new Event('change',{bubbles:true}));
+  });
  };
  page.on('pageerror',e=>errors.push(e.message));
  await page.goto(baseUrl,{waitUntil:'domcontentloaded',timeout:30000});
  await page.waitForFunction(()=>document.querySelectorAll('#ship-select option').length>=16,{timeout:30000});
  const report=[];
+ const cameraPanel=page.locator('details.section-card').filter({hasText:'Viewport & camera'});
+ if(!(await cameraPanel.evaluate(element=>element.open)))await cameraPanel.locator('summary').click();
  for(const id of vessels){
   await page.locator('#ship-select').selectOption(id);
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '),{timeout:30000});
-  // loadShip() reframes the camera automatically for each vessel.
-  await delay(900);
-  const canvas=page.locator('#viewport canvas');
-  assert.ok(await canvas.count(),id+' canvas missing');
-  const name=id.replace(/[^a-z0-9-]/g,'_');
-  await capture(name+'.png');
-  const metrics=await page.evaluate(()=>{
-   const s=document.querySelector('#status')?.textContent||'';
-   const p=document.querySelector('#parts')?.textContent||'';
-   const d=document.querySelector('#description')?.textContent||'';
-   return {status:s,parts:p,description:d};
-  });
+  await delay(650);
+  await clearSelection();
+  await delay(120);
+  const metrics=await page.evaluate(()=>({
+   status:document.querySelector('#status')?.textContent||'',
+   parts:document.querySelector('#parts')?.textContent||'',
+   description:document.querySelector('#description')?.textContent||''
+  }));
+  await capture(id+'.png');
+  await page.locator('[data-camera="side"]').click();
+  await delay(250);
+  await capture(id+'-side.png');
+  await page.locator('[data-camera="top"]').click();
+  await delay(250);
+  await capture(id+'-top.png');
   report.push({id,...metrics});
  }
- await page.locator('#ship-select').selectOption('galleon');
- await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
- await page.locator('details.section-card').filter({hasText:'Viewport & camera'}).locator('summary').click();
- await page.locator('[data-camera="top"]').click();
- await delay(600);
- await capture('galleon-top.png');
- await page.locator('[data-camera="side"]').click();
- await delay(600);
- await capture('galleon-side.png');
- await page.locator('#ship-select').selectOption('junk');
- await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
- await page.locator('[data-camera="top"]').click();
- await delay(600);
- await capture('junk-top.png');
  assert.deepEqual(errors,[],'Browser page errors: '+errors.join(' | '));
  const fs=await import('node:fs/promises');
  await fs.writeFile(join(outputDir,'report.json'),JSON.stringify({vessels:report,errors},null,2));
- console.log('Captured visual audit for '+report.length+' ship generators.');
+ console.log('Captured front-quarter, side and top views for '+report.length+' target vessels.');
  console.log(JSON.stringify(report,null,2));
 }finally{
  if(browser)await browser.close();
  vite.kill('SIGTERM');
- await Promise.race([new Promise(r=>vite.once('exit',r)),delay(3000)]);
+ await Promise.race([new Promise(resolve=>vite.once('exit',resolve)),delay(3000)]);
  if(vite.exitCode===null)vite.kill('SIGKILL');
 }
