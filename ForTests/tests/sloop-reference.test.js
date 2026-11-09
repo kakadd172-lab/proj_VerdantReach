@@ -59,9 +59,19 @@ test('The central vivier is an editable open-deck component, not a box placed on
   const hullMesh=ship.userData.getPart('hull').children.find(object=>object.name==='loguivy-1866-open-shell');
   assert.ok(deckMesh?.userData.vivierOpening,'deck must expose its real livewell opening');
   assert.ok(hullMesh?.userData.openSheerDeck,'hull shell must remain open across the gunwales');
-  assert.ok(ship.userData.getPart('vivier-bottom-board'));
+
+  // Boards are meshes nested in the vivier interior group, not registered
+  // editor components; the grate and each side's vents are registered groups.
+  let bottomBoard=false,waterSurface=false,ventSides=0;
+  vivier.traverse(object=>{
+    if(object.name==='vivier-bottom-board')bottomBoard=true;
+    if(object.name==='vivier-water-surface')waterSurface=true;
+    if(object.name==='vivier-hull-vents-port'||object.name==='vivier-hull-vents-starboard')ventSides++;
+  });
+  assert.ok(bottomBoard,'vivier should have a physical bottom board');
+  assert.ok(waterSurface,'vivier should have a water surface');
+  assert.equal(ventSides,2,'vivier should have both port and starboard water-slot groups');
   assert.ok(ship.userData.getPart('vivier-grate'));
-  assert.ok(ship.userData.getPart('vivier-hull-vents'));
   assert.ok(ship.userData.partNames.includes('vivier'));
  }finally{disposeShipModel(ship);}
 });
