@@ -87,7 +87,7 @@ test('galleon stern structure uses curved, separately addressable tiers and gall
 
   const ship = createShipModel('galleon');
   try {
-    const tierNames = ship.userData.partNames.filter((name) => /^stern-tier-\\d+$/.test(name));
+    const tierNames = ship.userData.partNames.filter((name) => /^stern-tier-\d+$/.test(name));
     assert.deepEqual(tierNames, ['stern-tier-1', 'stern-tier-2', 'stern-tier-3']);
     for (const name of tierNames) {
       const tier = ship.userData.getPart(name);
