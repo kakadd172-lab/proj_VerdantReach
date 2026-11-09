@@ -55,6 +55,11 @@ test('The central vivier is an editable open-deck component, not a box placed on
  try{
   const deck=ship.userData.getPart('deck'),vivier=ship.userData.getPart('vivier');
   assert.ok(deck&&vivier);
+  const deckMesh=deck.children.find(object=>object.name==='loguivy-open-deck-plan');
+  const hullMesh=ship.userData.getPart('hull').children.find(object=>object.name==='loguivy-1866-open-shell');
+  assert.ok(deckMesh?.userData.vivierOpening,'deck must expose its real livewell opening');
+  assert.ok(hullMesh?.userData.openSheerDeck,'hull shell must remain open across the gunwales');
+  assert.ok(ship.userData.getPart('vivier-bottom-board'));
   assert.ok(ship.userData.getPart('vivier-grate'));
   assert.ok(ship.userData.getPart('vivier-hull-vents'));
   assert.ok(ship.userData.partNames.includes('vivier'));

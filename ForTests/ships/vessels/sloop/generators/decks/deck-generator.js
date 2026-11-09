@@ -29,5 +29,6 @@ export function buildDeck(d,ctx){
   deckGeo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   deckGeo.setIndex(faces);
   deckGeo.computeVertexNormals();
-  mesh(deck,deckGeo,materials.deck,'loguivy-open-deck-plan');
+  const deckMesh=mesh(deck,deckGeo,materials.deck,'loguivy-open-deck-plan');
+  deckMesh.userData.vivierOpening=Object.freeze({startStation:vivier.startStation,endStation:vivier.endStation,halfWidth:vivierHalf});
 }

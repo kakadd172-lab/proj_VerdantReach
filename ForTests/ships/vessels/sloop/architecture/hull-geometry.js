@@ -52,17 +52,29 @@ const KEEL_DEPTH_PROFILE = Object.freeze([
 
 /** Monotone, shape-preserving cubic interpolation for traced station tables. */
 function tableValue(table,x){
-  const t=clamp01(x);
+  const t=clamp01(x),last=table.length-1;
   if(t<=table[0][0])return table[0][1];
-  if(t>=table[table.length-1][0])return table[table.length-1][1];
+  if(t>=table[last][0])return table[last][1];
+
   let i=0;
-  while(i<table.length-2 && t>table[i+1][0])i++;
-  const [x0,y0]=table[i],[x1,y1]=table[i+1];
-  const h=x1-x0,u=(t-x0)/h;
-  const slope=(a,b)=>(b[1]-a[1])/(b[0]-a[0]);
-  const d=slope(table[i],table[i+1]);
-  const m0=i===0?d:(slope(table[i-1],table[i])*h+slope(table[i],table[i+1])*h)/(table[i+1][0]-table[i-1][0])*h;
-  const m1=i+2>=table.length?d:(slope(table[i],table[i+1])*h+slope(table[i+1],table[i+2])*h)/(table[i+2][0]-table[i][0])*h;
+  while(i<last-1&&t>table[i+1][0])i++;
+  const h=table[i+1][0]-table[i][0];
+  const u=(t-table[i][0])/h;
+  const delta=(k)=>(table[k+1][1]-table[k][1])/(table[k+1][0]-table[k][0]);
+
+  const tangent=(k)=>{
+    if(k===0)return delta(0);
+    if(k===last)return delta(last-1);
+    const h0=table[k][0]-table[k-1][0];
+    const h1=table[k+1][0]-table[k][0];
+    const d0=delta(k-1),d1=delta(k);
+    if(d0===0||d1===0||Math.sign(d0)!==Math.sign(d1))return 0;
+    const w1=2*h1+h0,w2=h1+2*h0;
+    return (w1+w2)/(w1/d0+w2/d1);
+  };
+
+  const y0=table[i][1],y1=table[i+1][1];
+  const m0=tangent(i)*h,m1=tangent(i+1)*h;
   const h00=2*u*u*u-3*u*u+1,h10=u*u*u-2*u*u+u;
   const h01=-2*u*u*u+3*u*u,h11=u*u*u-u*u;
   const value=h00*y0+h10*m0+h01*y1+h11*m1;
