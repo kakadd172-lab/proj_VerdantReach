@@ -6,7 +6,7 @@ export function buildCanvasSail(ctx,name,mastId,corners,fullness=.09,parent=ctx.
  const span=(points[0].distanceTo(points[3])+points[1].distanceTo(points[2]))*.5;
  const height=(points[0].distanceTo(points[1])+points[3].distanceTo(points[2]))*.5;
  const sailProfile={camberScale:1.08,chordPower:1.12,verticalPower:0.87,leechBias:0.13,twistFactor:0.021};
- const reference=Math.max(.35,span,height*.52),camber=reference*THREE.MathUtils.clamp(fullness,.035,.15)*sailProfile.camberScale;
+ const reference=Math.max(.35,span,height*.52),requestedCamber=reference*THREE.MathUtils.clamp(fullness,.035,.15)*sailProfile.camberScale,camber=axis==='x'?Math.min(requestedCamber,.32):requestedCamber;
  const rows=18,columns=24,positions=[],indices=[];
  for(let row=0;row<=rows;row++){const v=row/rows;for(let col=0;col<=columns;col++){
   const u=col/columns,lower=points[0].clone().lerp(points[3],u),upper=points[1].clone().lerp(points[2],u),p=lower.lerp(upper,v);

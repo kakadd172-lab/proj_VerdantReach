@@ -171,26 +171,31 @@ test('Creative object duplication and save restoration preserve ship state', () 
   assert.equal(edits.redo(), true);
 });
 
-test('the replacement model builder uses high-resolution hull lofts and editable curved structures', () => {
+test('the component-first ship runtime uses high-resolution hull lofts and editable curved structures', () => {
   const source = read('src/world/ships/core/ship-model-builder.js');
+  const kit = read('src/world/ships/core/ship-editor-kit.js');
   const structures = read('src/world/ships/core/ship-structures.js');
-  const firstRate = read('src/world/ships/vessels/first-rate.js');
-  const junk = read('src/world/ships/vessels/junk.js');
-  for (const token of ['hullGeometry', 'deckGeometry', 'sternHouseGeometry', 'addJunkRig', 'addFrames', 'addStrakesAndPlanking', 'setupPartApi', 'createShipModel', 'disposeShipModel']) {
-    assert.ok(source.includes(token), 'missing model feature: ' + token);
+  const hull = read('src/world/ships/vessels/galleon/generators/hull/hull-generator.js');
+  const firstRate = read('src/world/ships/vessels/first-rate/first-rate.js');
+  const junk = read('src/world/ships/vessels/junk/junk.js');
+
+  assert.ok(source.includes("import { createShip } from '../index.js?v=0.8.10'"));
+  assert.ok(source.includes('return createShip(type, componentTransforms, savedState);'));
+  for (const token of ['createShipContext', 'finishShipModel', 'setupPartApi', 'ownedGeometries', 'ownedMaterials', 'disposeShipModel']) {
+    assert.ok(kit.includes(token), 'missing editor/runtime feature: ' + token);
   }
-  assert.match(source, /const stations = 96/);
-  assert.match(source, /const ringSegments = 40/);
-  assert.ok(structures.includes('getHullHalfBeam'));
-  assert.ok(structures.includes('getHullSectionWidth'));
-  assert.ok(structures.includes('getDeckSheer'));
+  for (const token of ['getHullHalfBeam', 'getHullSectionWidth', 'getDeckSheer']) {
+    assert.ok(structures.includes(token), 'missing hull-structure API: ' + token);
+  }
+  assert.ok(hull.includes('stations=104'));
+  assert.ok(hull.includes('rings=36'));
+  assert.ok(hull.includes('THREE.BufferGeometry'));
   assert.ok(firstRate.includes("id: 'first-rate'"));
   assert.ok(firstRate.includes('frameCount: 42'));
   assert.ok(junk.includes("id: 'junk'"));
   assert.ok(junk.includes("rig: 'junk'"));
   assert.ok(junk.includes('shroudPairs: 0'));
 });
-
 test('all historical vessels are available in the Creative editor', () => {
   const ui = read('src/ui/interface.js');
   const worldEditing = read('src/systems/world-editing.js');

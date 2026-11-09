@@ -40,11 +40,11 @@ export function getLongitudinalHalfBeamRatio(design, profile, station) {
   const t = clamp01(station);
   const shoulder = clamp(profile?.beamStation ?? 0.5, 0.35, 0.68);
   const foreTip = clamp(profile?.foreTip ?? 0, 0, 0.16);
-  const aftTip = clamp(profile?.aftTip ?? 0, 0, 0.24);
+  const aftTip = clamp(profile?.aftTip ?? 0, 0, 0.95);
   const forebody = clamp(profile?.forebody ?? 1, 0.45, 1.65);
   const aftbody = clamp(profile?.aftbody ?? 1, 0.45, 1.65);
   const entry = clamp(design?.hull?.entry ?? 0.65, 0.25, 1.1);
-  const sternWidth = clamp(design?.hull?.sternWidth ?? aftTip, 0.02, 0.65);
+  const sternWidth = clamp(design?.hull?.sternWidth ?? aftTip, 0.02, 0.95);
 
   if (t <= shoulder) {
     const u = t / shoulder;
@@ -133,7 +133,7 @@ export function getKeelLineHeight(design, profile, station) {
   const t = clamp01(station);
   const keelDepth = clamp(design?.hull?.keelDepth ?? 0.08, 0.005, 0.3);
   const entry = clamp(design?.hull?.entry ?? 0.65, 0.25, 1.1);
-  const sternWidth = clamp(design?.hull?.sternWidth ?? 0.3, 0.02, 0.65);
+  const sternWidth = clamp(design?.hull?.sternWidth ?? 0.3, 0.02, 0.95);
   const deckHeight = Math.max(0.1, Number(design?.deckHeightUnits) || 0.1);
 
   const bowZone = clamp(0.16 + (1 - entry) * 0.12, 0.15, 0.28);
