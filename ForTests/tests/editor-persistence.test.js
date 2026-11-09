@@ -25,7 +25,7 @@ test('save accepts legitimate viewport transforms beyond the old narrow editor l
 });
 test('save rejects traversal IDs and invalid transform values',async()=>{
  const root=await mkdtemp(join(tmpdir(),'verdant-shipyard-'));try{const h=attach(root),a=await request(h.get('/__ship-editor/save'),'POST',{ships:{'../outside':{design:{},structure:{},partState:{}}}});assert.equal(a.status,400);
-  const b=await request(h.get('/__ship-editor/save'),'POST',{ships:{sloop:{partState:{partTransforms:{hull:{x:999}}}}}});assert.equal(b.status,400);
+  const b=await request(h.get('/__ship-editor/save'),'POST',{ships:{sloop:{partState:{partTransforms:{hull:{x:99999}}}}}});assert.equal(b.status,400);
  }finally{await rm(root,{recursive:true,force:true});}
 });
 test('reset restores only the selected vessel defaults module',async()=>{
