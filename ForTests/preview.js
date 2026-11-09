@@ -396,7 +396,7 @@ function removeSelectionPivot(){
   selectionPivot.removeFromParent();selectionPivot=null;
 }
 function clearSelection(){
-  removeSelectionPivot();clearSelectionHelpers();selectedNames=[];selectedName='';
+  removeSelectionPivot();clearSelectionHelpers();gizmo.detach();selectedNames=[];selectedName='';
   if(partSelector)partSelector.value='';
   const label=document.querySelector('#part-name');if(label)label.textContent='No component selected';
   refreshTransformFields();refreshSelectionTools();refreshPartInspector();refreshSelectionCount();
@@ -420,6 +420,15 @@ function frameSelection(){
     camera.near=Math.max(.05,distance/1000);camera.far=Math.max(2000,distance*30);camera.updateProjectionMatrix();orbit.update();
   }else if(selectedName)frameObject(ship.userData.getPart(selectedName));
 }
+function recenterSelectionPivot(){
+  if(!selectionPivot||selectedNames.length<2)return;
+  const bounds=getSelectionBounds(selectedNames);
+  if(bounds.isEmpty())return;
+  selectionPivot.position.copy(bounds.getCenter(new THREE.Vector3()));
+  selectionPivot.rotation.set(0,0,0);
+  selectionPivot.scale.set(1,1,1);
+  selectionPivot.updateMatrixWorld(true);
+}
 function setSelectionHelpers(names){
   clearSelectionHelpers();
   for(const name of names){
@@ -429,6 +438,7 @@ function setSelectionHelpers(names){
     helper.material.depthTest=false;helper.material.transparent=true;helper.material.opacity=.95;helper.renderOrder=20;
     scene.add(helper);selectionHelpers.push(helper);
   }
+  recenterSelectionPivot();
 }
 function pruneNestedSelection(names){
   const candidates=new Set(names);
@@ -532,7 +542,7 @@ function finishGroupTransform(){
   groupDragSession=null;
   const bounds=getSelectionBounds();
   if(selectionPivot&&!bounds.isEmpty()){selectionPivot.position.copy(bounds.getCenter(new THREE.Vector3()));selectionPivot.rotation.set(0,0,0);selectionPivot.scale.set(1,1,1);selectionPivot.updateMatrixWorld(true);}
-  updateSelectionHelpers();refreshPartInspector();return session;
+  setSelectionHelpers(selectedNames);refreshPartInspector();return session;
 }
 
 function applyWireframe(){
@@ -960,11 +970,15 @@ function finishMarqueeSelection(event){
 }
 renderer.domElement.addEventListener('pointerdown',event=>{
   if(!marqueeMode||event.button!==0||gizmo.dragging||gizmo.axis)return;
+  // Capture phase runs before OrbitControls' target listener so orbit never
+  // begins a drag that box selection then has to interrupt.
+  event.preventDefault();
+  orbit.enabled=false;
   suppressCanvasClick=false;
   marqueeStart={x:event.clientX,y:event.clientY,append:event.shiftKey||event.ctrlKey||event.metaKey};
   marqueeOverlay.hidden=false;updateMarqueeOverlay(marqueeStart,marqueeStart);orbit.enabled=false;
   try{renderer.domElement.setPointerCapture(event.pointerId);}catch{}
-});
+},true);
 window.addEventListener('pointermove',event=>{if(marqueeStart)updateMarqueeOverlay(marqueeStart,event);});
 window.addEventListener('pointerup',finishMarqueeSelection);
 window.addEventListener('pointercancel',finishMarqueeSelection);
