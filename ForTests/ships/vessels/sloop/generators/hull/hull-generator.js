@@ -22,7 +22,8 @@ export function buildHull(d,ctx){
   for(const i of [0,stations]){
     const t=i/stations;
     const center=positions.length/3;
-    positions.push(0,(deckY(d,t)+keelY(d,t))*0.5,stationZ(d,t,0.5));
+    const centreLevel=Math.pow(0.5,0.92);
+    positions.push(0,keelY(d,t)+(deckY(d,t)-keelY(d,t))*centreLevel,stationZ(d,t,0.5));
     for(let j=0;j<rings;j++){
       const a=i*stride+j;
       indices.push(center,a,a+1);

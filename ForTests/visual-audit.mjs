@@ -52,7 +52,7 @@ try{
   report.push({id,...metrics});
  }
  await page.locator('details.section-card').filter({hasText:'Viewport & camera'}).locator('summary').click();
- const cameraViews=requestedShip?[[requestedShip,'side'],[requestedShip,'bow'],[requestedShip,'stern'],[requestedShip,'top']]:[['galleon','side'],['carrack','side'],['first-rate','side'],['brig','side'],['schooner','side'],['sloop','side'],['snow','side'],['junk','top'],['xebec','top'],['fluyt','top']];
+ const cameraViews=requestedShip?[[requestedShip,'side'],[requestedShip,'bow'],[requestedShip,'stern'],[requestedShip,'top']]:[['galleon','side'],['carrack','side'],['first-rate','side'],['brig','side'],['schooner','side'],['sloop','side'],['sloop','stern'],['snow','side'],['junk','top'],['xebec','top'],['fluyt','top']];
  for(const [id,angle] of cameraViews){
   await page.locator('#ship-select').selectOption(id);
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
