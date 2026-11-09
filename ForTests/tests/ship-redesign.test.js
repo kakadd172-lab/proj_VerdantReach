@@ -88,7 +88,7 @@ test('each vessel owns its own geometry-generation algorithms', () => {
   assert.equal(new Set(sailAlgorithms).size, 16, 'All 16 ships must have their own sail surface profiles');
 
   const kit = readFileSync(new URL('../ships/shared/ship-editor-kit.js', import.meta.url), 'utf8');
-  for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildCanvasSail(', 'function buildRig(')) {
+  for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildCanvasSail(', 'function buildRig(']) {
     assert.ok(!kit.includes(geometryRoutine), 'Editor kit must not contain vessel geometry: ' + geometryRoutine);
   }
 });
