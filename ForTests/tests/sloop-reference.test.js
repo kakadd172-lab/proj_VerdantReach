@@ -118,7 +118,7 @@ test('Sloop gaff mainsail is a complete four-sided cloth with a sloped gaff',()=
     sail.traverse(object=>{if(object.isMesh&&object.name==='sail-shaped-cloth')clothMesh=object;});
     assert.ok(clothMesh,'main sail cloth mesh should be generated');
     clothMesh.geometry.computeBoundingBox();
-    const size=clothMesh.geometry.boundingBox.getSize(new (await import('three')).Vector3());
+    const size=clothMesh.geometry.boundingBox.getSize(new Vector3());
     assert.ok(size.y>5.0,'main sail should have full working height');
     assert.ok(size.z>3.0,'main sail should have a complete fore-aft cloth span');
     assert.ok(ship.userData.getPart('cloth-sail-head-1'),'headsail cloth should remain present');
