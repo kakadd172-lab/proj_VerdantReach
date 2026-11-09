@@ -1,6 +1,6 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
 export const XebecDefinition = defineVesselSpec({
- editorModulePath: 'ForTests/ships/vessels/xebec/xebec.js',
+ editorModulePath: 'src/world/ships/vessels/xebec/xebec.js',
   id: 'xebec',
   design: {
     id: 'xebec', label: 'Mediterranean xebec', era: '17th–18th century; uncommon Atlantic visitor',
@@ -23,8 +23,8 @@ export const XebecDefinition = defineVesselSpec({
   },
   structure: { frameCount: 30, beamStation: .49, forebody: 1.3, aftbody: 1.18, foreTip: .001, aftTip: .025, bottomFlat: .11, bilge: .055, flare: .045, tumble: .005, sheer: .78, lowerMastRatio: .58, shroudPairs: 2, ratlines: 7, yardSpread: 1.13 },
 }, EDITOR_DEFAULTS);
-import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
-import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
+import { defineVesselSpec, resolveVesselForGeneration } from '../../core/vessel-definition.js';
+import { createShipContext, finishShipModel } from '../../core/ship-editor-kit.js';
 import { XEBEC_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';

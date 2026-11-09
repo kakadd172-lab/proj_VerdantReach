@@ -1,6 +1,6 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
 export const FrigateDefinition = defineVesselSpec({
- editorModulePath: 'ForTests/ships/vessels/frigate/frigate.js',
+ editorModulePath: 'src/world/ships/vessels/frigate/frigate.js',
   id: 'frigate',
   design: {
     id: 'frigate', label: '18th-century frigate', era: '18th century',
@@ -23,8 +23,8 @@ export const FrigateDefinition = defineVesselSpec({
   },
   structure: { frameCount: 36, beamStation: .52, forebody: 1.13, aftbody: 1.14, foreTip: .002, aftTip: .08, bottomFlat: .22, bilge: .11, flare: .05, tumble: .19, sheer: .9, lowerMastRatio: .66, shroudPairs: 4, ratlines: 11, yardSpread: 1.08 },
 }, EDITOR_DEFAULTS);
-import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
-import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
+import { defineVesselSpec, resolveVesselForGeneration } from '../../core/vessel-definition.js';
+import { createShipContext, finishShipModel } from '../../core/ship-editor-kit.js';
 import { FRIGATE_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';

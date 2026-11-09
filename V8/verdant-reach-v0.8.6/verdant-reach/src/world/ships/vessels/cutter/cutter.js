@@ -1,6 +1,6 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
 export const CutterDefinition = defineVesselSpec({
-  editorModulePath: 'ForTests/ships/vessels/cutter/cutter.js',
+  editorModulePath: 'src/world/ships/vessels/cutter/cutter.js',
   id: 'cutter',
   design: {
     id: 'cutter', label: 'Caribbean cutter', era: '18th century coastal service',
@@ -20,8 +20,8 @@ export const CutterDefinition = defineVesselSpec({
   structure: { frameCount: 21, beamStation: .47, forebody: .69, aftbody: 1.04, foreTip: .003, aftTip: .045, bottomFlat: .16, bilge: .09, flare: .17, tumble: .025, sheer: 1.14, lowerMastRatio: .61, shroudPairs: 2, ratlines: 8, yardSpread: .96 },
 }, EDITOR_DEFAULTS);
 
-import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
-import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
+import { defineVesselSpec, resolveVesselForGeneration } from '../../core/vessel-definition.js';
+import { createShipContext, finishShipModel } from '../../core/ship-editor-kit.js';
 import { CUTTER_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';

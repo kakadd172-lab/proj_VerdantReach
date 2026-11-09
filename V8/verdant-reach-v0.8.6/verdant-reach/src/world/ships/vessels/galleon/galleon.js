@@ -1,6 +1,6 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
 export const GalleonDefinition = defineVesselSpec({
- editorModulePath: 'ForTests/ships/vessels/galleon/galleon.js',
+ editorModulePath: 'src/world/ships/vessels/galleon/galleon.js',
   id: 'galleon',
   design: {
     id: 'galleon', label: 'Iberian merchant galleon', era: '16th–17th century',
@@ -23,8 +23,8 @@ export const GalleonDefinition = defineVesselSpec({
   },
   structure: { frameCount: 36, beamStation: .51, forebody: .86, aftbody: .91, foreTip: .003, aftTip: .14, bottomFlat: .39, bilge: .24, flare: .12, tumble: .12, sheer: 1.2, lowerMastRatio: .64, shroudPairs: 3, ratlines: 10, yardSpread: 1.04 },
 }, EDITOR_DEFAULTS);
-import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
-import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
+import { defineVesselSpec, resolveVesselForGeneration } from '../../core/vessel-definition.js';
+import { createShipContext, finishShipModel } from '../../core/ship-editor-kit.js';
 import { GALLEON_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';

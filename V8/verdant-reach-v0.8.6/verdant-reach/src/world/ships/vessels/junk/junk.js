@@ -1,6 +1,6 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
 export const JunkDefinition = defineVesselSpec({
- editorModulePath: 'ForTests/ships/vessels/junk/junk.js',
+ editorModulePath: 'src/world/ships/vessels/junk/junk.js',
   id: 'junk',
   design: {
     id: 'junk', label: 'Chinese ocean junk', era: 'Historically varied; broad reference model',
@@ -27,8 +27,8 @@ export const JunkDefinition = defineVesselSpec({
   },
   structure: { frameCount: 32, beamStation: .5, forebody: .82, aftbody: .84, foreTip: .08, aftTip: .12, bottomFlat: .62, bilge: .09, flare: .035, tumble: .015, sheer: 1.24, lowerMastRatio: .7, shroudPairs: 0, ratlines: 0, yardSpread: 1.02 },
 }, EDITOR_DEFAULTS);
-import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
-import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
+import { defineVesselSpec, resolveVesselForGeneration } from '../../core/vessel-definition.js';
+import { createShipContext, finishShipModel } from '../../core/ship-editor-kit.js';
 import { JUNK_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';

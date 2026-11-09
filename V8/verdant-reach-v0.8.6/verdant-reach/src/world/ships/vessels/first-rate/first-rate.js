@@ -1,6 +1,6 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
 export const FirstRateDefinition = defineVesselSpec({
- editorModulePath: 'ForTests/ships/vessels/first-rate/first-rate.js',
+ editorModulePath: 'src/world/ships/vessels/first-rate/first-rate.js',
   id: 'first-rate',
   design: {
     id: 'first-rate', label: 'First-rate ship of the line', era: 'Late 18th century reference form',
@@ -27,8 +27,8 @@ export const FirstRateDefinition = defineVesselSpec({
   },
   structure: { frameCount: 42, beamStation: .52, forebody: 1.08, aftbody: 1.04, foreTip: .002, aftTip: .095, bottomFlat: .32, bilge: .2, flare: .07, tumble: .17, sheer: .95, lowerMastRatio: .66, shroudPairs: 5, ratlines: 12, yardSpread: 1.1 },
 }, EDITOR_DEFAULTS);
-import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
-import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
+import { defineVesselSpec, resolveVesselForGeneration } from '../../core/vessel-definition.js';
+import { createShipContext, finishShipModel } from '../../core/ship-editor-kit.js';
 import { FIRST_RATE_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';

@@ -1,5 +1,5 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
-import { defineVesselSpec } from '../../shared/vessel-definition.js';
+import { defineVesselSpec } from '../../core/vessel-definition.js';
 /**
  * carrack — standalone ship definition and independent geometry generator.
  * Owns this vessel's historical dimensions, hull lines, structure, bow/stern
@@ -7,7 +7,7 @@ import { defineVesselSpec } from '../../shared/vessel-definition.js';
  */
 
 export const CarrackDefinition = defineVesselSpec({
-  editorModulePath: 'ForTests/ships/vessels/carrack/carrack.js',
+  editorModulePath: 'src/world/ships/vessels/carrack/carrack.js',
   id: 'carrack',
   design: {
     id: 'carrack', label: 'Iberian carrack / nao', era: '15th–16th century',
@@ -32,8 +32,8 @@ export const CarrackDefinition = defineVesselSpec({
 }, EDITOR_DEFAULTS);
 
 
-import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
-import { resolveVesselForGeneration } from '../../shared/vessel-definition.js';
+import { createShipContext, finishShipModel } from '../../core/ship-editor-kit.js';
+import { resolveVesselForGeneration } from '../../core/vessel-definition.js';
 import { CARRACK_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';

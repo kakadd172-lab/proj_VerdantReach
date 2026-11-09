@@ -1,6 +1,6 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
 export const FluytDefinition = defineVesselSpec({
- editorModulePath: 'ForTests/ships/vessels/fluyt/fluyt.js',
+ editorModulePath: 'src/world/ships/vessels/fluyt/fluyt.js',
   id: 'fluyt',
   design: {
     id: 'fluyt', label: 'Dutch fluyt merchantman', era: '17th century Atlantic trade',
@@ -22,8 +22,8 @@ export const FluytDefinition = defineVesselSpec({
   },
   structure: { frameCount: 34, beamStation: .54, forebody: .68, aftbody: .75, foreTip: .01, aftTip: .08, bottomFlat: .51, bilge: .36, flare: .035, tumble: .27, sheer: .82, lowerMastRatio: .65, shroudPairs: 2, ratlines: 9, yardSpread: .94 },
 }, EDITOR_DEFAULTS);
-import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
-import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
+import { defineVesselSpec, resolveVesselForGeneration } from '../../core/vessel-definition.js';
+import { createShipContext, finishShipModel } from '../../core/ship-editor-kit.js';
 import { FLUYT_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';

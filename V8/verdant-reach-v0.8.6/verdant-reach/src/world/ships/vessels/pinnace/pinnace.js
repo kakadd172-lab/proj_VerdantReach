@@ -1,6 +1,6 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
 export const PinnaceDefinition = defineVesselSpec({
- editorModulePath: 'ForTests/ships/vessels/pinnace/pinnace.js',
+ editorModulePath: 'src/world/ships/vessels/pinnace/pinnace.js',
   id: 'pinnace',
   design: {
     id: 'pinnace', label: 'Ship’s pinnace', era: '16th–18th century tender',
@@ -19,8 +19,8 @@ export const PinnaceDefinition = defineVesselSpec({
   },
   structure: { frameCount: 16, beamStation: .5, forebody: .84, aftbody: .85, foreTip: .002, aftTip: .004, bottomFlat: .18, bilge: .075, flare: .08, tumble: .035, sheer: .91, lowerMastRatio: .6, shroudPairs: 1, ratlines: 5, yardSpread: .74 },
 }, EDITOR_DEFAULTS);
-import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
-import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
+import { defineVesselSpec, resolveVesselForGeneration } from '../../core/vessel-definition.js';
+import { createShipContext, finishShipModel } from '../../core/ship-editor-kit.js';
 import { PINNACE_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';

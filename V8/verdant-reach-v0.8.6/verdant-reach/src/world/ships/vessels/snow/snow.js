@@ -1,6 +1,6 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
 export const SnowDefinition = defineVesselSpec({
-  editorModulePath: 'ForTests/ships/vessels/snow/snow.js',
+  editorModulePath: 'src/world/ships/vessels/snow/snow.js',
   id: 'snow',
   design: {
     id: 'snow', label: 'Snow brig', era: '18th century', primaryMastCount: 2,
@@ -24,8 +24,8 @@ export const SnowDefinition = defineVesselSpec({
   structure: { frameCount: 28, beamStation: .50, forebody: .91, aftbody: 1.08, foreTip: .004, aftTip: .07, bottomFlat: .29, bilge: .17, flare: .1, tumble: .09, sheer: 1.04, lowerMastRatio: .64, shroudPairs: 3, ratlines: 9, yardSpread: .98 },
 }, EDITOR_DEFAULTS);
 
-import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
-import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
+import { defineVesselSpec, resolveVesselForGeneration } from '../../core/vessel-definition.js';
+import { createShipContext, finishShipModel } from '../../core/ship-editor-kit.js';
 import { SNOW_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';
