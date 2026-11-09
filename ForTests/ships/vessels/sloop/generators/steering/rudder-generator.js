@@ -40,7 +40,7 @@ export function buildRudder(d,ctx){
   const transomZAt=(localY)=>{
     const globalY=upperY+localY;
     const fraction=Math.max(0,Math.min(1,(globalY-keel)/Math.max(0.001,deck-keel)));
-    const level=Math.pow(fraction,1/0.92);
+    const level=fraction;
     return stationZ(d,1,level)+clearance;
   };
 

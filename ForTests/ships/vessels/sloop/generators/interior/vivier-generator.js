@@ -1,4 +1,4 @@
-import { deckY, stationZ, V } from "../../architecture/hull-geometry.js";
+import { deckY, hullSurfacePoint, stationZ, V } from "../../architecture/hull-geometry.js";
 
 /**
  * Central live-fish well from the 1866 deck plan. The deck is genuinely open
@@ -51,11 +51,9 @@ export function buildVivier(d,ctx){
     const vents=part('vivier-hull-vents-'+(side<0?'port':'starboard'),well);
     for(let i=0;i<(spec.ventCount??18);i++){
       const t=spec.startStation+0.035+(spec.endStation-spec.startStation-0.07)*i/Math.max(1,(spec.ventCount??18)-1);
-      const v=0.48;
-      const x=side*0.98*1.175; // near the outer shell at the livewell station
-      const y=deckY(d,t)-(depth*0.72);
-      const z=stationZ(d,t,v);
-      beam(vents,V(x,y,z),V(x,y+0.14,z),0.012,materials.lower,'vivier-side-water-slot');
+      const lower=hullSurfacePoint(d,t,side,0.46);
+      const upper=hullSurfacePoint(d,t,side,0.58);
+      beam(vents,lower,upper,0.012,materials.lower,'vivier-side-water-slot');
     }
   }
 }
