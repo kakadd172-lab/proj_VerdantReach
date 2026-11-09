@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 export const SloopDefinition = defineVesselSpec({
   editorModulePath: 'ForTests/ships/vessels/sloop/sloop.js',
   id: 'sloop',
@@ -62,7 +63,7 @@ export const SloopDefinition = defineVesselSpec({
     ratlines: 9,
     yardSpread: 0.92
   }
-});
+}, EDITOR_DEFAULTS);
 
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
@@ -140,6 +141,7 @@ function assembleSloop(vessel,componentTransforms={},savedState={}){
 }
 export function createSloopModel(componentTransforms={},savedState={}){return assembleSloop(resolveVesselForGeneration(SloopDefinition),componentTransforms,savedState);}
 export function generateSloop(componentTransforms={},savedState={}){return createSloopModel(componentTransforms,savedState);}
-export const Sloop=Object.freeze({id:SloopDefinition.id,definition:SloopDefinition,design:SloopDefinition.design,structure:SloopDefinition.structure,editorModulePath:SloopDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createSloopModel,generate:generateSloop});
+export const Sloop=Object.freeze({id:SloopDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,definition:SloopDefinition,design:SloopDefinition.design,structure:SloopDefinition.structure,editorModulePath:SloopDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createSloopModel,generate:generateSloop});
 export const id=Sloop.id,design=Sloop.design,structure=Sloop.structure,createModel=Sloop.createModel,generate=Sloop.generate;
 export default Sloop;

@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 import { defineVesselSpec } from '../../shared/vessel-definition.js';
 /**
  * brig — standalone ship definition and independent geometry generator.
@@ -27,7 +28,7 @@ export const BrigDefinition = defineVesselSpec({
     headsails: 3, oars: false,
   },
   structure: { frameCount: 32, beamStation: .52, forebody: .98, aftbody: 1.0, foreTip: .003, aftTip: .10, bottomFlat: .35, bilge: .22, flare: .08, tumble: .11, sheer: 1.0, lowerMastRatio: .64, shroudPairs: 3, ratlines: 10, yardSpread: 1.04 },
-});
+}, EDITOR_DEFAULTS);
 
 
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
@@ -126,6 +127,7 @@ export function generateBrig(componentTransforms={},savedState={}) {
 }
 export const Brig = Object.freeze({
   id: BrigDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,
   definition: BrigDefinition,
   design: BrigDefinition.design,
   structure: BrigDefinition.structure,

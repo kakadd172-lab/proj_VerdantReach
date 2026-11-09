@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 import { defineVesselSpec } from '../../shared/vessel-definition.js';
 /**
  * brigantine — standalone ship definition and independent geometry generator.
@@ -27,7 +28,7 @@ export const BrigantineDefinition = defineVesselSpec({
     headsails: 3, oars: false,
   },
   structure: { frameCount: 30, beamStation: .51, forebody: .94, aftbody: .98, foreTip: .004, aftTip: .09, bottomFlat: .32, bilge: .19, flare: .09, tumble: .10, sheer: 1.02, lowerMastRatio: .65, shroudPairs: 3, ratlines: 9, yardSpread: 1.02 },
-});
+}, EDITOR_DEFAULTS);
 
 
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
@@ -126,6 +127,7 @@ export function generateBrigantine(componentTransforms={},savedState={}) {
 }
 export const Brigantine = Object.freeze({
   id: BrigantineDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,
   definition: BrigantineDefinition,
   design: BrigantineDefinition.design,
   structure: BrigantineDefinition.structure,

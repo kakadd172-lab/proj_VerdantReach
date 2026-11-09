@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 export const SchoonerDefinition = defineVesselSpec({
   editorModulePath: 'ForTests/ships/vessels/schooner/schooner.js',
   id: 'schooner',
@@ -20,7 +21,7 @@ export const SchoonerDefinition = defineVesselSpec({
     headsails: 3, oars: false,
   },
   structure: { frameCount: 26, beamStation: .48, forebody: .72, aftbody: .96, foreTip: .006, aftTip: .075, bottomFlat: .18, bilge: .11, flare: .15, tumble: .06, sheer: 1.0, lowerMastRatio: .62, shroudPairs: 2, ratlines: 9, yardSpread: .92 },
-});
+}, EDITOR_DEFAULTS);
 
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
@@ -84,6 +85,7 @@ function assembleSchooner(vessel,componentTransforms={},savedState={}){
 }
 export function createSchoonerModel(componentTransforms={},savedState={}){return assembleSchooner(resolveVesselForGeneration(SchoonerDefinition),componentTransforms,savedState);}
 export function generateSchooner(componentTransforms={},savedState={}){return createSchoonerModel(componentTransforms,savedState);}
-export const Schooner=Object.freeze({id:SchoonerDefinition.id,definition:SchoonerDefinition,design:SchoonerDefinition.design,structure:SchoonerDefinition.structure,editorModulePath:SchoonerDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createSchoonerModel,generate:generateSchooner});
+export const Schooner=Object.freeze({id:SchoonerDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,definition:SchoonerDefinition,design:SchoonerDefinition.design,structure:SchoonerDefinition.structure,editorModulePath:SchoonerDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createSchoonerModel,generate:generateSchooner});
 export const id=Schooner.id,design=Schooner.design,structure=Schooner.structure,createModel=Schooner.createModel,generate=Schooner.generate;
 export default Schooner;
