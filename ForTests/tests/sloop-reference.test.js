@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { Vector3 } from 'three';
 import { getShipDesign, createShipModel, disposeShipModel } from '../ships/index.js?v=0.8.8';
 import { deckY, keelY, hullPoint, stationZ, halfBreadth, hullShapeStation } from '../ships/vessels/sloop/architecture/hull-geometry.js';
 
@@ -65,4 +66,61 @@ test('Sloop still assembles its editable hull, cabin and simplified sail plan',(
   }finally{
     disposeShipModel(ship);
   }
+});
+
+
+test('Sloop anchors are fitted against the forward hull rather than floating off the bow',()=>{
+  const design=getShipDesign('sloop');
+  const ship=createShipModel('sloop');
+  try{
+    const port=ship.userData.getPart('anchor-port');
+    const starboard=ship.userData.getPart('anchor-starboard');
+    assert.ok(port&&starboard,'both anchors should be individually editable');
+    assert.ok(port.position.x<0&&starboard.position.x>0,'anchors should be fitted to opposite bow cheeks');
+    assert.ok(Math.abs(port.position.x)<design.beamUnits*0.25,'port anchor should remain close to the hull');
+    assert.ok(Math.abs(starboard.position.x)<design.beamUnits*0.25,'starboard anchor should remain close to the hull');
+    for(const anchor of [port,starboard]){
+      let ring=false,fluke=false;
+      anchor.traverse(object=>{
+        if(object.name==='sloop-anchor-ring')ring=true;
+        if(object.name==='sloop-anchor-fluke')fluke=true;
+      });
+      assert.ok(ring&&fluke,'each anchor should have a recognisable ring and flukes');
+    }
+  }finally{disposeShipModel(ship);}
+});
+
+test('Sloop rudder is a visible shaped blade extending below the keel',()=>{
+  const ship=createShipModel('sloop');
+  try{
+    const rudder=ship.userData.getPart('rudder');
+    assert.ok(rudder,'rudder component should exist');
+    let blade=null,hinges=0;
+    rudder.traverse(object=>{
+      if(object.name==='sloop-profiled-rudder-blade')blade=object;
+      if(object.name.startsWith('sloop-rudder-gudgeon-strap-'))hinges++;
+    });
+    assert.ok(blade,'rudder should have its own shaped blade mesh');
+    blade.geometry.computeBoundingBox();
+    const size=blade.geometry.boundingBox.getSize(new Vector3());
+    assert.ok(size.x>0.55,'rudder blade should have a readable chord');
+    assert.ok(size.y>3.0,'rudder blade should extend from the stern to below the keel');
+    assert.equal(hinges,2,'rudder should have two transom hinge straps');
+  }finally{disposeShipModel(ship);}
+});
+
+test('Sloop gaff mainsail is a complete four-sided cloth with a sloped gaff',()=>{
+  const ship=createShipModel('sloop');
+  try{
+    const sail=ship.userData.getPart('cloth-sail-single-gaff');
+    assert.ok(sail,'main sail cloth should be present');
+    let clothMesh=null;
+    sail.traverse(object=>{if(object.isMesh&&object.name==='sail-shaped-cloth')clothMesh=object;});
+    assert.ok(clothMesh,'main sail cloth mesh should be generated');
+    clothMesh.geometry.computeBoundingBox();
+    const size=clothMesh.geometry.boundingBox.getSize(new (await import('three')).Vector3());
+    assert.ok(size.y>5.0,'main sail should have full working height');
+    assert.ok(size.z>3.0,'main sail should have a complete fore-aft cloth span');
+    assert.ok(ship.userData.getPart('cloth-sail-head-1'),'headsail cloth should remain present');
+  }finally{disposeShipModel(ship);}
 });
