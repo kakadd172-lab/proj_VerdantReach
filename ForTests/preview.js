@@ -970,8 +970,8 @@ function finishMarqueeSelection(event){
 renderer.domElement.addEventListener('pointerdown',event=>{
   if(!marqueeMode||event.button!==0||gizmo.dragging||gizmo.axis)return;
   // Capture phase runs before OrbitControls' target listener so orbit never
-  // begins a drag that box selection then has to interrupt.
-  event.preventDefault();
+  // begins a drag that box selection then has to interrupt. Do not cancel the
+  // pointer press: a short click must still reach the normal part-picking handler.
   orbit.enabled=false;
   suppressCanvasClick=false;
   marqueeStart={x:event.clientX,y:event.clientY,append:event.shiftKey||event.ctrlKey||event.metaKey};
