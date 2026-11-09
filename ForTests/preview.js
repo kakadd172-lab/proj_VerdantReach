@@ -14,7 +14,7 @@ async function bootShipStudio(){
     const overrideResponse=await fetch('./design-overrides.json',{cache:'no-store'});
     if(!overrideResponse.ok) throw new Error('Could not read design-overrides.json (HTTP '+overrideResponse.status+').');
     const DESIGN_OVERRIDES=await overrideResponse.json();
-    const shipModule=await import('./ships/index.js?v=0.8.8');
+    const shipModule=await import('./ships/index.js?v=0.8.8-modular-fleet-16');
     const {SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
       getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
       createShipModel,disposeShipModel,SHIP_MODEL_MODULE_VERSION}=shipModule;

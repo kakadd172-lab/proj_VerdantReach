@@ -83,7 +83,7 @@ assert.equal(hullFingerprints.size,16,'Each vessel must implement a distinct hul
 assert.equal(sailFingerprints.size,16,'Each vessel must implement its own sail surface profile.');
 
 const preview=readFileSync(join(here,'preview.js'),'utf8');
-assert.ok(preview.includes("./ships/index.js?v=0.8.8"),'Preview must load the independent generator registry.');
+assert.ok(preview.includes("./ships/index.js?v=0.8.8-modular-fleet-16"),'Preview must load the independent generator registry.');
 for(const legacy of ['ship-model-builder.js','hull-math.js','./ship-designs.js','./ship-structures.js','./ship-hull-parameterization.js','./ship-models.js']){
  assert.ok(!preview.includes(legacy),'Preview still references obsolete module '+legacy);
 }
