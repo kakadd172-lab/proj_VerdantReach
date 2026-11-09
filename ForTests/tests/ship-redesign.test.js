@@ -7,14 +7,14 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.8';
+} from '../ships/index.js?v=0.8.9-persistent-vessel-authoring';
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
 test('the editor uses 16 self-contained ForTests vessel modules', () => {
-  assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.8');
-  assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.8');
-  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.8');
+  assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.9');
+  assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.9');
+  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.9');
   assert.equal(ids.length, 16);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
@@ -24,7 +24,7 @@ test('the editor uses 16 self-contained ForTests vessel modules', () => {
     assert.equal(module.id, id);
     assert.equal(typeof module.createModel, 'function', id + ' dedicated model creator');
     assert.equal(typeof module.generate, 'function', id + ' dedicated generator entry point');
-    assert.equal(module.editorModulePath, modularIds.has(id) ? 'ForTests/ships/vessels/' + id + '/' + id + '.js' : 'ForTests/ships/vessels/' + id + '.js');
+    assert.equal(module.editorModulePath, 'ForTests/ships/vessels/' + id + '/' + id + '.js');
     assert.equal(typeof SHIP_GENERATORS[id], 'function', id + ' registered generator');
   }
 });

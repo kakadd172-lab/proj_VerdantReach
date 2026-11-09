@@ -17,6 +17,8 @@ for(const path of ['index.js','README.md','shared/vessel-definition.js','shared/
 }
 assert.ok(definitions.includes('defineVesselSpec'),'Definition helper must validate vessel specifications.');
 assert.ok(definitions.includes('getResolvedVesselDefinition'),'Definition helper must resolve editor overrides.');
+assert.ok(definitions.includes('editorDefaults'),'Definition helper must resolve per-vessel saved defaults.');
+assert.ok(kit.includes('editorDefaults'),'Ship model lifecycle must apply per-vessel saved component defaults.');
 assert.ok(kit.includes('createShipContext')&&kit.includes('finishShipModel'),'Editor kit must expose context and lifecycle APIs.');
 for(const routine of ['function halfBreadth(','function hullPoint(','function buildHull(','function buildCanvasSail(','function buildRig(']){
  assert.ok(!kit.includes(routine),'Editor kit must not contain vessel geometry: '+routine);
@@ -35,6 +37,11 @@ for(const id of ids){
  const facadePath=converted?join(vesselDir,id+'.js'):join(shipRoot,'vessels',id+'.js');
  assert.ok(existsSync(facadePath),'Missing independent vessel module: '+id);
  const source=readFileSync(facadePath,'utf8');
+ const defaultsPath=join(vesselDir,'editor-defaults.js');
+ assert.ok(existsSync(defaultsPath),id+' must own an editor-defaults.js file beside its generator.');
+ const defaultsSource=readFileSync(defaultsPath,'utf8');
+ assert.ok(defaultsSource.includes('verdant-reach-vessel-defaults')&&defaultsSource.includes("vesselId: '"+id+"'"),id+' editor defaults file must identify its vessel.');
+ assert.ok(source.includes("import EDITOR_DEFAULTS from './editor-defaults.js'")&&source.includes('editorDefaults: EDITOR_DEFAULTS'),id+' generator must load its own saved defaults.');
  const registryPath=converted?'./vessels/'+id+'/'+id+'.js':'./vessels/'+id+'.js';
  assert.ok(registry.includes(registryPath),id+' missing from the registry.');
  assert.ok(source.includes('createShipContext(')&&source.includes('finishShipModel('),id+' must use the editor lifecycle APIs.');
@@ -83,15 +90,17 @@ assert.equal(hullFingerprints.size,16,'Each vessel must implement a distinct hul
 assert.equal(sailFingerprints.size,16,'Each vessel must implement its own sail surface profile.');
 
 const preview=readFileSync(join(here,'preview.js'),'utf8');
-assert.ok(preview.includes("./ships/index.js?v=0.8.8-modular-fleet-16"),'Preview must load the independent generator registry.');
+assert.ok(preview.includes("./ships/index.js?v=0.8.9-persistent-vessel-authoring"),'Preview must load the persistent authoring registry.');
+assert.ok(preview.includes('VESSEL_EDITOR_DEFAULTS'),'Preview must load saved defaults for all vessels.');
 for(const legacy of ['ship-model-builder.js','hull-math.js','./ship-designs.js','./ship-structures.js','./ship-hull-parameterization.js','./ship-models.js']){
  assert.ok(!preview.includes(legacy),'Preview still references obsolete module '+legacy);
 }
-for(const version of ["SHIP_DESIGN_MODULE_VERSION!=='0.8.8'","SHIP_STRUCTURE_MODULE_VERSION!=='0.8.8'","SHIP_MODEL_MODULE_VERSION!=='0.8.8'"]){
+for(const version of ["SHIP_DESIGN_MODULE_VERSION!=='0.8.9'","SHIP_STRUCTURE_MODULE_VERSION!=='0.8.9'","SHIP_MODEL_MODULE_VERSION!=='0.8.9'"]){
  assert.ok(preview.includes(version),'Preview version guard not updated: '+version);
 }
 const pkg=JSON.parse(readFileSync(join(here,'package.json'),'utf8'));
 assert.ok(!pkg.scripts.postinstall,'Standalone ForTests must not install main-game dependencies.');
 const vite=readFileSync(join(here,'vite.config.js'),'utf8');
-assert.ok(vite.includes('fs: { allow: [forTestsDir] }'),'Vite should serve only the ForTests workspace.');
+assert.ok(/fs:\s*\{\s*allow:\s*\[forTestsDir\]\s*\}/.test(vite),'Vite should serve only the ForTests workspace.');
+assert.ok(vite.includes('/__ship-editor/save')&&vite.includes('/__ship-editor/reset'),'Vite must expose validated save and reset handlers.');
 console.log('Verified all 16 ship generators use independent component-first vessel folders.');
