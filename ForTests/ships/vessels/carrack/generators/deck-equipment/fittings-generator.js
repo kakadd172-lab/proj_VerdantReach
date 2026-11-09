@@ -1,4 +1,4 @@
-import { deckY, halfBreadth, V } from "../../architecture/hull-geometry.js";
+import { deckY, halfBreadth, hullPoint, V } from "../../architecture/hull-geometry.js";
 export function buildDeckEquipment(d,ctx){
  const {part,beam,tube,box,materials}=ctx;
  const fittings=part('deck-fittings');
