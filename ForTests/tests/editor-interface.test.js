@@ -20,7 +20,7 @@ const requiredIds=[
   'save-design','export-design','status','part-size','part-parent','part-meshes','part-materials',
   'compare-select','compare-summary','measure-toggle','clear-measurement','measurement-value',
   'section-toggle','section-slider','section-value','import-design','import-file',
-  'capture-preview','viewport-fullscreen','viewport-readout',
+  'capture-preview','viewport-fullscreen','viewport-readout','box-select-toggle','clear-selection','selection-count',
 ];
 
 test('shipyard page exposes every editor control and information target',()=>{
@@ -76,4 +76,20 @@ test('shipyard supports direct review links for a selected vessel, component and
   assert.ok(preview.includes("reviewParams.get('camera')"));
   assert.ok(preview.includes("['top','side','bow','stern'].includes(reviewCamera)"));
   assert.ok(preview.includes('loadShip(selector.value||Object.keys(SHIP_DESIGNS)[0],reviewPartName)'));
+});
+
+
+test('shipyard supports drag-box multi-selection and collective gizmo transforms',()=>{
+  for(const symbol of [
+    'function selectPartsInRectangle(start,end,append=false)',
+    'function pruneNestedSelection(names)',
+    'function beginGroupTransform()',
+    'function finishGroupTransform()',
+    "addEventListener('pointerdown'",
+    "addEventListener('pointermove'",
+    "addEventListener('pointerup'",
+    "commitHistory(session.before,'Group transform '",
+    "else if(key==='q')toggleBoxSelect()",
+  ])assert.ok(preview.includes(symbol),'Missing box-selection behavior: '+symbol);
+  assert.ok(html.includes('Shift + drag adds to selection'));
 });
