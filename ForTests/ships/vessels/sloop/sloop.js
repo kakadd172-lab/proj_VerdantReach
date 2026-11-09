@@ -2,25 +2,66 @@ export const SloopDefinition = defineVesselSpec({
   editorModulePath: 'ForTests/ships/vessels/sloop/sloop.js',
   id: 'sloop',
   design: {
-    id: 'sloop', label: 'Caribbean merchant sloop', era: 'Late 17th–18th century Caribbean',
-    hullLength: 12.05, beam: 4.34, draft: 1.9, freeboard: 1.35,
-    rig: 'Single-masted gaff sloop with one headsail; a compact, easily handled Caribbean working rig.',
-    hullProfile: 'Fine raked entry, rounded full midbody, shallow keel, and a naturally broad transom created by cutting off roughly the final 30% of the pointed aft run.',
-    reference: 'Reader’s Point, Jamaica: surviving hull length 17.22 m and maximum beam 4.34 m. The game model uses it as a proportion reference, then shortens the aft run by about 30% for a broader transom; the original rig is not preserved, so the gaff sail plan is a regional reconstruction.',
+    id: 'sloop',
+    label: 'Loguivy decked lobster boat',
+    era: 'North Brittany, surveyed 1866',
+    hullLength: 15.30,
+    beam: 2.35,
+    draft: 1.20,
+    freeboard: 1.30,
+    rig: 'Single-masted fore-and-aft homardier rig: gaff mainsail aft, one headsail forward, and a long bowsprit.',
+    hullProfile: 'Long, narrow decked fishing hull; fine rising bow, nearly parallel middle and aft waterlines, broad rounded transom, deep curved bilges and strongly flared upper sides.',
+    reference: 'Côte Nord de Bretagne — decked Loguivy homardier, measured by Armand Pâris in 1866. This Sloop is reconstructed from the supplied plan of forms; dimensions are taken from the drawing where legible and offsets are proportionally traced from its plan and body views.',
+    hullFormNote: 'Blueprint-derived station loft from the top plan, body plan and sheer/lines drawing. The 1866 sheet is a scanned historical drawing, so the mesh is a faithful proportional reconstruction rather than a certified CAD transcription.',
+    modelScaleNote: 'Principal references: 15.30 m waterline length, 15.45 m extreme length, 2.35 m deck beam and approximately 2.50 m keel-to-deck depth. Unlabelled offsets are reconstructed from the drawing.',
     sources: [
-      { label: 'Texas A&M — Reader’s Point Jamaican merchant sloop', url: 'https://oaktrust.library.tamu.edu/items/bfbc382b-2aea-4705-bf65-67e97ec2b87b' },
-      { label: 'Smithsonian — Colonial sloop model, dated to 1768', url: 'https://www.si.edu/object/ship-model-colonial-sloop:nmah_844170' },
-      { label: 'Home Net Games — The Pirate: Plague of the Dead', url: 'https://www.homenetgames.com/the-pirate-plague-of-the-dead/' },
+      { label: 'Patrimoine Bretagne — Jean Le Bot after Armand Pâris, 1866 homardier plan of forms (IVR53_20082207618NUCB)', url: 'https://www.patrimoine.bzh/gertrude-diffusion/illustration/IVR53_20082207618NUCB' },
+      { label: 'Patrimoine Bretagne — Homardiers and langoustiers of Loguivy and Camaret', url: 'https://patrimoine.bzh/gertrude-diffusion/dossier/IM22005807' },
+      { label: 'Service historique de la Défense — Armand Pâris sketch album, 1840–1880', url: 'https://www.servicehistorique.sga.defense.gouv.fr/ark/1495165' }
     ],
-    hull: { fullness: 0.58, entry: 0.68, stern: 'counter', sternCutStation: 0.70, tumblehome: 0.04, sheer: 0.18, bowRise: 0.42, sternRise: 0.35, keelDepth: 0.11, deckCamber: 0.12, stemRake: 0.18, sternRake: 0.035 },
-    sternwork: 'low-cabin',
-    sternTiers: [{"w":0.40,"d":0.105,"h":1.05}], bowwork: 'bowsprit',
-    keelDetails: {"pointOffset":0.06,"minimumRadius":0.08,"radiusFactor":0.018,"stemPosts":true,"label":"keelson-and-keel"},
-    rudderDetails: {"pivotOffset":0.20,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, sailingSpeed: 9.0, handling: 1.35,
-    masts: [{ id: 'single', z: 0.015, height: 13.8, rig: 'gaff', span: 0.38, squares: 0 }],
-    headsails: 1, oars: false,
+    hull: {
+      type: 'Loguivy homardier',
+      depth: 2.50,
+      stern: 'broad rounded transom',
+      sternCutStation: 1,
+      sheer: 0.34,
+      bowRise: 0.62,
+      sternRise: 0.34,
+      deckCamber: 0.10,
+      stemRake: 0.035,
+      sternRake: 0.035,
+      tumblehome: 0.015
+    },
+    vivier: { length: 4.40, width: 1.10, startStation: 0.40, endStation: 0.69, ventCount: 18 },
+    bowspritLength: 2.70,
+    sternwork: 'transom',
+    sternTiers: [],
+    bowwork: 'long-bowsprit',
+    keelDetails: { pointOffset: 0.035, minimumRadius: 0.05, radiusFactor: 0.012, stemPosts: true, label: 'Loguivy-keel-and-deadwood' },
+    rudderDetails: { pivotOffset: 0.12, yFactor: 0.38, breadthFactor: 0.14, depthFactor: 0.92 },
+    sailingSpeed: 8.2,
+    handling: 1.15,
+    masts: [{ id: 'single', z: 0.08, height: 9.6, rig: 'gaff', span: 0.42, squares: 0 }],
+    headsails: 1,
+    oars: false
   },
-  structure: { frameCount: 25, beamStation: .49, forebody: .76, aftbody: 1.02, foreTip: .008, aftTip: .055, bottomFlat: .21, bilge: .12, flare: .12, tumble: .035, sheer: 1.10, lowerMastRatio: .64, shroudPairs: 2, ratlines: 8, yardSpread: .94 },
+  structure: {
+    frameCount: 42,
+    beamStation: 0.64,
+    forebody: 0.72,
+    aftbody: 0.88,
+    foreTip: 0.018,
+    aftTip: 0.80,
+    bottomFlat: 0.08,
+    bilge: 0.24,
+    flare: 0.19,
+    tumble: 0.015,
+    sheer: 1.0,
+    lowerMastRatio: 0.68,
+    shroudPairs: 2,
+    ratlines: 9,
+    yardSpread: 0.92
+  }
 });
 
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
@@ -40,32 +81,39 @@ import { buildRudder } from './generators/steering/rudder-generator.js';
 import { buildHelm } from './generators/steering/helm-generator.js';
 import { buildRailings } from './generators/deck-equipment/railing-generator.js';
 import { buildDeckEquipment } from './generators/deck-equipment/fittings-generator.js';
+import { buildVivier } from './generators/interior/vivier-generator.js';
 import { buildAnchors } from './generators/anchors/anchor-generator.js';
 import { buildMast } from './generators/masts/mast-frame-generator.js';
 import { buildHeadSails } from './generators/sails/head-sails-generator.js';
 import { buildSinglemast } from './generators/masts/singlemast-generator.js';
 
-const MAST_GENERATORS = Object.freeze({
-  "single": buildSinglemast
-});
-
+const MAST_GENERATORS = Object.freeze({ single: buildSinglemast });
 const ARCHITECTURE = SLOOP_ARCHITECTURE;
+
 function applyMastArchitecture(design){
   const stations=new Map(ARCHITECTURE.mastInstances.map(item=>[item.id,item]));
   return {...design,masts:design.masts.map(mast=>{
     const station=stations.get(mast.id);
     if(!station)throw new Error('sloop: no architecture station for mast '+mast.id);
-    return {...mast,z:station.foreAftStation,height:mast.height*(station.heightScale??1),radiusScale:(mast.radiusScale??1)*(station.radiusScale??1),yardScale:(mast.yardScale??1)*(station.yardScale??1)};
+    return {
+      ...mast,
+      z:station.foreAftStation,
+      height:mast.height*(station.heightScale??1),
+      radiusScale:(mast.radiusScale??1)*(station.radiusScale??1),
+      yardScale:(mast.yardScale??1)*(station.yardScale??1)
+    };
   })};
 }
+
 function assembleSloop(vessel,componentTransforms={},savedState={}){
   const design=applyMastArchitecture(vessel.design),resolved={...vessel,design};
-  const ctx=createShipContext(resolved,{"hull":7688506,"plank":10648661,"deck":12163953,"sail":15261125});
+  const ctx=createShipContext(resolved,{"hull":0x302821,"plank":0x795a3d,"deck":0xb69a70,"sail":0xd9c6a5});
   const generators={
     "hull":()=>buildHull(design,ctx),
     "keel":()=>buildKeel(design,ctx),
     "stem":()=>buildStem(design,ctx),
     "deck":()=>buildDeck(design,ctx),
+    "vivier":()=>buildVivier(design,ctx),
     "frames":()=>buildFrames(design,ctx),
     "hull-planking":()=>buildHullPlanking(design,ctx),
     "deck-planking":()=>buildDeckPlanking(design,ctx),
