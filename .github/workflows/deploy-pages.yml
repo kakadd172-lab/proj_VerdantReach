@@ -84,7 +84,8 @@ jobs:
           const canonicalSloop = readFileSync('src/world/ships/vessels/sloop/sloop.js', 'utf8');
           if (!canonicalSloop.includes("label: 'Loguivy decked lobster boat'") ||
               !canonicalSloop.includes('hullLength: 15.30') ||
-              !canonicalSloop.includes('beam: 2.55')) {
+              !canonicalSloop.includes('beam: 2.55') ||
+              !canonicalSloop.includes("loguivy-sloop-15.30x2.55-r1")) {
             throw new Error('The canonical Sloop source is not the revised 15.30 m × 2.55 m Loguivy design.');
           }
 
@@ -105,14 +106,15 @@ jobs:
           const productionBundle = jsAssets
             .map((name) => readFileSync(join(dist, 'assets', name), 'utf8'))
             .join('\\n');
-          if (!productionBundle.includes('Loguivy decked lobster boat')) {
-            throw new Error('The production JavaScript bundle does not contain the revised Sloop.');
+          if (!productionBundle.includes('Loguivy decked lobster boat') ||
+              !productionBundle.includes('loguivy-sloop-15.30x2.55-r1')) {
+            throw new Error('The production JavaScript bundle does not contain the current Sloop revision.');
           }
           if (productionBundle.includes('Caribbean merchant sloop')) {
             throw new Error('The production JavaScript bundle still contains the retired Sloop.');
           }
 
-          console.log(`Verified Verdant Reach v${version}: ${references.length} asset references resolved, including the revised Sloop.`);
+          console.log(`Verified Verdant Reach v${version}: ${references.length} asset references resolved, including the current Sloop revision.`);
           NODE
           touch dist/.nojekyll
 
