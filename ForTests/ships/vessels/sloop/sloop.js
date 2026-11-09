@@ -4,22 +4,23 @@ export const SloopDefinition = defineVesselSpec({
   design: {
     id: 'sloop', label: 'Caribbean merchant sloop', era: 'Late 17th–18th century Caribbean',
     hullLength: 17.22, beam: 4.34, draft: 1.9, freeboard: 1.35,
-    rig: 'Single gaff mainsail with headsails; local rigs varied by island and decade.',
-    hullProfile: 'Fine entry, moderately full working body, low quarter, shallow-to-moderate draft.',
-    reference: 'Reader’s Point, Jamaica: surviving hull length 17.22 m and maximum beam 4.34 m; original rig is not preserved, so the single-mast sail plan is a regional reconstruction.',
+    rig: 'Single-masted gaff sloop with one headsail; a compact, easily handled Caribbean working rig.',
+    hullProfile: 'Fine raked entry, rounded full midbody, shallow keel, modest counter stern and low aft cabin.',
+    reference: 'Reader’s Point, Jamaica: surviving hull length 17.22 m and maximum beam 4.34 m; the original rig is not preserved, so the gaff sail plan is a regional reconstruction.',
     sources: [
       { label: 'Texas A&M — Reader’s Point Jamaican merchant sloop', url: 'https://oaktrust.library.tamu.edu/items/bfbc382b-2aea-4705-bf65-67e97ec2b87b' },
-      { label: 'Cambridge — Caribbean sloops in Atlantic material culture', url: 'https://www.cambridge.org/core/books/an-archaeology-of-the-english-atlantic-world-1600-1700/atlantic-material-culture-boats-ships-and-navigation/6936CAA998793EDC9005054893D500F5' },
+      { label: 'Smithsonian — Colonial sloop model, dated to 1768', url: 'https://www.si.edu/object/ship-model-colonial-sloop:nmah_844170' },
+      { label: 'Home Net Games — The Pirate: Plague of the Dead', url: 'https://www.homenetgames.com/the-pirate-plague-of-the-dead/' },
     ],
-    hull: { fullness: 0.58, entry: 0.68, stern: 'counter', sternWidth: 0.3, tumblehome: 0.04, sheer: 0.12, bowRise: 0.3, sternRise: 0.26, keelDepth: 0.12, deckCamber: 0.12 },
+    hull: { fullness: 0.58, entry: 0.68, stern: 'counter', sternWidth: 0.30, tumblehome: 0.04, sheer: 0.18, bowRise: 0.42, sternRise: 0.35, keelDepth: 0.11, deckCamber: 0.12, stemRake: 0.18, sternRake: 0.06 },
     sternwork: 'low-cabin',
-    sternTiers: [{"w":0.42,"d":0.12,"h":1.3}], bowwork: 'bowsprit',
+    sternTiers: [{"w":0.40,"d":0.105,"h":1.05}], bowwork: 'bowsprit',
     keelDetails: {"pointOffset":0.06,"minimumRadius":0.08,"radiusFactor":0.018,"stemPosts":true,"label":"keelson-and-keel"},
-    rudderDetails: {"pivotOffset":0.22,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, sailingSpeed: 9.0, handling: 1.35,
-    masts: [{ id: 'single', z: -0.035, height: 13.8, rig: 'gaff', span: 0.42, squares: 0 }],
-    headsails: 2, oars: false,
+    rudderDetails: {"pivotOffset":0.20,"yFactor":0.38,"breadthFactor":0.12,"depthFactor":0.8}, sailingSpeed: 9.0, handling: 1.35,
+    masts: [{ id: 'single', z: 0.015, height: 13.8, rig: 'gaff', span: 0.38, squares: 0 }],
+    headsails: 1, oars: false,
   },
-  structure: { frameCount: 22, beamStation: .49, forebody: .76, aftbody: 1.02, foreTip: .008, aftTip: .055, bottomFlat: .21, bilge: .12, flare: .12, tumble: .035, sheer: 1.08, lowerMastRatio: .64, shroudPairs: 2, ratlines: 8, yardSpread: .94 },
+  structure: { frameCount: 25, beamStation: .49, forebody: .76, aftbody: 1.02, foreTip: .008, aftTip: .055, bottomFlat: .21, bilge: .12, flare: .12, tumble: .035, sheer: 1.10, lowerMastRatio: .64, shroudPairs: 2, ratlines: 8, yardSpread: .94 },
 });
 
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
@@ -45,38 +46,49 @@ import { buildHeadSails } from './generators/sails/head-sails-generator.js';
 import { buildSinglemast } from './generators/masts/singlemast-generator.js';
 
 const MAST_GENERATORS = Object.freeze({
- "single": buildSinglemast
+  "single": buildSinglemast
 });
 
 const ARCHITECTURE = SLOOP_ARCHITECTURE;
 function applyMastArchitecture(design){
- const stations=new Map(ARCHITECTURE.mastInstances.map(item=>[item.id,item]));
- return {...design,masts:design.masts.map(mast=>{const station=stations.get(mast.id);if(!station)throw new Error('sloop: no architecture station for mast '+mast.id);return {...mast,z:station.foreAftStation,height:mast.height*(station.heightScale??1),radiusScale:(mast.radiusScale??1)*(station.radiusScale??1),yardScale:(mast.yardScale??1)*(station.yardScale??1)};})};
+  const stations=new Map(ARCHITECTURE.mastInstances.map(item=>[item.id,item]));
+  return {...design,masts:design.masts.map(mast=>{
+    const station=stations.get(mast.id);
+    if(!station)throw new Error('sloop: no architecture station for mast '+mast.id);
+    return {...mast,z:station.foreAftStation,height:mast.height*(station.heightScale??1),radiusScale:(mast.radiusScale??1)*(station.radiusScale??1),yardScale:(mast.yardScale??1)*(station.yardScale??1)};
+  })};
 }
 function assembleSloop(vessel,componentTransforms={},savedState={}){
- const design=applyMastArchitecture(vessel.design),resolved={...vessel,design};
- const ctx=createShipContext(resolved,{"hull":7688506,"plank":10648661,"deck":12163953,"sail":15261125});
- const generators={
- "hull": ()=>buildHull(design,ctx),
- "keel": ()=>buildKeel(design,ctx),
- "stem": ()=>buildStem(design,ctx),
- "deck": ()=>buildDeck(design,ctx),
- "frames": ()=>buildFrames(design,ctx),
- "hull-planking": ()=>buildHullPlanking(design,ctx),
- "deck-planking": ()=>buildDeckPlanking(design,ctx),
- "stern": ()=>buildStern(design,ctx),
- "aft-cabins": ()=>ensureSternTierComponents(design,ctx),
- "bow": ()=>buildBow(design,ctx),
- "rudder": ()=>buildRudder(design,ctx),
- "helm": ()=>buildHelm(design,ctx),
- "railings": ()=>buildRailings(design,ctx),
- "deck-equipment": ()=>buildDeckEquipment(design,ctx),
- "anchors": ()=>buildAnchors(design,ctx),
- "masts": ()=>{for(const mast of design.masts){const generator=MAST_GENERATORS[mast.id];if(!generator)throw new Error('sloop: no generator for mast '+mast.id);generator(design,ctx,mast);}},
- "head-sails": ()=>buildHeadSails(design,ctx)
- };
- for(const component of ARCHITECTURE.assemblyOrder){const generate=generators[component];if(typeof generate!=='function')throw new Error('sloop: missing assembly instruction '+component);generate();}
- const root=finishShipModel(ctx,componentTransforms,savedState);root.userData.shipArchitecture=ARCHITECTURE;root.userData.shipAssemblyOrder=[...ARCHITECTURE.assemblyOrder];return root;
+  const design=applyMastArchitecture(vessel.design),resolved={...vessel,design};
+  const ctx=createShipContext(resolved,{"hull":7688506,"plank":10648661,"deck":12163953,"sail":15261125});
+  const generators={
+    "hull":()=>buildHull(design,ctx),
+    "keel":()=>buildKeel(design,ctx),
+    "stem":()=>buildStem(design,ctx),
+    "deck":()=>buildDeck(design,ctx),
+    "frames":()=>buildFrames(design,ctx),
+    "hull-planking":()=>buildHullPlanking(design,ctx),
+    "deck-planking":()=>buildDeckPlanking(design,ctx),
+    "stern":()=>buildStern(design,ctx),
+    "aft-cabins":()=>ensureSternTierComponents(design,ctx),
+    "bow":()=>buildBow(design,ctx),
+    "rudder":()=>buildRudder(design,ctx),
+    "helm":()=>buildHelm(design,ctx),
+    "railings":()=>buildRailings(design,ctx),
+    "deck-equipment":()=>buildDeckEquipment(design,ctx),
+    "anchors":()=>buildAnchors(design,ctx),
+    "masts":()=>{for(const mast of design.masts){const generator=MAST_GENERATORS[mast.id];if(!generator)throw new Error('sloop: no generator for mast '+mast.id);generator(design,ctx,mast);}},
+    "head-sails":()=>buildHeadSails(design,ctx)
+  };
+  for(const component of ARCHITECTURE.assemblyOrder){
+    const generate=generators[component];
+    if(typeof generate!=='function')throw new Error('sloop: missing assembly instruction '+component);
+    generate();
+  }
+  const root=finishShipModel(ctx,componentTransforms,savedState);
+  root.userData.shipArchitecture=ARCHITECTURE;
+  root.userData.shipAssemblyOrder=[...ARCHITECTURE.assemblyOrder];
+  return root;
 }
 export function createSloopModel(componentTransforms={},savedState={}){return assembleSloop(resolveVesselForGeneration(SloopDefinition),componentTransforms,savedState);}
 export function generateSloop(componentTransforms={},savedState={}){return createSloopModel(componentTransforms,savedState);}

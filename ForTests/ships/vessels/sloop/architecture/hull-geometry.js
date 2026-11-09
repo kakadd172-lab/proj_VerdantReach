@@ -1,9 +1,92 @@
 import * as THREE from 'three';
+
 export const V = (x=0,y=0,z=0) => new THREE.Vector3(x,y,z);
-export function deckY(d,t){const edge=Math.pow(Math.abs(t-.5)*2,1.35),rise=t<.5?d.hull.bowRise:d.hull.sternRise;return d.deckHeightUnits+d.hull.sheer*d.deckHeightUnits*edge+rise*d.deckHeightUnits*Math.pow(edge,1.12)*d.structure.sheer;}
 
-export function keelY(d,t){const mid=Math.pow(Math.max(0,Math.sin(Math.PI*t)),.72);return -d.draftUnits*.48-d.hull.keelDepth*d.draftUnits*mid;}
+const clamp01 = (value) => Math.min(1, Math.max(0, value));
 
-export function halfBreadth(d,t){const mid=Math.max(0,Math.sin(Math.PI*t)),fore=1-.34*Math.pow(1-t,2.2),aft=.98+.13*t,shoulder=1+.055*Math.sin(2*Math.PI*t);return d.beamUnits*.5*Math.pow(mid,.78)*fore*aft*shoulder;}
+function sectionBreadth(d, v) {
+  const level = clamp01(v);
+  const lowerRound = Math.pow(Math.sin(level * Math.PI * 0.5), 0.46);
+  const bilgeFullness = 0.88 + 0.15 * Math.sin(Math.PI * level);
+  const tuckStart = clamp01((level - 0.72) / 0.28);
+  const tuck = 1 - (d.hull.tumblehome ?? 0) * Math.pow(tuckStart, 1.2);
+  return lowerRound * bilgeFullness * tuck;
+}
 
-export function hullPoint(d,t,a){const v=(Math.sin(a)+1)*.5,deck=deckY(d,t),keel=keelY(d,t);const section=Math.sqrt(Math.max(.035,1-Math.pow(Math.abs(2*v-1),2.35))),tuck=1-d.hull.tumblehome*(v>.72?(v-.72)/.28:0);return V(Math.cos(a)*halfBreadth(d,t)*section*tuck,keel+(deck-keel)*v,(t-.5)*d.hullLengthUnits);}
+export function deckY(d, t) {
+  const edge = Math.pow(Math.abs(clamp01(t) - 0.5) * 2, 1.35);
+  const rise = t < 0.5 ? d.hull.bowRise : d.hull.sternRise;
+  return d.deckHeightUnits
+    + d.hull.sheer * d.deckHeightUnits * edge
+    + rise * d.deckHeightUnits * Math.pow(edge, 1.12) * d.structure.sheer;
+}
+
+export function keelY(d, t) {
+  const mid = Math.pow(Math.max(0, Math.sin(Math.PI * clamp01(t))), 0.72);
+  return -d.draftUnits * 0.48 - d.hull.keelDepth * d.draftUnits * mid;
+}
+
+export function halfBreadth(d, t) {
+  const station = clamp01(t);
+  const beamStation = Math.min(0.62, Math.max(0.38, d.structure.beamStation ?? 0.49));
+  let taper;
+  if (station <= beamStation) {
+    const progress = station / beamStation;
+    const sine = Math.sin(progress * Math.PI * 0.5);
+    const exponent = 1.05 + Math.max(0, 1 - (d.structure.forebody ?? 0.76)) * 0.85;
+    taper = Math.pow(Math.max(0, sine), exponent);
+  } else {
+    const progress = (1 - station) / (1 - beamStation);
+    const sine = Math.sin(progress * Math.PI * 0.5);
+    const exponent = 1.0 + Math.max(0, 1 - (d.structure.aftbody ?? 1.02)) * 0.55;
+    taper = Math.pow(Math.max(0, sine), exponent);
+  }
+
+  const shoulder = 1 + 0.028 * Math.sin(Math.PI * station);
+  const counter = Math.max(0, d.hull.sternWidth ?? 0.3) * Math.pow(station, 18);
+  return d.beamUnits * 0.5 * Math.max(taper * shoulder, counter);
+}
+
+/**
+ * Longitudinal position at a hull station.
+ * The upper stem is carried forward and the counter receives a slight aft rake.
+ */
+export function stationZ(d, t, v=1) {
+  const station = clamp01(t);
+  const level = clamp01(v);
+  const bowRake = (d.hull.stemRake ?? 0.18)
+    * d.beamUnits
+    * Math.pow(1 - station, 2.8)
+    * Math.pow(level, 0.9);
+  const sternRake = (d.hull.sternRake ?? 0.06)
+    * d.beamUnits
+    * Math.pow(station, 5)
+    * Math.pow(level, 0.9);
+  return (station - 0.5) * d.hullLengthUnits - bowRake + sternRake;
+}
+
+/** Point on one side of the hull, from the keel centreline to the gunwale. */
+export function hullSurfacePoint(d, t, side, v) {
+  const level = clamp01(v);
+  const y = keelY(d, t) + (deckY(d, t) - keelY(d, t)) * Math.pow(level, 0.92);
+  const x = side * halfBreadth(d, t) * sectionBreadth(d, level);
+  return V(x, y, stationZ(d, t, level));
+}
+
+/**
+ * Closed loft section: a narrow deck cap across the top and a rounded U-shaped
+ * hull beneath it. The frame/planking generators use hullSurfacePoint directly.
+ */
+export function hullPoint(d, t, a) {
+  const angle = ((a % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+  if (angle <= Math.PI) {
+    const across = angle / Math.PI;
+    const x = (1 - 2 * across) * halfBreadth(d, t) * sectionBreadth(d, 1);
+    return V(x, deckY(d, t) - 0.025, stationZ(d, t, 1));
+  }
+
+  const lowerAngle = angle - Math.PI;
+  const cosine = Math.cos(lowerAngle);
+  const side = cosine >= 0 ? -1 : 1;
+  return hullSurfacePoint(d, t, side, Math.abs(cosine));
+}
