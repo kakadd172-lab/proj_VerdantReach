@@ -12,7 +12,7 @@ export const SloopDefinition = defineVesselSpec({
       { label: 'Smithsonian — Colonial sloop model, dated to 1768', url: 'https://www.si.edu/object/ship-model-colonial-sloop:nmah_844170' },
       { label: 'Home Net Games — The Pirate: Plague of the Dead', url: 'https://www.homenetgames.com/the-pirate-plague-of-the-dead/' },
     ],
-    hull: { fullness: 0.58, entry: 0.68, stern: 'counter', sternWidth: 0.30, tumblehome: 0.04, sheer: 0.18, bowRise: 0.42, sternRise: 0.35, keelDepth: 0.11, deckCamber: 0.12, stemRake: 0.18, sternRake: 0.06 },
+    hull: { fullness: 0.58, entry: 0.68, stern: 'counter', sternWidth: 0.48, sternTransomBlendStart: 0.68, tumblehome: 0.04, sheer: 0.18, bowRise: 0.42, sternRise: 0.35, keelDepth: 0.11, deckCamber: 0.12, stemRake: 0.18, sternRake: 0.035 },
     sternwork: 'low-cabin',
     sternTiers: [{"w":0.40,"d":0.105,"h":1.05}], bowwork: 'bowsprit',
     keelDetails: {"pointOffset":0.06,"minimumRadius":0.08,"radiusFactor":0.018,"stemPosts":true,"label":"keelson-and-keel"},

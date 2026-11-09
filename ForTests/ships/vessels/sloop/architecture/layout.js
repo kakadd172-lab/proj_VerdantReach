@@ -11,7 +11,7 @@ export const SLOOP_ARCHITECTURE = Object.freeze({
   "frames": { generator: "./generators/hull-structure/frame-generator.js", mount: "hull-stations" },
   "hull-planking": { generator: "./generators/hull-structure/hull-planking-generator.js", mount: "hull-surface" },
   "deck-planking": { generator: "./generators/decks/deck-planking-generator.js", mount: "deck-surface" },
-  "stern": { generator: "./generators/stern/stern-generator.js", mount: "aft-transom-or-counter" },
+  "stern": { generator: "./generators/stern/stern-generator.js", mount: "aft-third-blended-flat-transom" },
   "aft-cabins": { generator: "./generators/cabins/aft-cabin-generator.js", mount: "stern-and-quarterdeck" },
   "bow": { generator: "./generators/bow/bow-generator.js", mount: "fore-stem" },
   "rudder": { generator: "./generators/steering/rudder-generator.js", mount: "sternpost" },

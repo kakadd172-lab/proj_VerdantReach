@@ -45,14 +45,19 @@ export function halfBreadth(d,t){
   }
 
   const shoulder = 1 + 0.028 * Math.sin(Math.PI * station);
-  const counter = Math.max(0, d.hull.sternWidth ?? 0.3) * Math.pow(station, 18);
-  return d.beamUnits * 0.5 * Math.max(taper * shoulder, counter);
+  const naturalBreadth = taper * shoulder;
+
+  // Keep the forward two-thirds of the old run, then blend the aft third
+  // into a broad, flat transom instead of letting the waterlines meet at a point.
+  const transomStart = clamp01(d.hull.sternTransomBlendStart ?? 0.68);
+  const terminalBreadth = Math.min(0.62, Math.max(0.36, d.hull.sternWidth ?? 0.48));
+  const aftProgress = clamp01((station - transomStart) / Math.max(0.001, 1 - transomStart));
+  const smoothAftBlend = aftProgress * aftProgress * (3 - 2 * aftProgress);
+  const blendedBreadth = naturalBreadth + (terminalBreadth - naturalBreadth) * smoothAftBlend;
+
+  return d.beamUnits * 0.5 * (station > transomStart ? blendedBreadth : naturalBreadth);
 }
 
-/**
- * Longitudinal position at a hull station.
- * The upper stem is carried forward and the counter receives a slight aft rake.
- */
 export function stationZ(d, t, v=1) {
   const station = clamp01(t);
   const level = clamp01(v);
@@ -60,10 +65,12 @@ export function stationZ(d, t, v=1) {
     * d.beamUnits
     * Math.pow(1 - station, 2.8)
     * Math.pow(level, 0.9);
-  const sternRake = (d.hull.sternRake ?? 0.06)
+  // Match the vertical hull interpolation exponent so the aft cut ends
+  // on one planar, slightly raked transom face.
+  const sternRake = (d.hull.sternRake ?? 0.035)
     * d.beamUnits
     * Math.pow(station, 5)
-    * Math.pow(level, 0.9);
+    * Math.pow(level, 0.92);
   return (station - 0.5) * d.hullLengthUnits - bowRake + sternRake;
 }
 

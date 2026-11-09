@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getShipDesign, createShipModel, disposeShipModel } from '../ships/index.js?v=0.8.8';
-import { hullPoint, stationZ, halfBreadth } from '../ships/vessels/sloop/architecture/hull-geometry.js';
+import { deckY, keelY, hullPoint, stationZ, halfBreadth } from '../ships/vessels/sloop/architecture/hull-geometry.js';
 
 test('Sloop keeps a single-mast gaff plan with one clean headsail',()=>{
   const design=getShipDesign('sloop');
@@ -22,7 +22,19 @@ test('Sloop hull section reaches both gunwales and rounds down to the keel',()=>
   assert.ok(Math.abs(starboard.y-port.y)<0.001);
   assert.ok(Math.abs(keel.x)<0.001);
   assert.ok(keel.y<starboard.y);
-  assert.ok(halfBreadth(design,0.999)>design.beamUnits*0.05,'counter stern should retain a narrow transom');
+  assert.ok(halfBreadth(design,0.999)>design.beamUnits*0.20,'transom should retain a broad, squared-off stern');
+  assert.ok(halfBreadth(design,0.92)>halfBreadth(design,0.68)*0.45,'aft third should keep its breadth as it blends into the transom');
+});
+
+test('Sloop aft cut forms one flat, slightly raked transom plane',()=>{
+  const design=getShipDesign('sloop');
+  const lowY=keelY(design,1),highY=deckY(design,1);
+  const lowZ=stationZ(design,1,0),highZ=stationZ(design,1,1);
+  const midV=0.5,midY=keelY(design,1)+(deckY(design,1)-keelY(design,1))*Math.pow(midV,0.92);
+  const midZ=stationZ(design,1,midV);
+  const yRatio=(midY-lowY)/(highY-lowY);
+  const zRatio=(midZ-lowZ)/(highZ-lowZ);
+  assert.ok(Math.abs(yRatio-zRatio)<1e-6,'transom stern rake should remain planar through the hull depth');
 });
 
 test('Sloop bow and counter rake are visible in its longitudinal geometry',()=>{
@@ -38,6 +50,10 @@ test('Sloop still assembles its editable hull, cabin and simplified sail plan',(
     assert.ok(ship.userData.getPart('deck'));
     assert.ok(ship.userData.getPart('stem'));
     assert.ok(ship.userData.getPart('stern-tier-1'));
+    const stern=ship.userData.getPart('sternworks');
+    let hasTransom=false;
+    stern.traverse(object=>{if(object.name==='sloop-square-transom')hasTransom=true;});
+    assert.ok(hasTransom,'sloop should have a distinct flat transom board');
     assert.ok(ship.userData.getPart('sail-single-gaff'));
     assert.ok(ship.userData.getPart('sail-head-1'));
     assert.ok(!ship.userData.partNames.includes('sail-head-2'));
