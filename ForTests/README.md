@@ -94,15 +94,15 @@ Open PowerShell and switch to the shipyard branch:
 cd D:\Projects\VerdantReach
 git status --short
 git fetch origin
-git switch chatgpt-v0.8.8-vessel-form-refinement
-git pull --ff-only origin chatgpt-v0.8.8-vessel-form-refinement
+git switch chatgpt-v0.8.9-persistent-vessel-authoring
+git pull --ff-only origin chatgpt-v0.8.9-persistent-vessel-authoring
 ```
 
 If Git says the local branch does not exist, use this once instead of the
 `git switch` line:
 
 ```powershell
-git switch --track -c chatgpt-v0.8.8-vessel-form-refinement origin/chatgpt-v0.8.8-vessel-form-refinement
+git switch --track -c chatgpt-v0.8.9-persistent-vessel-authoring origin/chatgpt-v0.8.9-persistent-vessel-authoring
 ```
 
 Install the shipyard dependencies (first setup, or after dependency changes):
