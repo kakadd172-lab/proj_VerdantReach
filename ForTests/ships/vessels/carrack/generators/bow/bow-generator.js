@@ -1,4 +1,4 @@
-import { deckY, V } from "../../architecture/hull-geometry.js";
+import { deckY, halfBreadth, V } from "../../architecture/hull-geometry.js";
 export function buildBow(d,ctx){
  const {part,beam,box,tube,materials,V}=ctx,bow=part('bowworks'),bowsprit=part('bowsprit');
  const base=deckY(d,.045)+d.deckHeightUnits*.18,tip=-d.hullLengthUnits*.5;

@@ -66,7 +66,7 @@ test('each vessel owns its own geometry-generation algorithms', () => {
       ]) {
         assert.ok(existsSync(new URL(root + file, import.meta.url)), id + ' missing component generator ' + file);
       }
-      assert.ok(!facade.includes('../shared/ship-editor-kit.js'), id + ' should resolve shared support from its folder depth');
+      assert.ok(facade.includes('../../shared/ship-editor-kit.js'), id + ' should resolve shared support from its folder depth');
       assert.ok(!facade.includes('../ships/vessels/' + id + '.js'), id + ' should not retain the flat generator');
     } else {
       for (const required of [
