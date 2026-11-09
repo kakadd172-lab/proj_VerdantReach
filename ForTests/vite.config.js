@@ -21,7 +21,7 @@ function booleanMap(v,label){if(!isRecord(v))throw new Error(label+' must be an 
 function transformMap(v){
  if(!isRecord(v))throw new Error('componentState.partTransforms must be an object');const out={};
  for(const [name,t] of Object.entries(v)){safeName(name,'component name');if(!isRecord(t))throw new Error('Invalid transform for '+name);const clean={};
-  for(const k of transformKeys){if(t[k]===undefined)continue;if(typeof t[k]!=='number'||!Number.isFinite(t[k]))throw new Error('Invalid '+k+' transform for '+name);const scale=k[0]==='s',rotation=k.startsWith('r'),min=scale?0.05:rotation?-Math.PI:-24,max=scale?20:rotation?Math.PI:24;if(t[k]<min||t[k]>max)throw new Error('Out-of-range '+k+' transform for '+name);clean[k]=t[k];}
+  for(const k of transformKeys){if(t[k]===undefined)continue;if(typeof t[k]!=='number'||!Number.isFinite(t[k]))throw new Error('Invalid '+k+' transform for '+name);const scale=k[0]==='s',rotation=k.startsWith('r'),min=scale?0.05:(rotation?-Math.PI:-24),max=scale?20:(rotation?Math.PI:24);if(t[k]<min||t[k]>max)throw new Error('Out-of-range '+k+' transform for '+name);clean[k]=t[k];}
   out[name]=clean;
  }return out;
 }

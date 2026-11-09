@@ -3,12 +3,11 @@
 This workspace is deliberately isolated under `ForTests/`. The main game and
 its ship implementation are not changed by this refactor.
 
-All 16 vessel types generate their geometry independently. The first five
-pilot vessels (barque, brig, brigantine, caravel and carrack) now use
-component-first folders under `ships/vessels/<id>/`; each has its own
-architecture blueprint and separate ship-local component generators. The
-remaining eleven vessel modules retain their independent single-file layout.
-No vessel passes its specification into a generic ship geometry engine.
+All 16 vessel types generate their geometry independently and now use
+component-first folders under `ships/vessels/<id>/`. Each vessel has its own
+definition, architecture blueprint, saved editor-defaults module, and separate
+ship-local component generators. No vessel passes its specification into a
+generic ship geometry engine.
 
 ## Layout
 
@@ -24,22 +23,26 @@ ForTests/
 │   │   ├── vessel-definition.js
 │   │   └── ship-editor-kit.js
 │   └── vessels/
-│       ├── sloop.js
-│       ├── schooner.js
-│       ├── brigantine.js
-│       ├── brig.js
-│       ├── snow.js
-│       ├── cutter.js
-│       ├── frigate.js
-│       ├── barque.js
-│       ├── caravel.js
-│       ├── carrack.js
-│       ├── galleon.js
-│       ├── fluyt.js
-│       ├── xebec.js
-│       ├── junk.js
-│       ├── first-rate.js
-│       └── pinnace.js
+│       ├── sloop/
+│       │   ├── sloop.js
+│       │   ├── editor-defaults.js
+│       │   ├── architecture/
+│       │   └── generators/
+│       ├── schooner/
+│       ├── brigantine/
+│       ├── brig/
+│       ├── snow/
+│       ├── cutter/
+│       ├── frigate/
+│       ├── barque/
+│       ├── caravel/
+│       ├── carrack/
+│       ├── galleon/
+│       ├── fluyt/
+│       ├── xebec/
+│       ├── junk/
+│       ├── first-rate/
+│       └── pinnace/
 └── ...
 ```
 
@@ -261,10 +264,9 @@ fullness and usable sail area, and that square lower courses remain in scale
 with each hull.
 
 
-## Component-first vessel pilot
+## Component-first fleet
 
-The first five vessel types in the ship catalogue (barque, brig, brigantine,
-caravel and carrack) now use per-vessel folders under
-`ships/vessels/<id>/`. Each contains a ship architecture blueprint and
-separate component generators. The other eleven vessel generators remain
-unchanged while this architecture is tested in the standalone preview.
+All 16 vessels use per-vessel folders under `ships/vessels/<id>/`. Each folder
+owns its ship definition, architecture, individual component generators and
+`editor-defaults.js` file. The registry selects each ship's module; it does not
+provide a common geometry generator.
