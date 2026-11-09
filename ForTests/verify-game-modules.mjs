@@ -60,8 +60,8 @@ for(const id of ids){
   ])assert.ok(existsSync(join(vesselDir,path)),id+' missing component generator '+path);
   assert.ok(source.includes('./architecture/layout.js'),id+' assembler must import its architecture.');
   assert.ok(source.includes('ARCHITECTURE.assemblyOrder'),id+' must follow its architecture assembly order.');
-  assert.ok(/shipArchitecture\\s*=\\s*ARCHITECTURE/.test(source),id+' should expose its architecture to the editor.');
-  const mastNames=[...readFileSync(join(vesselDir,'architecture','layout.js'),'utf8').matchAll(/id:\\s*"([^"]+)",\\s*foreAftStation/g)].map(m=>m[1]);
+  assert.ok(source.includes('shipArchitecture') && source.includes('ARCHITECTURE'),id+' should expose its architecture to the editor.');
+  const mastNames=[...readFileSync(join(vesselDir,'architecture','layout.js'),'utf8').matchAll(/id:\s*"([^"]+)",\s*foreAftStation/g)].map(m=>m[1]);
   for(const mastId of mastNames)assert.ok(existsSync(join(vesselDir,'generators','masts',mastId+'mast-generator.js')),id+' missing individual '+mastId+' mast generator.');
   assert.ok(!existsSync(join(shipRoot,'vessels',id+'.js')),id+' legacy flat generator should be removed.');
  }else{

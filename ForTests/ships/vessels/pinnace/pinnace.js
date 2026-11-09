@@ -57,7 +57,7 @@ function assemblePinnace(vessel,componentTransforms={},savedState={}){const desi
 "railings":()=>buildRailings(design,ctx),
 "deck-equipment":()=>buildDeckEquipment(design,ctx),
 "anchors":()=>buildAnchors(design,ctx),
-"masts":()=>{for(const mast of design.masts){const g=MAST_GENERATORS[mast.id];if(!g)throw new Error('${id}: no generator for mast '+mast.id);g(design,ctx,mast);}},
+"masts":()=>{for(const mast of design.masts){const g=MAST_GENERATORS[mast.id];if(!g)throw new Error('No pinnace mast generator registered for '+mast.id);g(design,ctx,mast);}},
 "head-sails":()=>buildHeadSails(design,ctx)
 };for(const k of ARCHITECTURE.assemblyOrder){const g=generators[k];if(typeof g!=="function")throw new Error('pinnace: missing assembly instruction '+k);g();}const root=finishShipModel(ctx,componentTransforms,savedState);root.userData.shipArchitecture=ARCHITECTURE;root.userData.shipAssemblyOrder=[...ARCHITECTURE.assemblyOrder];return root;}
 export function createPinnaceModel(componentTransforms={},savedState={}){return assemblePinnace(resolveVesselForGeneration(PinnaceDefinition),componentTransforms,savedState);}

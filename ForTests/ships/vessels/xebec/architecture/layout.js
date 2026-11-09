@@ -17,9 +17,10 @@ export const XEBEC_ARCHITECTURE=Object.freeze({id:"xebec",schemaVersion:1,coordi
 "anchors":{generator:"./generators/anchors/anchor-generator.js",mount:"forward-hawse-area"},
 "masts":{generator:"./generators/masts/mast-frame-generator.js",mount:"keel-and-deck-stepped-mast-stations"},
 "head-sails":{generator:"./generators/sails/head-sails-generator.js",mount:"bowsprit-and-foremast"},
+"standing-rigging":{generator:"./generators/rigging/standing-rigging-generator.js",mount:"each-mast-and-hull-rail"},
 "oar-banks":{generator:"./generators/special/oar-banks-generator.js",mount:"oar-banks"}
 }),mastInstances:Object.freeze([
 Object.freeze({id:"fore",foreAftStation:-0.3,heightScale:1,radiusScale:1,yardScale:1,generator:"./generators/masts/foremast-generator.js"}),
 Object.freeze({id:"main",foreAftStation:-0.015,heightScale:1,radiusScale:1,yardScale:1,generator:"./generators/masts/mainmast-generator.js"}),
 Object.freeze({id:"mizzen",foreAftStation:0.28,heightScale:1,radiusScale:1,yardScale:1,generator:"./generators/masts/mizzenmast-generator.js"})
-]),dependencyGraph:Object.freeze({"deck":["hull"],"frames":["hull"],"hull-planking":["hull"],"deck-planking":["deck"],"stern":["hull","deck"],"aft-cabins":["stern","deck"],"bow":["hull","deck"],"rudder":["hull","stern"],"helm":["deck"],"railings":["deck"],"deck-equipment":["deck"],"anchors":["hull","bow"],"masts":["hull","deck"],"head-sails":["masts","bow"],"oar-banks":["hull","deck"]})});
+]),dependencyGraph:Object.freeze({"deck":["hull"],"frames":["hull"],"hull-planking":["hull"],"deck-planking":["deck"],"stern":["hull","deck"],"aft-cabins":["stern","deck"],"bow":["hull","deck"],"rudder":["hull","stern"],"helm":["deck"],"railings":["deck"],"deck-equipment":["deck"],"anchors":["hull","bow"],"masts":["hull","deck"],"head-sails":["masts","bow"],"standing-rigging":["masts","deck"],"oar-banks":["hull","deck"]})});

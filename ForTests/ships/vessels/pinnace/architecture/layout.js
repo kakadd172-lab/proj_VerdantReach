@@ -16,7 +16,8 @@ export const PINNACE_ARCHITECTURE=Object.freeze({id:"pinnace",schemaVersion:1,co
 "deck-equipment":{generator:"./generators/deck-equipment/fittings-generator.js",mount:"deck-plan"},
 "anchors":{generator:"./generators/anchors/anchor-generator.js",mount:"forward-hawse-area"},
 "masts":{generator:"./generators/masts/mast-frame-generator.js",mount:"keel-and-deck-stepped-mast-stations"},
-"head-sails":{generator:"./generators/sails/head-sails-generator.js",mount:"bowsprit-and-foremast"}
+"head-sails":{generator:"./generators/sails/head-sails-generator.js",mount:"bowsprit-and-foremast"},
+"standing-rigging":{generator:"./generators/rigging/standing-rigging-generator.js",mount:"each-mast-and-hull-rail"}
 }),mastInstances:Object.freeze([
 Object.freeze({id:"single",foreAftStation:-0.02,heightScale:1,radiusScale:1,yardScale:1,generator:"./generators/masts/singlemast-generator.js"})
-]),dependencyGraph:Object.freeze({"deck":["hull"],"frames":["hull"],"hull-planking":["hull"],"deck-planking":["deck"],"stern":["hull","deck"],"aft-cabins":["stern","deck"],"bow":["hull","deck"],"rudder":["hull","stern"],"helm":["deck"],"railings":["deck"],"deck-equipment":["deck"],"anchors":["hull","bow"],"masts":["hull","deck"],"head-sails":["masts","bow"]})});
+]),dependencyGraph:Object.freeze({"deck":["hull"],"frames":["hull"],"hull-planking":["hull"],"deck-planking":["deck"],"stern":["hull","deck"],"aft-cabins":["stern","deck"],"bow":["hull","deck"],"rudder":["hull","stern"],"helm":["deck"],"railings":["deck"],"deck-equipment":["deck"],"anchors":["hull","bow"],"masts":["hull","deck"],"head-sails":["masts","bow"],"standing-rigging":["masts","deck"]})});
