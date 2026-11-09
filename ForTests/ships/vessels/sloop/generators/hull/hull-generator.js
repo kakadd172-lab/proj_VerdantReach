@@ -19,15 +19,13 @@ export function buildHull(d,ctx){
       indices.push(a,a+stride,a+1,a+1,a+stride,a+stride+1);
     }
   }
-  for(const i of [0,stations]){
-    const t=i/stations;
-    const center=positions.length/3;
-    const centreLevel=Math.pow(0.5,0.92);
-    positions.push(0,keelY(d,t)+(deckY(d,t)-keelY(d,t))*centreLevel,stationZ(d,t,0.5));
-    for(let j=0;j<rings;j++){
-      const a=i*stride+j;
-      indices.push(center,a,a+1);
-    }
+  // Keep the bow closed by the loft. The aft perimeter is left open for the
+  // transom surface, which is generated from the exact final hull section.
+  const t=0,center=positions.length/3,centreLevel=Math.pow(0.5,0.92);
+  positions.push(0,keelY(d,t)+(deckY(d,t)-keelY(d,t))*centreLevel,stationZ(d,t,centreLevel));
+  for(let j=0;j<rings;j++){
+    const a=j;
+    indices.push(center,a,a+1);
   }
 
   const geometry=new THREE.BufferGeometry();

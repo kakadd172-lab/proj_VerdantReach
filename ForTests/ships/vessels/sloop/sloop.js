@@ -3,7 +3,7 @@ export const SloopDefinition = defineVesselSpec({
   id: 'sloop',
   design: {
     id: 'sloop', label: 'Caribbean merchant sloop', era: 'Late 17th–18th century Caribbean',
-    hullLength: 17.22, beam: 4.34, draft: 1.9, freeboard: 1.35,
+    hullLength: 12.92, beam: 4.34, draft: 1.9, freeboard: 1.35,
     rig: 'Single-masted gaff sloop with one headsail; a compact, easily handled Caribbean working rig.',
     hullProfile: 'Fine raked entry, rounded full midbody, shallow keel, and a naturally broad transom created by cutting off the final quarter of the pointed aft run.',
     reference: 'Reader’s Point, Jamaica: surviving hull length 17.22 m and maximum beam 4.34 m. The game model uses it as a proportion reference, then shortens the aft run for a broader transom; the original rig is not preserved, so the gaff sail plan is a regional reconstruction.',

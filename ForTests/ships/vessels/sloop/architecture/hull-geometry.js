@@ -62,16 +62,17 @@ export function halfBreadth(d,t){
 }
 
 export function stationZ(d, t, v=1) {
-  const station = hullShapeStation(d,t);
+  const station = clamp01(t);
+  const shapeStation = hullShapeStation(d,t);
   const level = clamp01(v);
   const bowRake = (d.hull.stemRake ?? 0.18)
     * d.beamUnits
-    * Math.pow(1 - station, 2.8)
-    * Math.pow(level, 0.9);
-  // The cut section is a single slightly raked transom plane.
+    * Math.pow(1 - shapeStation, 2.8)
+    * Math.pow(level, 0.92);
+  // A single exponent keeps the aft cut on one gently raked plane.
   const sternRake = (d.hull.sternRake ?? 0.035)
     * d.beamUnits
-    * Math.pow(station, 5)
+    * Math.pow(shapeStation, 5)
     * Math.pow(level, 0.92);
   return (station - 0.5) * d.hullLengthUnits - bowRake + sternRake;
 }

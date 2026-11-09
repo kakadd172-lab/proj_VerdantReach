@@ -10,8 +10,8 @@ export function ensureSternTierComponents(d,ctx){
     const width=d.beamUnits*tier.w*0.66;
     const height=Math.max(0.18,tier.h*0.62);
     const depth=Math.max(0.16,d.hullLengthUnits*tier.d);
-    const centerY=deckY(d,0.84)+height*(0.43+index*0.07),baseY=centerY-height*0.5;
-    const centerZ=stationZ(d,0.84,1),z0=centerZ-depth*0.5;
+    const centerY=deckY(d,0.94)+height*(0.43+index*0.07),baseY=centerY-height*0.5;
+    const centerZ=stationZ(d,0.94,1),z0=centerZ-depth*0.5;
     const profile=new ctx.THREE.Shape();
     profile.moveTo(0,0);
     profile.lineTo(0,height*0.67);
