@@ -4,10 +4,21 @@ export const V = (x=0,y=0,z=0) => new THREE.Vector3(x,y,z);
 
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
 
+/**
+ * The visual hull is cut at an earlier aft station.
+ * The bow and midship stations stay where they are; only the aft half is
+ * shortened. The old hull section at the cut becomes the new transom.
+ */
+export function hullShapeStation(d,t) {
+  const station=clamp01(t);
+  const cutStation=Math.max(0.5,Math.min(1,d.hull.sternCutStation??1));
+  if(station<=0.5)return station;
+  return 0.5+(cutStation-0.5)*((station-0.5)/0.5);
+}
+
 function sectionBreadth(d, v) {
   const level = clamp01(v);
-  // The greatest breadth sits around the bilge/waterline, not uniformly
-  // from keel to gunwale. This gives the small hull a rounded working body.
+  // Full but rounded bilges, tapering naturally into the lower hull.
   const lowerRound = Math.pow(Math.sin(level * Math.PI * 0.5), 0.76);
   const bilgeFullness = 1.0 + 0.06 * Math.sin(Math.PI * level);
   const tuckStart = clamp01((level - 0.72) / 0.28);
@@ -16,20 +27,22 @@ function sectionBreadth(d, v) {
 }
 
 export function deckY(d, t) {
-  const edge = Math.pow(Math.abs(clamp01(t) - 0.5) * 2, 1.35);
-  const rise = t < 0.5 ? d.hull.bowRise : d.hull.sternRise;
+  const station=hullShapeStation(d,t);
+  const edge = Math.pow(Math.abs(station - 0.5) * 2, 1.35);
+  const rise = station < 0.5 ? d.hull.bowRise : d.hull.sternRise;
   return d.deckHeightUnits
     + d.hull.sheer * d.deckHeightUnits * edge
     + rise * d.deckHeightUnits * Math.pow(edge, 1.12) * d.structure.sheer;
 }
 
 export function keelY(d, t) {
-  const mid = Math.pow(Math.max(0, Math.sin(Math.PI * clamp01(t))), 0.72);
+  const station=hullShapeStation(d,t);
+  const mid = Math.pow(Math.max(0, Math.sin(Math.PI * station)), 0.72);
   return -d.draftUnits * 0.48 - d.hull.keelDepth * d.draftUnits * mid;
 }
 
 export function halfBreadth(d,t){
-  const station = clamp01(t);
+  const station=hullShapeStation(d,t);
   const beamStation = Math.min(0.62, Math.max(0.38, d.structure.beamStation ?? 0.49));
   let taper;
   if (station <= beamStation) {
@@ -45,28 +58,17 @@ export function halfBreadth(d,t){
   }
 
   const shoulder = 1 + 0.028 * Math.sin(Math.PI * station);
-  const naturalBreadth = taper * shoulder;
-
-  // Keep the forward two-thirds of the old run, then blend the aft third
-  // into a broad, flat transom instead of letting the waterlines meet at a point.
-  const transomStart = clamp01(d.hull.sternTransomBlendStart ?? 0.68);
-  const terminalBreadth = Math.min(0.62, Math.max(0.36, d.hull.sternWidth ?? 0.48));
-  const aftProgress = clamp01((station - transomStart) / Math.max(0.001, 1 - transomStart));
-  const smoothAftBlend = aftProgress * aftProgress * (3 - 2 * aftProgress);
-  const blendedBreadth = naturalBreadth + (terminalBreadth - naturalBreadth) * smoothAftBlend;
-
-  return d.beamUnits * 0.5 * (station > transomStart ? blendedBreadth : naturalBreadth);
+  return d.beamUnits * 0.5 * taper * shoulder;
 }
 
 export function stationZ(d, t, v=1) {
-  const station = clamp01(t);
+  const station = hullShapeStation(d,t);
   const level = clamp01(v);
   const bowRake = (d.hull.stemRake ?? 0.18)
     * d.beamUnits
     * Math.pow(1 - station, 2.8)
     * Math.pow(level, 0.9);
-  // Match the vertical hull interpolation exponent so the aft cut ends
-  // on one planar, slightly raked transom face.
+  // The cut section is a single slightly raked transom plane.
   const sternRake = (d.hull.sternRake ?? 0.035)
     * d.beamUnits
     * Math.pow(station, 5)
@@ -84,7 +86,8 @@ export function hullSurfacePoint(d, t, side, v) {
 
 /**
  * Closed loft section: a narrow deck cap across the top and a rounded U-shaped
- * hull beneath it. The frame/planking generators use hullSurfacePoint directly.
+ * hull beneath it. The final section is the actual cut station, not an added
+ * or re-flared extension.
  */
 export function hullPoint(d, t, a) {
   const angle = ((a % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);

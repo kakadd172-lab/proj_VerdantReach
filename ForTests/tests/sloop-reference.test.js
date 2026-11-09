@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getShipDesign, createShipModel, disposeShipModel } from '../ships/index.js?v=0.8.8';
-import { deckY, keelY, hullPoint, stationZ, halfBreadth } from '../ships/vessels/sloop/architecture/hull-geometry.js';
+import { deckY, keelY, hullPoint, stationZ, halfBreadth, hullShapeStation } from '../ships/vessels/sloop/architecture/hull-geometry.js';
 
 test('Sloop keeps a single-mast gaff plan with one clean headsail',()=>{
   const design=getShipDesign('sloop');
@@ -22,8 +22,9 @@ test('Sloop hull section reaches both gunwales and rounds down to the keel',()=>
   assert.ok(Math.abs(starboard.y-port.y)<0.001);
   assert.ok(Math.abs(keel.x)<0.001);
   assert.ok(keel.y<starboard.y);
-  assert.ok(halfBreadth(design,0.999)>design.beamUnits*0.20,'transom should retain a broad, squared-off stern');
-  assert.ok(halfBreadth(design,0.92)>halfBreadth(design,0.68)*0.45,'aft third should keep its breadth as it blends into the transom');
+  assert.ok(halfBreadth(design,0.999)>design.beamUnits*0.30,'transom should preserve the breadth at the cut station');
+  assert.ok(Math.abs(hullShapeStation(design,1)-0.75)<1e-8,'aft quarter should be removed at the chosen cut station');
+  assert.ok(Math.abs((stationZ(design,1,0.5)-stationZ(design,0,0.5))-design.hullLengthUnits*0.75)<0.02,'physical hull length should end at the cut, not extend behind it');
 });
 
 test('Sloop aft cut forms one flat, slightly raked transom plane',()=>{
@@ -53,7 +54,7 @@ test('Sloop still assembles its editable hull, cabin and simplified sail plan',(
     const stern=ship.userData.getPart('sternworks');
     let hasTransom=false;
     stern.traverse(object=>{if(object.name==='sloop-square-transom')hasTransom=true;});
-    assert.ok(hasTransom,'sloop should have a distinct flat transom board');
+    assert.ok(hasTransom,'sloop should have a shaped transom that follows the cut hull section');
     assert.ok(ship.userData.getPart('sail-single-gaff'));
     assert.ok(ship.userData.getPart('sail-head-1'));
     assert.ok(!ship.userData.partNames.includes('sail-head-2'));
