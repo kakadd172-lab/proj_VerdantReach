@@ -21,7 +21,7 @@ const z=mast.z*d.hullLengthUnits,baseY=deckY(d,.5+mast.z*.45)+.12,totalHeight=ma
    tube(runningLines,[topForward,V(0,low+totalHeight*.12,span*.10),bottomForward],.014,materials.rope,'junk-running-luff-line',24);
    const sheets=part('junk-sheets-'+mast.id,group);
    tube(sheets,[V(.12,low+.18,span*.22),V(.22,low+.12,span*.7),V(.16,low+.1,span*.96)],.016,materials.rope,'junk-sheet-lines',24);
-   continue;
+   return group;
   }
   buildStandingRigging(d,ctx,mast,z,baseY,totalHeight,lowerHeight);
 if(mast.rig==='square'||mast.rig==='brigantine'){
