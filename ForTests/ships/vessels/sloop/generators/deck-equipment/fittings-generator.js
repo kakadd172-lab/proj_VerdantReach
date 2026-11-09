@@ -5,8 +5,9 @@ export function buildDeckEquipment(d,ctx){
   const fittings=part('deck-fittings');
 
   // Small working-deck lockers fore and aft of the central vivier.
-  for(const [name,t,w,l] of [['fore-locker',0.24,0.48,0.72],['aft-locker',0.82,0.54,0.78]]){
+  for(const [name,t,w,l] of [['fore-locker',0.24,0.48,0.72],['aft-locker',0.76,0.42,0.58]]){
     const z=stationZ(d,t,1),group=part(name,fittings);
+    group.userData.station=t;
     const width=w*(4/3),length=l*(4/3),height=0.09;
     const hatch=box(group,width,height,length,materials.plank,'deck-locker-cover');
     hatch.position.set(0,deckY(d,t)+height*0.36,z);

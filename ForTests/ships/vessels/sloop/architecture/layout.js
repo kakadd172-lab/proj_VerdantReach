@@ -18,7 +18,7 @@ export const SLOOP_ARCHITECTURE = Object.freeze({
   "aft-cabins":{generator:"./generators/cabins/aft-cabin-generator.js",mount:"no-raised-aft-cabin-in-source-plan"},
   "bow":{generator:"./generators/bow/bow-generator.js",mount:"long-bowsprit-and-fine-stem"},
   "rudder":{generator:"./generators/steering/rudder-generator.js",mount:"transom-hung-rudder"},
-  "helm":{generator:"./generators/steering/helm-generator.js",mount:"aft-steering-position"},
+  "helm":{generator:"./generators/steering/helm-generator.js",mount:"compact-aft-quarter-wheel-clear-of-locker"},
   "railings":{generator:"./generators/deck-equipment/railing-generator.js",mount:"low-working-gunwale"},
   "deck-equipment":{generator:"./generators/deck-equipment/fittings-generator.js",mount:"fore-and-aft-working-lockers"},
   "anchors":{generator:"./generators/anchors/anchor-generator.js",mount:"forward-hawse-and-bow-cheeks"},

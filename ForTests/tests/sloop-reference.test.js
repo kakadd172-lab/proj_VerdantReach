@@ -7,7 +7,8 @@ import { deckY, keelY, hullPoint, stationZ, halfBreadth, hullShapeStation, secti
 test('Loguivy homardier keeps the dimensions and rig described by the 1866 sheet',()=>{
  const d=getShipDesign('sloop');
  assert.ok(Math.abs(d.hullLength-15.30)<0.01);
- assert.ok(Math.abs(d.beam-2.35)<0.01);
+ assert.ok(Math.abs(d.beam-2.55)<0.01,'preview beam should be slightly fuller after proportion review');
+ assert.ok(Math.abs(d.lengthBeamRatio-6.0)<0.02,'the rendered hull should no longer read excessively long and narrow');
  assert.ok(Math.abs(d.freeboard+d.draft-2.50)<0.01);
  assert.equal(d.masts.length,1);
  assert.equal(d.masts[0].rig,'gaff');
@@ -102,5 +103,21 @@ test('The gaff mainsail is a complete quadrilateral with a forward headsail',()=
   assert.ok(size.y>4.5);
   assert.ok(size.z>3.0);
   assert.ok(ship.userData.getPart('cloth-sail-head-1'));
+ }finally{disposeShipModel(ship);}
+});
+
+
+test('Aft helm is compact, clear of the aft locker and mounted at the aft quarter',()=>{
+ const ship=createShipModel('sloop');
+ try{
+  const helm=ship.userData.getPart('helm');
+  const wheel=ship.userData.getPart('helm-wheel');
+  const locker=ship.userData.getPart('aft-locker');
+  assert.ok(helm&&wheel&&locker);
+  assert.ok(helm.userData.helmStation>locker.userData.station+0.10,'helm must sit aft of the locker, not on its lid');
+  assert.ok(helm.userData.wheelRadius<=0.35,'wheel should be scaled for a small fishing vessel');
+  assert.equal(wheel.userData.helmStation,helm.userData.helmStation);
+  assert.ok(wheel.children.some(object=>object.name==='helm-wheel-hub'));
+  assert.ok(wheel.children.filter(object=>object.name.startsWith('helm-spoke-')).length===8);
  }finally{disposeShipModel(ship);}
 });

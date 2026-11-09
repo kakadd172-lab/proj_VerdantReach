@@ -7,7 +7,7 @@ const UNITS_PER_METRE = 4/3;
 
 /**
  * Half-breadth stations traced proportionally from the 1866 Loguivy
- * homardier plan view. Values are fractions of the 2.35 m maximum beam.
+ * homardier plan view. Values are fractions of the Sloop's adjusted 2.55 m preview beam.
  * The aft run stays comparatively full and finishes in a real transom;
  * the forebody narrows gradually into the fine rising stem.
  */
