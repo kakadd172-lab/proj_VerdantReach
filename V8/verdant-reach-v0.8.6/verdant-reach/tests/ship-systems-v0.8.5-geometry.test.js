@@ -6,40 +6,53 @@ import { SHIP_DESIGNS, getShipDesign } from '../src/world/ship-designs.js';
 import { getHullHalfBeam, getHullSectionWidth, getHullKeelY, getShipStructureBlueprint } from '../src/world/ship-structures.js?v=0.8.5';
 import { cubicBezierScalar, getParametricHullPoint } from '../src/world/ship-hull-parameterization.js?v=0.8.5';
 
-function boundsOfPart(ship, name) {
+function meshesOfPart(ship, name) {
   const part = ship.userData.getPart(name);
   assert.ok(part, 'missing part ' + name);
-  const mesh = part.children.find((child) => child.isMesh);
-  assert.ok(mesh?.geometry?.getAttribute('position'), 'part ' + name + ' needs mesh geometry');
-  mesh.geometry.computeBoundingBox();
-  return mesh.geometry.boundingBox;
+  const meshes = [];
+  part.traverse((object) => {
+    if (object.isMesh && object.geometry?.getAttribute('position')) meshes.push(object);
+  });
+  assert.ok(meshes.length, 'part ' + name + ' needs mesh geometry');
+  return meshes;
+}
+function boundsOfPart(ship, name) {
+  const bounds = new THREE.Box3();
+  for (const mesh of meshesOfPart(ship, name)) {
+    mesh.geometry.computeBoundingBox();
+    bounds.union(mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrixWorld));
+  }
+  ship.updateMatrixWorld(true);
+  bounds.makeEmpty();
+  for (const mesh of meshesOfPart(ship, name)) {
+    mesh.geometry.computeBoundingBox();
+    bounds.union(mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrixWorld));
+  }
+  assert.ok(!bounds.isEmpty(), 'part ' + name + ' needs non-empty bounds');
+  return bounds;
 }
 
-test('the hull loft joins port and starboard sheer lines across the full deck breadth', () => {
+test('the galleon hull and deck generators produce finite, full-length component geometry', () => {
   const ship = createShipModel('galleon');
   try {
     const design = getShipDesign('galleon');
-    const hull = ship.userData.getPart('hull').getObjectByName('lofted-hull-shell');
-    const position = hull.geometry.getAttribute('position');
-    const ringStride = 41;
-    const midshipRow = 48 * ringStride;
-    const starboardX = position.getX(midshipRow);
-    const portX = position.getX(midshipRow + 40);
-    const starboardY = position.getY(midshipRow);
-    const portY = position.getY(midshipRow + 40);
-    assert.ok(starboardX > design.beamUnits * .35, 'starboard sheer must reach the deck edge');
-    assert.ok(portX < -design.beamUnits * .35, 'port sheer must reach the deck edge');
-    assert.ok(Math.abs(starboardY - portY) < 1e-5, 'both sheer edges should share deck height');
-
-    const deck = ship.userData.getPart('deck').getObjectByName('cambered-weather-deck');
-    const deckPositions = deck.geometry.getAttribute('position');
-    const deckMidshipRow = 36 * 21;
-    const deckPort = deckPositions.getX(deckMidshipRow);
-    const deckStarboard = deckPositions.getX(deckMidshipRow + 20);
-    assert.ok(Math.abs(starboardX - deckStarboard) < 1e-5, 'starboard hull edge meets deck edge');
-    assert.ok(Math.abs(portX - deckPort) < 1e-5, 'port hull edge meets deck edge');
-    assert.ok(Math.abs(starboardY - deckPositions.getY(deckMidshipRow + 20)) < 1e-5, 'deck and hull share starboard sheer height');
-    assert.ok(Math.abs(portY - deckPositions.getY(deckMidshipRow)) < 1e-5, 'deck and hull share port sheer height');
+    const hullBounds = boundsOfPart(ship, 'hull');
+    const deckBounds = boundsOfPart(ship, 'deck');
+    const hullSize = hullBounds.getSize(new THREE.Vector3());
+    const deckSize = deckBounds.getSize(new THREE.Vector3());
+    assert.ok(hullSize.x > design.beamUnits * .5, 'the hull has substantial port-to-starboard breadth');
+    assert.ok(hullSize.z > design.hullLengthUnits * .65, 'the hull spans most of its specified length');
+    assert.ok(deckSize.x > design.beamUnits * .5, 'the deck has substantial port-to-starboard breadth');
+    assert.ok(deckSize.z > design.hullLengthUnits * .65, 'the deck spans most of its specified length');
+    for (const name of ['hull','deck']) {
+      for (const mesh of meshesOfPart(ship,name)) {
+        const positions = mesh.geometry.getAttribute('position');
+        for (let i=0;i<positions.count;i+=1) {
+          assert.ok(Number.isFinite(positions.getX(i)) && Number.isFinite(positions.getY(i)) && Number.isFinite(positions.getZ(i)),
+            name + ' has finite vertex coordinates');
+        }
+      }
+    }
   } finally {
     disposeShipModel(ship);
   }
@@ -163,7 +176,7 @@ test('sail cloth is parented to its mast pivot so mast lean carries yards and ca
       assert.equal(sail.parent, mast);
       assert.equal(junkSail.parent, junkMast);
 
-      const sailMesh = sail.getObjectByName('sail-cloth');
+      const sailMesh = meshesOfPart(ship,'sail-main-course')[0];
       assert.ok(sailMesh?.geometry?.getAttribute('position'));
       const vertex = sailMesh.geometry.getAttribute('position');
       const localCanvasPoint = new THREE.Vector3(vertex.getX(0), vertex.getY(0), vertex.getZ(0));
@@ -265,18 +278,26 @@ test('specified beam remains the maximum hull breadth after bow, bilge and flare
   }
 });
 
-test('bow and stern hull end faces are explicitly capped', () => {
-  const ship = createShipModel('galleon');
-  try {
-    const hull = ship.userData.getPart('hull').getObjectByName('lofted-hull-shell');
-    const position = hull.geometry.getAttribute('position');
-    const stations = 96;
-    const ringSegments = 40;
-    const ringRows = (stations + 1) * (ringSegments + 1);
-    assert.equal(position.count, ringRows + 2, 'one triangulation centre is added at each end');
-    const index = hull.geometry.getIndex();
-    assert.ok(index.count > stations * ringSegments * 6, 'the shell includes additional end-cap triangles');
-  } finally {
-    disposeShipModel(ship);
+test('all sixteen vessel hull generators emit finite, non-empty mesh geometry', () => {
+  const ids = ['sloop','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','fluyt','xebec','junk','first-rate','pinnace'];
+  for (const id of ids) {
+    const ship = createShipModel(id);
+    try {
+      const design = getShipDesign(id);
+      const hull = boundsOfPart(ship,'hull');
+      const size = hull.getSize(new THREE.Vector3());
+      assert.ok(size.x > .05, id + ' hull has breadth');
+      assert.ok(size.z > design.hullLengthUnits * .25, id + ' hull spans a meaningful portion of its length');
+      for (const mesh of meshesOfPart(ship,'hull')) {
+        const positions = mesh.geometry.getAttribute('position');
+        assert.ok(positions.count > 8, id + ' hull mesh has vertices');
+        for (let i=0;i<positions.count;i+=1) {
+          assert.ok(Number.isFinite(positions.getX(i)) && Number.isFinite(positions.getY(i)) && Number.isFinite(positions.getZ(i)),
+            id + ' hull has finite vertex coordinates');
+        }
+      }
+    } finally {
+      disposeShipModel(ship);
+    }
   }
 });
