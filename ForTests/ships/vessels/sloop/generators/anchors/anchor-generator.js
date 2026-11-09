@@ -28,11 +28,11 @@ export function buildAnchors(d,ctx){
     // Main shank and its upper mooring ring.
     beam(anchor,ringCenter,crown,0.047,materials.iron,'sloop-anchor-shank');
     const ring=mesh(anchor,new THREE.TorusGeometry(0.105,0.026,8,18),materials.iron,'sloop-anchor-ring');
-    ring.rotation.y=Math.PI/2;
+    ring.rotation.x=Math.PI/2;
     ring.position.copy(ringCenter);
 
     // Stock crosses the crown; the two arms turn down into recognisable flukes.
-    beam(anchor,V(0,crown.y,crown.z-flukeSpan),V(0,crown.y,crown.z+flukeSpan),0.045,materials.iron,'sloop-anchor-stock');
+    beam(anchor,V(-flukeSpan,crown.y,crown.z),V(flukeSpan,crown.y,crown.z),0.045,materials.iron,'sloop-anchor-stock');
     for(const foreAft of [-1,1]){
       const armTip=V(0,armY,crown.z+foreAft*flukeSpan*0.72);
       const flukeTip=V(0,flukeY,crown.z+foreAft*flukeSpan*1.08);
