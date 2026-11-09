@@ -6,8 +6,10 @@ const clamp01 = (value) => Math.min(1, Math.max(0, value));
 
 function sectionBreadth(d, v) {
   const level = clamp01(v);
-  const lowerRound = Math.pow(Math.sin(level * Math.PI * 0.5), 0.46);
-  const bilgeFullness = 0.88 + 0.15 * Math.sin(Math.PI * level);
+  // The greatest breadth sits around the bilge/waterline, not uniformly
+  // from keel to gunwale. This gives the small hull a rounded working body.
+  const lowerRound = Math.pow(Math.sin(level * Math.PI * 0.5), 0.76);
+  const bilgeFullness = 1.0 + 0.06 * Math.sin(Math.PI * level);
   const tuckStart = clamp01((level - 0.72) / 0.28);
   const tuck = 1 - (d.hull.tumblehome ?? 0) * Math.pow(tuckStart, 1.2);
   return lowerRound * bilgeFullness * tuck;
