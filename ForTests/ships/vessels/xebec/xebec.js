@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 export const XebecDefinition = defineVesselSpec({
  editorModulePath: 'ForTests/ships/vessels/xebec/xebec.js',
   id: 'xebec',
@@ -21,7 +22,7 @@ export const XebecDefinition = defineVesselSpec({
     headsails: 0, oars: true,
   },
   structure: { frameCount: 30, beamStation: .49, forebody: 1.3, aftbody: 1.18, foreTip: .001, aftTip: .025, bottomFlat: .11, bilge: .055, flare: .045, tumble: .005, sheer: .78, lowerMastRatio: .58, shroudPairs: 2, ratlines: 7, yardSpread: 1.13 },
-});
+}, EDITOR_DEFAULTS);
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
 import { XEBEC_ARCHITECTURE } from './architecture/layout.js';
@@ -70,6 +71,7 @@ function assembleXebec(vessel,componentTransforms={},savedState={}){const design
 };for(const k of ARCHITECTURE.assemblyOrder){const g=generators[k];if(typeof g!=="function")throw new Error('xebec: missing assembly instruction '+k);g();}const root=finishShipModel(ctx,componentTransforms,savedState);root.userData.shipArchitecture=ARCHITECTURE;root.userData.shipAssemblyOrder=[...ARCHITECTURE.assemblyOrder];return root;}
 export function createXebecModel(componentTransforms={},savedState={}){return assembleXebec(resolveVesselForGeneration(XebecDefinition),componentTransforms,savedState);}
 export function generateXebec(componentTransforms={},savedState={}){return createXebecModel(componentTransforms,savedState);}
-export const Xebec=Object.freeze({id:XebecDefinition.id,definition:XebecDefinition,design:XebecDefinition.design,structure:XebecDefinition.structure,editorModulePath:XebecDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createXebecModel,generate:generateXebec});
+export const Xebec=Object.freeze({id:XebecDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,definition:XebecDefinition,design:XebecDefinition.design,structure:XebecDefinition.structure,editorModulePath:XebecDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createXebecModel,generate:generateXebec});
 export const id=Xebec.id,design=Xebec.design,structure=Xebec.structure,createModel=Xebec.createModel,generate=Xebec.generate;
 export default Xebec;

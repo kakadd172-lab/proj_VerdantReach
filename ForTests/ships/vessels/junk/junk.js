@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 export const JunkDefinition = defineVesselSpec({
  editorModulePath: 'ForTests/ships/vessels/junk/junk.js',
   id: 'junk',
@@ -25,7 +26,7 @@ export const JunkDefinition = defineVesselSpec({
     headsails: 0, oars: false,
   },
   structure: { frameCount: 32, beamStation: .5, forebody: .82, aftbody: .84, foreTip: .08, aftTip: .12, bottomFlat: .62, bilge: .09, flare: .035, tumble: .015, sheer: 1.24, lowerMastRatio: .7, shroudPairs: 0, ratlines: 0, yardSpread: 1.02 },
-});
+}, EDITOR_DEFAULTS);
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
 import { JUNK_ARCHITECTURE } from './architecture/layout.js';
@@ -73,6 +74,7 @@ function assembleJunk(vessel,componentTransforms={},savedState={}){const design=
 };for(const k of ARCHITECTURE.assemblyOrder){const g=generators[k];if(typeof g!=="function")throw new Error('junk: missing assembly instruction '+k);g();}const root=finishShipModel(ctx,componentTransforms,savedState);root.userData.shipArchitecture = ARCHITECTURE;root.userData.shipAssemblyOrder=[...ARCHITECTURE.assemblyOrder];return root;}
 export function createJunkModel(componentTransforms={},savedState={}){return assembleJunk(resolveVesselForGeneration(JunkDefinition),componentTransforms,savedState);}
 export function generateJunk(componentTransforms={},savedState={}){return createJunkModel(componentTransforms,savedState);}
-export const Junk=Object.freeze({id:JunkDefinition.id,definition:JunkDefinition,design:JunkDefinition.design,structure:JunkDefinition.structure,editorModulePath:JunkDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createJunkModel,generate:generateJunk});
+export const Junk=Object.freeze({id:JunkDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,definition:JunkDefinition,design:JunkDefinition.design,structure:JunkDefinition.structure,editorModulePath:JunkDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createJunkModel,generate:generateJunk});
 export const id=Junk.id,design=Junk.design,structure=Junk.structure,createModel=Junk.createModel,generate=Junk.generate;
 export default Junk;

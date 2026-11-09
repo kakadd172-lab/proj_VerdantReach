@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 export const PinnaceDefinition = defineVesselSpec({
  editorModulePath: 'ForTests/ships/vessels/pinnace/pinnace.js',
   id: 'pinnace',
@@ -17,7 +18,7 @@ export const PinnaceDefinition = defineVesselSpec({
     headsails: 0, oars: true,
   },
   structure: { frameCount: 16, beamStation: .5, forebody: .84, aftbody: .85, foreTip: .002, aftTip: .004, bottomFlat: .18, bilge: .075, flare: .08, tumble: .035, sheer: .91, lowerMastRatio: .6, shroudPairs: 1, ratlines: 5, yardSpread: .74 },
-});
+}, EDITOR_DEFAULTS);
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
 import { PINNACE_ARCHITECTURE } from './architecture/layout.js';
@@ -62,6 +63,7 @@ function assemblePinnace(vessel,componentTransforms={},savedState={}){const desi
 };for(const k of ARCHITECTURE.assemblyOrder){const g=generators[k];if(typeof g!=="function")throw new Error('pinnace: missing assembly instruction '+k);g();}const root=finishShipModel(ctx,componentTransforms,savedState);root.userData.shipArchitecture=ARCHITECTURE;root.userData.shipAssemblyOrder=[...ARCHITECTURE.assemblyOrder];return root;}
 export function createPinnaceModel(componentTransforms={},savedState={}){return assemblePinnace(resolveVesselForGeneration(PinnaceDefinition),componentTransforms,savedState);}
 export function generatePinnace(componentTransforms={},savedState={}){return createPinnaceModel(componentTransforms,savedState);}
-export const Pinnace=Object.freeze({id:PinnaceDefinition.id,definition:PinnaceDefinition,design:PinnaceDefinition.design,structure:PinnaceDefinition.structure,editorModulePath:PinnaceDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createPinnaceModel,generate:generatePinnace});
+export const Pinnace=Object.freeze({id:PinnaceDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,definition:PinnaceDefinition,design:PinnaceDefinition.design,structure:PinnaceDefinition.structure,editorModulePath:PinnaceDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createPinnaceModel,generate:generatePinnace});
 export const id=Pinnace.id,design=Pinnace.design,structure=Pinnace.structure,createModel=Pinnace.createModel,generate=Pinnace.generate;
 export default Pinnace;

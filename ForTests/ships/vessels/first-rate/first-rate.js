@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 export const FirstRateDefinition = defineVesselSpec({
  editorModulePath: 'ForTests/ships/vessels/first-rate/first-rate.js',
   id: 'first-rate',
@@ -25,7 +26,7 @@ export const FirstRateDefinition = defineVesselSpec({
     headsails: 4, oars: false,
   },
   structure: { frameCount: 42, beamStation: .52, forebody: 1.08, aftbody: 1.04, foreTip: .002, aftTip: .095, bottomFlat: .32, bilge: .2, flare: .07, tumble: .17, sheer: .95, lowerMastRatio: .66, shroudPairs: 5, ratlines: 12, yardSpread: 1.1 },
-});
+}, EDITOR_DEFAULTS);
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
 import { FIRST_RATE_ARCHITECTURE } from './architecture/layout.js';
@@ -72,6 +73,7 @@ function assembleFirstRate(vessel,componentTransforms={},savedState={}){const de
 };for(const k of ARCHITECTURE.assemblyOrder){const g=generators[k];if(typeof g!=="function")throw new Error('first-rate: missing assembly instruction '+k);g();}const root=finishShipModel(ctx,componentTransforms,savedState);root.userData.shipArchitecture=ARCHITECTURE;root.userData.shipAssemblyOrder=[...ARCHITECTURE.assemblyOrder];return root;}
 export function createFirstRateModel(componentTransforms={},savedState={}){return assembleFirstRate(resolveVesselForGeneration(FirstRateDefinition),componentTransforms,savedState);}
 export function generateFirstRate(componentTransforms={},savedState={}){return createFirstRateModel(componentTransforms,savedState);}
-export const FirstRate=Object.freeze({id:FirstRateDefinition.id,definition:FirstRateDefinition,design:FirstRateDefinition.design,structure:FirstRateDefinition.structure,editorModulePath:FirstRateDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createFirstRateModel,generate:generateFirstRate});
+export const FirstRate=Object.freeze({id:FirstRateDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,definition:FirstRateDefinition,design:FirstRateDefinition.design,structure:FirstRateDefinition.structure,editorModulePath:FirstRateDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createFirstRateModel,generate:generateFirstRate});
 export const id=FirstRate.id,design=FirstRate.design,structure=FirstRate.structure,createModel=FirstRate.createModel,generate=FirstRate.generate;
 export default FirstRate;
