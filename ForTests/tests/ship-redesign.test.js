@@ -30,7 +30,7 @@ test('the editor uses 16 self-contained ForTests vessel modules', () => {
 });
 
 
-const modularIds = new Set(['barque','brig','brigantine','caravel','carrack']);
+const modularIds = new Set(["barque","brig","brigantine","caravel","carrack","sloop","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
 
 test('each vessel owns its own geometry-generation algorithms', () => {
   const hullAlgorithms = [];
