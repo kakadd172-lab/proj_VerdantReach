@@ -2,7 +2,7 @@ import { deckY, keelY, halfBreadth, hullPoint, stationZ, V } from "../../archite
 
 export function buildStern(d,ctx){
   const {part,beam,box,materials,V}=ctx;
-  const stern=part('sternworks'),trim=part('stern-transom-trim',stern),windows=part('stern-windows',stern);
+  const stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern);
 
   // Shape the transom from the actual cut section of the hull. Its width and
   // rounded lower outline are inherited from the hull, not guessed separately.
@@ -30,7 +30,7 @@ export function buildStern(d,ctx){
 
   const halfWidth=halfBreadth(d,station)*0.96;
   const top=deck-0.035,topZ=stationZ(d,station,1)+0.018;
-  beam(trim,V(-halfWidth,top,topZ),V(halfWidth,top,topZ),0.022,materials.trim,'transom-top-edge');
+  beam(gallery,V(-halfWidth,top,topZ),V(halfWidth,top,topZ),0.022,materials.trim,'transom-top-edge');
 
   // Three small lights follow the broad, shaped transom face.
   const paneW=halfWidth*0.13,paneH=verticalRange*0.075;

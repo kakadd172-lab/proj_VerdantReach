@@ -24,10 +24,10 @@ test('Sloop hull section reaches both gunwales and rounds down to the keel',()=>
   assert.ok(keel.y<starboard.y);
   assert.ok(halfBreadth(design,0.999)>design.beamUnits*0.30,'transom should preserve the breadth at the cut station');
   assert.ok(Math.abs(hullShapeStation(design,1)-0.75)<1e-8,'aft quarter should be removed at the chosen cut station');
-  const level=Math.pow(0.5,0.92);
+  const rakeScale=Math.pow(0.5,0.92);
   const expectedLength=design.hullLengthUnits
-    +design.hull.stemRake*design.beamUnits*(1-Math.pow(0.25,2.8))*Math.pow(level,0.92)
-    +design.hull.sternRake*design.beamUnits*Math.pow(0.75,5)*Math.pow(level,0.92);
+    +design.hull.stemRake*design.beamUnits*(1-Math.pow(0.25,2.8))*rakeScale
+    +design.hull.sternRake*design.beamUnits*Math.pow(0.75,5)*rakeScale;
   assert.ok(Math.abs((stationZ(design,1,0.5)-stationZ(design,0,0.5))-expectedLength)<1e-6,'hull should end at the shortened broad transom plane');
 });
 
