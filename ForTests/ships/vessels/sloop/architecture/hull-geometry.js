@@ -26,7 +26,7 @@ export function keelY(d, t) {
   return -d.draftUnits * 0.48 - d.hull.keelDepth * d.draftUnits * mid;
 }
 
-export function halfBreadth(d, t) {
+export function halfBreadth(d,t){
   const station = clamp01(t);
   const beamStation = Math.min(0.62, Math.max(0.38, d.structure.beamStation ?? 0.49));
   let taper;
