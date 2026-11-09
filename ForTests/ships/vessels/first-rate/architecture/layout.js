@@ -1,5 +1,5 @@
 /** first-rate ship-specific layout; forward -Z, aft +Z, port -X, starboard +X, up +Y. */
-export const FIRST-RATE_ARCHITECTURE=Object.freeze({id:"first-rate",schemaVersion:1,coordinateSystem:Object.freeze({forward:"-z",aft:"+z",port:"-x",starboard:"+x",up:"+y",origin:"keel-midships"}),assemblyOrder:Object.freeze(["hull","keel","stem","deck","frames","hull-planking","deck-planking","stern","aft-cabins","bow","rudder","helm","railings","deck-equipment","anchors","masts","head-sails"]),components:Object.freeze({
+export const FIRST_RATE_ARCHITECTURE=Object.freeze({id:"first-rate",schemaVersion:1,coordinateSystem:Object.freeze({forward:"-z",aft:"+z",port:"-x",starboard:"+x",up:"+y",origin:"keel-midships"}),assemblyOrder:Object.freeze(["hull","keel","stem","deck","frames","hull-planking","deck-planking","stern","aft-cabins","bow","rudder","helm","railings","deck-equipment","anchors","masts","head-sails"]),components:Object.freeze({
 "hull":{generator:"./generators/hull/hull-generator.js",mount:"keel-midships"},
 "keel":{generator:"./generators/hull/keel-generator.js",mount:"hull-keel-line"},
 "stem":{generator:"./generators/hull/stem-generator.js",mount:"fore-and-aft-stem-posts"},

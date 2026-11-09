@@ -28,7 +28,7 @@ export const FirstRateDefinition = defineVesselSpec({
 });
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
-import { FIRST-RATE_ARCHITECTURE } from './architecture/layout.js';
+import { FIRST_RATE_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';
 import { buildStem } from './generators/hull/stem-generator.js';
@@ -49,7 +49,7 @@ import { buildHeadSails } from './generators/sails/head-sails-generator.js';
 import { buildForemast } from './generators/masts/foremast-generator.js';
 import { buildMainmast } from './generators/masts/mainmast-generator.js';
 import { buildMizzenmast } from './generators/masts/mizzenmast-generator.js';
-const MAST_GENERATORS=Object.freeze({"fore":buildForemast,"main":buildMainmast,"mizzen":buildMizzenmast}),ARCHITECTURE=FIRST-RATE_ARCHITECTURE;
+const MAST_GENERATORS=Object.freeze({"fore":buildForemast,"main":buildMainmast,"mizzen":buildMizzenmast}),ARCHITECTURE=FIRST_RATE_ARCHITECTURE;
 function applyMastArchitecture(design){const stations=new Map(ARCHITECTURE.mastInstances.map(x=>[x.id,x]));return {...design,masts:design.masts.map(m=>{const a=stations.get(m.id);if(!a)throw new Error('first-rate: missing mast station '+m.id);return {...m,z:a.foreAftStation,height:m.height*(a.heightScale??1),radiusScale:(m.radiusScale??1)*(a.radiusScale??1),yardScale:(m.yardScale??1)*(a.yardScale??1)};})};}
 function assembleFirstRate(vessel,componentTransforms={},savedState={}){const design=applyMastArchitecture(vessel.design),resolved={...vessel,design},ctx=createShipContext(resolved,{"hull":5388331,"plank":8411966,"deck":11110752,"sail":14998213}),generators={
 "hull":()=>buildHull(design,ctx),
