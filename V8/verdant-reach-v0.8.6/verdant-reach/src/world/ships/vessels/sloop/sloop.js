@@ -1,6 +1,6 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
 export const SloopDefinition = defineVesselSpec({
-  editorModulePath: 'ForTests/ships/vessels/sloop/sloop.js',
+  editorModulePath: 'src/world/ships/vessels/sloop/sloop.js',
   id: 'sloop',
   design: {
     id: 'sloop',
@@ -65,8 +65,8 @@ export const SloopDefinition = defineVesselSpec({
   }
 }, EDITOR_DEFAULTS);
 
-import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
-import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
+import { defineVesselSpec, resolveVesselForGeneration } from '../../core/vessel-definition.js';
+import { createShipContext, finishShipModel } from '../../core/ship-editor-kit.js';
 import { SLOOP_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';

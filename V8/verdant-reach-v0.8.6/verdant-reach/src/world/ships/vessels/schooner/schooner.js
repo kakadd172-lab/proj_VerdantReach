@@ -1,6 +1,6 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
 export const SchoonerDefinition = defineVesselSpec({
-  editorModulePath: 'ForTests/ships/vessels/schooner/schooner.js',
+  editorModulePath: 'src/world/ships/vessels/schooner/schooner.js',
   id: 'schooner',
   design: {
     id: 'schooner', label: 'West Indies schooner', era: 'Late 18th century',
@@ -23,8 +23,8 @@ export const SchoonerDefinition = defineVesselSpec({
   structure: { frameCount: 26, beamStation: .48, forebody: .72, aftbody: .96, foreTip: .006, aftTip: .075, bottomFlat: .18, bilge: .11, flare: .15, tumble: .06, sheer: 1.0, lowerMastRatio: .62, shroudPairs: 2, ratlines: 9, yardSpread: .92 },
 }, EDITOR_DEFAULTS);
 
-import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
-import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
+import { defineVesselSpec, resolveVesselForGeneration } from '../../core/vessel-definition.js';
+import { createShipContext, finishShipModel } from '../../core/ship-editor-kit.js';
 import { SCHOONER_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';
