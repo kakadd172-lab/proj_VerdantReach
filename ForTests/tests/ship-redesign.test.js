@@ -1,5 +1,5 @@
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 
 import {
@@ -64,8 +64,7 @@ test('each vessel owns its own geometry-generation algorithms', () => {
         'generators/sails/head-sails-generator.js','generators/masts/mast-frame-generator.js',
         'generators/rigging/standing-rigging-generator.js'
       ]) {
-        assert.ok(facade.includes(file.split('/').at(-1)) || file.includes('mast-frame-generator'),
-          id + ' references component generator ' + file);
+        assert.ok(existsSync(new URL(root + file, import.meta.url)), id + ' missing component generator ' + file);
       }
       assert.ok(!facade.includes('../shared/ship-editor-kit.js'), id + ' should resolve shared support from its folder depth');
       assert.ok(!facade.includes('../ships/vessels/' + id + '.js'), id + ' should not retain the flat generator');
