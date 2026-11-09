@@ -67,7 +67,7 @@ export function stationZ(d, t, v=1) {
   const level = clamp01(v);
   const bowRake = (d.hull.stemRake ?? 0.18)
     * d.beamUnits
-    * Math.pow(1 - shapeStation, 2.8)
+    * Math.pow(1 - shapeStation, 4)
     * Math.pow(level, 0.92);
   // A single exponent keeps the aft cut on one gently raked plane.
   const sternRake = (d.hull.sternRake ?? 0.035)
