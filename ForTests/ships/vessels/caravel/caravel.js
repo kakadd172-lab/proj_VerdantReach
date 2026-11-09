@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 import { defineVesselSpec } from '../../shared/vessel-definition.js';
 /**
  * caravel — standalone ship definition and independent geometry generator.
@@ -28,7 +29,7 @@ export const CaravelDefinition = defineVesselSpec({
     headsails: 1, oars: false,
   },
   structure: { frameCount: 26, beamStation: .49, forebody: .82, aftbody: 1.22, foreTip: .003, aftTip: .035, bottomFlat: .16, bilge: .1, flare: .18, tumble: .075, sheer: 1.2, lowerMastRatio: .61, shroudPairs: 2, ratlines: 8, yardSpread: .92 },
-});
+}, EDITOR_DEFAULTS);
 
 
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
@@ -129,6 +130,7 @@ export function generateCaravel(componentTransforms={},savedState={}) {
 }
 export const Caravel = Object.freeze({
   id: CaravelDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,
   definition: CaravelDefinition,
   design: CaravelDefinition.design,
   structure: CaravelDefinition.structure,

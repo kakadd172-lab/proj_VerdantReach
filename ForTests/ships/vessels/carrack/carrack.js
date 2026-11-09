@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 import { defineVesselSpec } from '../../shared/vessel-definition.js';
 /**
  * carrack — standalone ship definition and independent geometry generator.
@@ -28,7 +29,7 @@ export const CarrackDefinition = defineVesselSpec({
     headsails: 1, oars: false,
   },
   structure: { frameCount: 34, beamStation: .53, forebody: .76, aftbody: .78, foreTip: .006, aftTip: .17, bottomFlat: .45, bilge: .29, flare: .15, tumble: .08, sheer: 1.33, lowerMastRatio: .62, shroudPairs: 3, ratlines: 10, yardSpread: 1.12 },
-});
+}, EDITOR_DEFAULTS);
 
 
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
@@ -129,6 +130,7 @@ export function generateCarrack(componentTransforms={},savedState={}) {
 }
 export const Carrack = Object.freeze({
   id: CarrackDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,
   definition: CarrackDefinition,
   design: CarrackDefinition.design,
   structure: CarrackDefinition.structure,

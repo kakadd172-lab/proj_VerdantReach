@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 export const FluytDefinition = defineVesselSpec({
  editorModulePath: 'ForTests/ships/vessels/fluyt/fluyt.js',
   id: 'fluyt',
@@ -20,7 +21,7 @@ export const FluytDefinition = defineVesselSpec({
     headsails: 1, oars: false,
   },
   structure: { frameCount: 34, beamStation: .54, forebody: .68, aftbody: .75, foreTip: .01, aftTip: .08, bottomFlat: .51, bilge: .36, flare: .035, tumble: .27, sheer: .82, lowerMastRatio: .65, shroudPairs: 2, ratlines: 9, yardSpread: .94 },
-});
+}, EDITOR_DEFAULTS);
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
 import { FLUYT_ARCHITECTURE } from './architecture/layout.js';
@@ -71,6 +72,7 @@ function assembleFluyt(vessel,componentTransforms={},savedState={}){const design
 };for(const k of ARCHITECTURE.assemblyOrder){const g=generators[k];if(typeof g!=="function")throw new Error('fluyt: missing assembly instruction '+k);g();}const root=finishShipModel(ctx,componentTransforms,savedState);root.userData.shipArchitecture = ARCHITECTURE;root.userData.shipAssemblyOrder=[...ARCHITECTURE.assemblyOrder];return root;}
 export function createFluytModel(componentTransforms={},savedState={}){return assembleFluyt(resolveVesselForGeneration(FluytDefinition),componentTransforms,savedState);}
 export function generateFluyt(componentTransforms={},savedState={}){return createFluytModel(componentTransforms,savedState);}
-export const Fluyt=Object.freeze({id:FluytDefinition.id,definition:FluytDefinition,design:FluytDefinition.design,structure:FluytDefinition.structure,editorModulePath:FluytDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createFluytModel,generate:generateFluyt});
+export const Fluyt=Object.freeze({id:FluytDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,definition:FluytDefinition,design:FluytDefinition.design,structure:FluytDefinition.structure,editorModulePath:FluytDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createFluytModel,generate:generateFluyt});
 export const id=Fluyt.id,design=Fluyt.design,structure=Fluyt.structure,createModel=Fluyt.createModel,generate=Fluyt.generate;
 export default Fluyt;

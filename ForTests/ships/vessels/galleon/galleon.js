@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 export const GalleonDefinition = defineVesselSpec({
  editorModulePath: 'ForTests/ships/vessels/galleon/galleon.js',
   id: 'galleon',
@@ -21,7 +22,7 @@ export const GalleonDefinition = defineVesselSpec({
     headsails: 2, oars: false,
   },
   structure: { frameCount: 36, beamStation: .51, forebody: .86, aftbody: .91, foreTip: .003, aftTip: .14, bottomFlat: .39, bilge: .24, flare: .12, tumble: .12, sheer: 1.2, lowerMastRatio: .64, shroudPairs: 3, ratlines: 10, yardSpread: 1.04 },
-});
+}, EDITOR_DEFAULTS);
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
 import { GALLEON_ARCHITECTURE } from './architecture/layout.js';
@@ -69,6 +70,7 @@ function assembleGalleon(vessel,componentTransforms={},savedState={}){const desi
 };for(const k of ARCHITECTURE.assemblyOrder){const g=generators[k];if(typeof g!=="function")throw new Error('galleon: missing assembly instruction '+k);g();}const root=finishShipModel(ctx,componentTransforms,savedState);root.userData.shipArchitecture = ARCHITECTURE;root.userData.shipAssemblyOrder=[...ARCHITECTURE.assemblyOrder];return root;}
 export function createGalleonModel(componentTransforms={},savedState={}){return assembleGalleon(resolveVesselForGeneration(GalleonDefinition),componentTransforms,savedState);}
 export function generateGalleon(componentTransforms={},savedState={}){return createGalleonModel(componentTransforms,savedState);}
-export const Galleon=Object.freeze({id:GalleonDefinition.id,definition:GalleonDefinition,design:GalleonDefinition.design,structure:GalleonDefinition.structure,editorModulePath:GalleonDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createGalleonModel,generate:generateGalleon});
+export const Galleon=Object.freeze({id:GalleonDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,definition:GalleonDefinition,design:GalleonDefinition.design,structure:GalleonDefinition.structure,editorModulePath:GalleonDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createGalleonModel,generate:generateGalleon});
 export const id=Galleon.id,design=Galleon.design,structure=Galleon.structure,createModel=Galleon.createModel,generate=Galleon.generate;
 export default Galleon;
