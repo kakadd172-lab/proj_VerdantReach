@@ -46,6 +46,13 @@ for(const [id,d] of Object.entries(SHIP_DESIGNS)){
   option.textContent=d.label;
   selector.appendChild(option);
 }
+// Optional direct-review URL: ?ship=barque&camera=side&part=hull
+const reviewParams=new URLSearchParams(window.location.search);
+const reviewShipId=reviewParams.get('ship')||'';
+const reviewPartName=reviewParams.get('part')||'';
+const reviewCamera=reviewParams.get('camera')||'';
+if(Object.hasOwn(SHIP_DESIGNS,reviewShipId))selector.value=reviewShipId;
+
 const compareSelector=document.querySelector('#compare-select');
 for(const [id,design] of Object.entries(SHIP_DESIGNS)){
   const option=document.createElement('option');
@@ -804,7 +811,9 @@ function resize(){
 }
 const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(viewport);resize();
 function animate(){requestAnimationFrame(animate);orbit.update();renderer.render(scene,camera);}
-loadShip(selector.value||Object.keys(SHIP_DESIGNS)[0]);animate();
+loadShip(selector.value||Object.keys(SHIP_DESIGNS)[0],reviewPartName);
+if(['top','side','bow','stern'].includes(reviewCamera))setCameraPreset(reviewCamera);
+animate();
 window.addEventListener('beforeunload',()=>{
   resizeObserver.disconnect();clearMeasurement();if(ship)disposeShipModel(ship);gizmo.dispose();renderer.dispose();
 });

@@ -68,3 +68,12 @@ test('the refreshed game title menu uses responsive, reduced-motion-friendly com
   assert.ok(css.includes('@media (prefers-reduced-motion: reduce)'));
   assert.ok(css.includes('border-radius: 28px'));
 });
+
+test('shipyard supports direct review links for a selected vessel, component and camera',()=>{
+  assert.ok(preview.includes("new URLSearchParams(window.location.search)"));
+  assert.ok(preview.includes("reviewParams.get('ship')"));
+  assert.ok(preview.includes("reviewParams.get('part')"));
+  assert.ok(preview.includes("reviewParams.get('camera')"));
+  assert.ok(preview.includes("['top','side','bow','stern'].includes(reviewCamera)"));
+  assert.ok(preview.includes('loadShip(selector.value||Object.keys(SHIP_DESIGNS)[0],reviewPartName)'));
+});

@@ -11,6 +11,12 @@ const viteCli=join(projectDir,'node_modules','vite','bin','vite.js');
 const outputDir=join(projectDir,'visual-audit');
 const baseUrl='http://127.0.0.1:5174/';
 const vessels=['barque','brig','brigantine','caravel','carrack','cutter','first-rate','fluyt','frigate','galleon','junk','pinnace','schooner','sloop','snow','xebec'];
+const args=process.argv.slice(2);
+const shipFlag=args.indexOf('--ship');
+const requestedShip=shipFlag>=0?args[shipFlag+1]:null;
+if(shipFlag>=0&&!requestedShip)throw new Error('Usage: npm run visual-audit -- --ship <vessel-id>');
+if(requestedShip&&!vessels.includes(requestedShip))throw new Error('Unknown vessel "'+requestedShip+'". Valid ids: '+vessels.join(', '));
+const selectedVessels=requestedShip?[requestedShip]:vessels;
 let viteOutput='';
 const vite=spawn(process.execPath,[viteCli,'--host','127.0.0.1','--port','5174','--strictPort'],{cwd:projectDir,stdio:['ignore','pipe','pipe']});
 vite.stdout.on('data',c=>viteOutput+=c.toString());
@@ -29,10 +35,10 @@ try{
  const page=await browser.newPage({viewport:{width:1600,height:1050},deviceScaleFactor:1});
  const errors=[];
  page.on('pageerror',e=>errors.push(e.message));
- await page.goto(baseUrl,{waitUntil:'domcontentloaded',timeout:30000});
+ await page.goto(requestedShip?baseUrl+'?ship='+encodeURIComponent(requestedShip):baseUrl,{waitUntil:'domcontentloaded',timeout:30000});
  await page.waitForFunction(()=>document.querySelectorAll('#ship-select option').length>=16,{timeout:30000});
  const report=[];
- for(const id of vessels){
+ for(const id of selectedVessels){
   await page.locator('#ship-select').selectOption(id);
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '),{timeout:30000});
   await delay(900);
@@ -46,7 +52,7 @@ try{
   report.push({id,...metrics});
  }
  await page.locator('details.section-card').filter({hasText:'Viewport & camera'}).locator('summary').click();
- const cameraViews=[['galleon','side'],['carrack','side'],['first-rate','side'],['brig','side'],['schooner','side'],['sloop','side'],['snow','side'],['junk','top'],['xebec','top'],['fluyt','top']];
+ const cameraViews=requestedShip?[[requestedShip,'side'],[requestedShip,'bow'],[requestedShip,'stern'],[requestedShip,'top']]:[['galleon','side'],['carrack','side'],['first-rate','side'],['brig','side'],['schooner','side'],['sloop','side'],['snow','side'],['junk','top'],['xebec','top'],['fluyt','top']];
  for(const [id,angle] of cameraViews){
   await page.locator('#ship-select').selectOption(id);
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
@@ -56,8 +62,8 @@ try{
  }
  assert.deepEqual(errors,[],'Browser page errors: '+errors.join(' | '));
  const fs=await import('node:fs/promises');
- await fs.writeFile(join(outputDir,'report.json'),JSON.stringify({vessels:report,errors},null,2));
- console.log('Captured front-quarter views of all 16 vessels plus 10 targeted side/top rig views.');
+ await fs.writeFile(join(outputDir,'report.json'),JSON.stringify({vessels:report,errors,selectedVessels,cameraViews},null,2));
+ console.log('Captured the selected vessel set plus targeted camera views.');
  console.log(JSON.stringify(report,null,2));
 }finally{
  if(browser)await browser.close();

@@ -3,11 +3,12 @@
 This workspace is deliberately isolated under `ForTests/`. The main game and
 its ship implementation are not changed by this refactor.
 
-All 16 vessel types now generate their geometry independently. Each file in
-`ships/vessels/` owns its own hull breadth and cross-section mathematics,
-surface loft, deck plan, framing/planking, stern, bow, rudder/helm, railings,
-anchors, deck fittings, and rig/sail construction. A vessel does not pass its
-specification into a generic ship geometry engine.
+All 16 vessel types generate their geometry independently. The first five
+pilot vessels (barque, brig, brigantine, caravel and carrack) now use
+component-first folders under `ships/vessels/<id>/`; each has its own
+architecture blueprint and separate ship-local component generators. The
+remaining eleven vessel modules retain their independent single-file layout.
+No vessel passes its specification into a generic ship geometry engine.
 
 ## Layout
 
@@ -44,12 +45,13 @@ ForTests/
 
 ## Per-vessel generation
 
-Each vessel module contains its historical/reference notes, dimensions,
-hull/structure proportions, and complete geometry-generation functions. The
-sixteen hull breadth algorithms are separately authored; hull section math,
-stern treatment, bow arrangement, rig layout, and fittings are local to each
-vessel file. To change a galleon, edit `ships/vessels/galleon.js`; that does
-not route through a central hull or ship builder.
+Each vessel owns its historical/reference notes, dimensions, and
+hull/structure proportions. For the five pilot vessels, edit the relevant
+component generator inside `ships/vessels/<id>/generators/` and update
+`architecture/layout.js` when mount points, dependencies or assembly order
+change. For the other eleven, edit that vessel's module (for example
+`ships/vessels/galleon.js`). The registry only selects the vessel-specific
+module; it does not provide a shared geometry builder.
 
 The shared directory is intentionally limited to support code:
 
@@ -78,28 +80,106 @@ sixteen generator modules and exposes the editor API.
 - Save/import/export JSON designs and capture the viewport as a PNG.
 - Toggle wireframe, grid and shadows.
 
-## Setup
+## Local setup on Windows
 
-Requires Node.js 22+, npm, and a WebGL-capable browser.
+Requirements: Node.js 22 or newer, npm, Git, and a WebGL-capable browser.
+The existing project checkout is assumed to be `D:\Projects\VerdantReach`.
+
+Open PowerShell and switch to the shipyard branch:
 
 ```powershell
 cd D:\Projects\VerdantReach
+git status --short
 git fetch origin
-git switch --track -c chatgpt-v0.8.7-independent-vessel-generators origin/chatgpt-v0.8.7-independent-vessel-generators
-git pull --ff-only origin chatgpt-v0.8.7-independent-vessel-generators
-cd ForTests
-npm install
+git switch chatgpt-v0.8.8-vessel-form-refinement
+git pull --ff-only origin chatgpt-v0.8.8-vessel-form-refinement
+```
+
+If Git says the local branch does not exist, use this once instead of the
+`git switch` line:
+
+```powershell
+git switch --track -c chatgpt-v0.8.8-vessel-form-refinement origin/chatgpt-v0.8.8-vessel-form-refinement
+```
+
+Install the shipyard dependencies (first setup, or after dependency changes):
+
+```powershell
+cd D:\Projects\VerdantReach\ForTests
+npm install --no-audit --no-fund
+```
+
+Run the quick checks before opening the editor:
+
+```powershell
 npm run check:modules
 npm test
 npm run build
-npx playwright install chromium
-npm run smoke
+```
+
+Start the local preview:
+
+```powershell
 npm run dev
 ```
 
-Open `http://127.0.0.1:5174/`. Experiments are saved in
-`design-overrides.json`; they do not rewrite the base vessel definition.
+Open `http://127.0.0.1:5174/`. Leave that PowerShell window running while
+using the studio; press `Ctrl+C` there to stop the server.
 
+### Open a vessel directly
+
+The preview supports direct-review links:
+
+- Barque side: `http://127.0.0.1:5174/?ship=barque&camera=side`
+- Barque bow: `http://127.0.0.1:5174/?ship=barque&camera=bow`
+- Barque stern: `http://127.0.0.1:5174/?ship=barque&camera=stern`
+- Barque top: `http://127.0.0.1:5174/?ship=barque&camera=top`
+
+Add `&part=hull` (or another component name) to preselect a component. Supported
+camera values are `side`, `bow`, `stern`, and `top`.
+
+### Run a focused visual audit
+
+Install Playwright's Chromium browser once:
+
+```powershell
+npx playwright install chromium
+```
+
+Stop the manually running preview with `Ctrl+C`, then run:
+
+```powershell
+npm run audit:barque
+```
+
+The script starts its own Vite server and writes screenshots plus
+`visual-audit/report.json` inside `ForTests/`. It captures a front-quarter
+view and side, bow, stern and top views for Barque. To inspect another vessel,
+run `npm run audit:vessel -- brig` (or another vessel id). To audit the whole
+fleet, run `npm run visual-audit`.
+
+Experiments are saved in `design-overrides.json`; they do not rewrite the
+base vessel definitions. Keep this file local unless you deliberately intend
+to commit your saved design adjustments.
+
+## Barque-first review pass
+
+Start with the Barque before changing the other four component-first vessels:
+
+1. **Side** — length-to-beam impression, keel rocker, sheer, bow entry,
+   counter/stern overhang, rudder position, and mast rake/spacing.
+2. **Top** — maximum beam position, bow taper, stern run, deck area, mast
+   stations, yard widths, and sail overlap.
+3. **Bow and stern** — stem rake, bowsprit alignment, transom/counter width,
+   aft-cabin silhouette, gallery and rudder clearance.
+4. **Rigging** — square courses and upper sails on fore/main, fore-and-aft
+   mizzen, stays, shrouds, and headsail spacing.
+5. **Components** — select hull, deck, each mast, sails, rudder and stern
+   cabin in the part inspector to confirm they remain independently editable.
+
+Record visual issues before changing formulas. The current model is a
+parametric reconstruction, not museum-scanned CAD; check the reference notes
+before changing historically significant hull or rig proportions.
 
 ## Visual refinement pass — 0.8.8
 
