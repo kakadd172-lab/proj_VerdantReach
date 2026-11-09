@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 export const SnowDefinition = defineVesselSpec({
   editorModulePath: 'ForTests/ships/vessels/snow/snow.js',
   id: 'snow',
@@ -21,7 +22,7 @@ export const SnowDefinition = defineVesselSpec({
     headsails: 2, oars: false,
   },
   structure: { frameCount: 28, beamStation: .50, forebody: .91, aftbody: 1.08, foreTip: .004, aftTip: .07, bottomFlat: .29, bilge: .17, flare: .1, tumble: .09, sheer: 1.04, lowerMastRatio: .64, shroudPairs: 3, ratlines: 9, yardSpread: .98 },
-});
+}, EDITOR_DEFAULTS);
 
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
@@ -87,6 +88,7 @@ function assembleSnow(vessel,componentTransforms={},savedState={}){
 }
 export function createSnowModel(componentTransforms={},savedState={}){return assembleSnow(resolveVesselForGeneration(SnowDefinition),componentTransforms,savedState);}
 export function generateSnow(componentTransforms={},savedState={}){return createSnowModel(componentTransforms,savedState);}
-export const Snow=Object.freeze({id:SnowDefinition.id,definition:SnowDefinition,design:SnowDefinition.design,structure:SnowDefinition.structure,editorModulePath:SnowDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createSnowModel,generate:generateSnow});
+export const Snow=Object.freeze({id:SnowDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,definition:SnowDefinition,design:SnowDefinition.design,structure:SnowDefinition.structure,editorModulePath:SnowDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createSnowModel,generate:generateSnow});
 export const id=Snow.id,design=Snow.design,structure=Snow.structure,createModel=Snow.createModel,generate=Snow.generate;
 export default Snow;

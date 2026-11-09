@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 export const FrigateDefinition = defineVesselSpec({
  editorModulePath: 'ForTests/ships/vessels/frigate/frigate.js',
   id: 'frigate',
@@ -21,7 +22,7 @@ export const FrigateDefinition = defineVesselSpec({
     headsails: 4, oars: false,
   },
   structure: { frameCount: 36, beamStation: .52, forebody: 1.13, aftbody: 1.14, foreTip: .002, aftTip: .08, bottomFlat: .22, bilge: .11, flare: .05, tumble: .19, sheer: .9, lowerMastRatio: .66, shroudPairs: 4, ratlines: 11, yardSpread: 1.08 },
-});
+}, EDITOR_DEFAULTS);
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
 import { FRIGATE_ARCHITECTURE } from './architecture/layout.js';
@@ -69,6 +70,7 @@ function assembleFrigate(vessel,componentTransforms={},savedState={}){const desi
 };for(const k of ARCHITECTURE.assemblyOrder){const g=generators[k];if(typeof g!=="function")throw new Error('frigate: missing assembly instruction '+k);g();}const root=finishShipModel(ctx,componentTransforms,savedState);root.userData.shipArchitecture = ARCHITECTURE;root.userData.shipAssemblyOrder=[...ARCHITECTURE.assemblyOrder];return root;}
 export function createFrigateModel(componentTransforms={},savedState={}){return assembleFrigate(resolveVesselForGeneration(FrigateDefinition),componentTransforms,savedState);}
 export function generateFrigate(componentTransforms={},savedState={}){return createFrigateModel(componentTransforms,savedState);}
-export const Frigate=Object.freeze({id:FrigateDefinition.id,definition:FrigateDefinition,design:FrigateDefinition.design,structure:FrigateDefinition.structure,editorModulePath:FrigateDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createFrigateModel,generate:generateFrigate});
+export const Frigate=Object.freeze({id:FrigateDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,definition:FrigateDefinition,design:FrigateDefinition.design,structure:FrigateDefinition.structure,editorModulePath:FrigateDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createFrigateModel,generate:generateFrigate});
 export const id=Frigate.id,design=Frigate.design,structure=Frigate.structure,createModel=Frigate.createModel,generate=Frigate.generate;
 export default Frigate;

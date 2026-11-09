@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 import { defineVesselSpec } from '../../shared/vessel-definition.js';
 /**
  * barque — standalone ship definition and independent geometry generator.
@@ -28,7 +29,7 @@ export const BarqueDefinition = defineVesselSpec({
     headsails: 3, oars: false,
   },
   structure: { frameCount: 32, beamStation: .52, forebody: .9, aftbody: 1.01, foreTip: .005, aftTip: .10, bottomFlat: .34, bilge: .22, flare: .09, tumble: .08, sheer: .99, lowerMastRatio: .64, shroudPairs: 3, ratlines: 10, yardSpread: 1.02 },
-});
+}, EDITOR_DEFAULTS);
 
 
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
@@ -129,6 +130,7 @@ export function generateBarque(componentTransforms={},savedState={}) {
 }
 export const Barque = Object.freeze({
   id: BarqueDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,
   definition: BarqueDefinition,
   design: BarqueDefinition.design,
   structure: BarqueDefinition.structure,

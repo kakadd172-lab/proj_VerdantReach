@@ -1,3 +1,4 @@
+import EDITOR_DEFAULTS from './editor-defaults.js';
 export const CutterDefinition = defineVesselSpec({
   editorModulePath: 'ForTests/ships/vessels/cutter/cutter.js',
   id: 'cutter',
@@ -17,7 +18,7 @@ export const CutterDefinition = defineVesselSpec({
     headsails: 4, oars: false,
   },
   structure: { frameCount: 21, beamStation: .47, forebody: .69, aftbody: 1.04, foreTip: .003, aftTip: .045, bottomFlat: .16, bilge: .09, flare: .17, tumble: .025, sheer: 1.14, lowerMastRatio: .61, shroudPairs: 2, ratlines: 8, yardSpread: .96 },
-});
+}, EDITOR_DEFAULTS);
 
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
@@ -77,6 +78,7 @@ function assembleCutter(vessel,componentTransforms={},savedState={}){
 }
 export function createCutterModel(componentTransforms={},savedState={}){return assembleCutter(resolveVesselForGeneration(CutterDefinition),componentTransforms,savedState);}
 export function generateCutter(componentTransforms={},savedState={}){return createCutterModel(componentTransforms,savedState);}
-export const Cutter=Object.freeze({id:CutterDefinition.id,definition:CutterDefinition,design:CutterDefinition.design,structure:CutterDefinition.structure,editorModulePath:CutterDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createCutterModel,generate:generateCutter});
+export const Cutter=Object.freeze({id:CutterDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,definition:CutterDefinition,design:CutterDefinition.design,structure:CutterDefinition.structure,editorModulePath:CutterDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createCutterModel,generate:generateCutter});
 export const id=Cutter.id,design=Cutter.design,structure=Cutter.structure,createModel=Cutter.createModel,generate=Cutter.generate;
 export default Cutter;
