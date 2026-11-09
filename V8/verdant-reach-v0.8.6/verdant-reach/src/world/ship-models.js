@@ -1,2 +1,2 @@
-/** Compatibility facade for the shared procedural ship builder. */
-export * from './ships/core/ship-model-builder.js?v=0.8.6';
+/** Compatibility facade for independent component-first vessel generators. */
+export * from './ships/core/ship-model-builder.js?v=0.8.10';
