@@ -13,6 +13,16 @@ test('save writes a validated module beside the vessel generator',async()=>{
   assert.ok(f.includes('verdant-reach-vessel-defaults'));assert.ok(f.includes('"hullLength": 16.1'));assert.ok(f.includes('"x": 0.25'));assert.equal((await readFile(join(root,'design-overrides.json'),'utf8')).trim(),'{}');
  }finally{await rm(root,{recursive:true,force:true});}
 });
+test('save accepts legitimate viewport transforms beyond the old narrow editor limits',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'verdant-shipyard-'));try{
+  const h=attach(root),r=await request(h.get('/__ship-editor/save'),'POST',{ships:{sloop:{
+   partState:{rudderAngle:0,partTransforms:{hull:{x:42,y:-31,z:0,rx:Math.PI*2,ry:0,rz:0,sx:25,sy:1,sz:1}},hiddenParts:{},unlinkedParts:[],sailTrim:{},sailDeployment:{},mastLean:{}}
+  }}});
+  assert.equal(r.status,200);assert.equal(r.body.saved,true);
+  const f=await readFile(join(root,'ships','vessels','sloop','editor-defaults.js'),'utf8');
+  assert.ok(f.includes('"x": 42'));assert.ok(f.includes('"sx": 25'));
+ }finally{await rm(root,{recursive:true,force:true});}
+});
 test('save rejects traversal IDs and invalid transform values',async()=>{
  const root=await mkdtemp(join(tmpdir(),'verdant-shipyard-'));try{const h=attach(root),a=await request(h.get('/__ship-editor/save'),'POST',{ships:{'../outside':{design:{},structure:{},partState:{}}}});assert.equal(a.status,400);
   const b=await request(h.get('/__ship-editor/save'),'POST',{ships:{sloop:{partState:{partTransforms:{hull:{x:999}}}}}});assert.equal(b.status,400);

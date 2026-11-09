@@ -21,7 +21,7 @@ function booleanMap(v,label){if(!isRecord(v))throw new Error(label+' must be an 
 function transformMap(v){
  if(!isRecord(v))throw new Error('componentState.partTransforms must be an object');const out={};
  for(const [name,t] of Object.entries(v)){safeName(name,'component name');if(!isRecord(t))throw new Error('Invalid transform for '+name);const clean={};
-  for(const k of transformKeys){if(t[k]===undefined)continue;if(typeof t[k]!=='number'||!Number.isFinite(t[k]))throw new Error('Invalid '+k+' transform for '+name);const scale=k[0]==='s',rotation=k.startsWith('r'),min=scale?0.05:(rotation?-Math.PI:-24),max=scale?20:(rotation?Math.PI:24);if(t[k]<min||t[k]>max)throw new Error('Out-of-range '+k+' transform for '+name);clean[k]=t[k];}
+  for(const k of transformKeys){if(t[k]===undefined)continue;if(typeof t[k]!=='number'||!Number.isFinite(t[k]))throw new Error('Invalid '+k+' transform for '+name);const scale=k[0]==='s',rotation=k.startsWith('r'),min=scale?0.001:(rotation?-Math.PI*1000:-1000),max=scale?1000:(rotation?Math.PI*1000:1000);if(t[k]<min||t[k]>max)throw new Error('Out-of-range '+k+' transform for '+name);clean[k]=t[k];}
   out[name]=clean;
  }return out;
 }
@@ -47,7 +47,9 @@ export function shipEditorSavePlugin(){return {name:'verdant-reach-persistent-ve
  const root=server.config.root;
  server.middlewares.use('/__ship-editor/save',async(req,res)=>{if(req.method!=='POST')return sendJson(res,405,{error:'Method not allowed'});try{
   const payload=await readRequest(req),ships=payload&&payload.ships?payload.ships:payload;if(!isRecord(ships))throw new Error('Expected a ships object');const entries=Object.entries(ships);if(!entries.length)throw new Error('There are no vessel configurations to save');
-  const written=[];for(const [id,config] of entries)written.push(await writeDefaults(root,id,sanitizeConfig(id,config)));await fs.writeFile(path.join(root,'design-overrides.json'),'{}\n','utf8');sendJson(res,200,{saved:true,vessels:written.length,files:written});
+  const prepared=entries.map(([id,config])=>{try{return [id,sanitizeConfig(id,config)];}catch(error){throw new Error(id+': '+error.message);}});
+  const written=[];for(const [id,defaults] of prepared)written.push(await writeDefaults(root,id,defaults));
+  await fs.writeFile(path.join(root,'design-overrides.json'),'{}\n','utf8');sendJson(res,200,{saved:true,vessels:written.length,files:written});
  }catch(error){sendJson(res,400,{saved:false,error:error.message});}});
  server.middlewares.use('/__ship-editor/reset',async(req,res)=>{if(req.method!=='POST')return sendJson(res,405,{error:'Method not allowed'});try{
   const payload=await readRequest(req),id=payload&&payload.shipId;if(typeof id!=='string'||!allowedShips.has(id))throw new Error('Unknown vessel ID: '+String(id));const file=await writeDefaults(root,id,emptyDefaults(id)),legacyPath=path.join(root,'design-overrides.json');

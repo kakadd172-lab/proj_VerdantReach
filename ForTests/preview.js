@@ -873,8 +873,9 @@ async function saveDesign(){
   const button=document.querySelector('#save-design');if(button)button.disabled=true;
   try{
     const response=await fetch('/__ship-editor/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(buildExport())});
-    if(!response.ok)throw new Error('Local save endpoint returned '+response.status);
-    const result=await response.json();if(!result.saved)throw new Error(result.error||'The local server did not confirm the save.');
+    let result={};
+    try{result=await response.json();}catch{result={};}
+    if(!response.ok||!result.saved)throw new Error(result.error||('Local save endpoint returned HTTP '+response.status+'.'));
     hasUnsavedChanges=false;updateSaveIndicator();setStatus('Saved '+result.vessels+' per-vessel default modules. Reloading from those source files…');window.location.reload();
   }catch(error){setStatus('Save failed. Your edits remain in this editor; use Export backup as an additional copy. '+error.message,true);}
   finally{if(button)button.disabled=false;}
