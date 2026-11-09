@@ -86,11 +86,11 @@ try{
  await page.mouse.up();
  await page.waitForFunction(()=>{
   const label=document.querySelector('#selection-count')?.textContent||'';
-  const count=Number(label.match(/^\\s*(\\d+)/)?.[1]||0);
+  const count=Number(label.match(/^\s*(\d+)/)?.[1]||0);
   return count>1;
  },{timeout:8000});
  const marqueeSelection=await page.locator('#selection-count').textContent();
- assert.ok(Number(marqueeSelection.match(/^\\s*(\\d+)/)?.[1]||0)>1,'A viewport drag should select multiple Sloop components.');
+ assert.ok(Number(marqueeSelection.match(/^\s*(\d+)/)?.[1]||0)>1,'A viewport drag should select multiple Sloop components.');
  await page.locator('#clear-selection').click();
  await page.locator('#box-select-toggle').click();
 
