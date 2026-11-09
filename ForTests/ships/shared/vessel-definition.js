@@ -2,7 +2,7 @@
  * Common APIs for independent ForTests ship definitions.
  * No vessel catalogue is stored here; the definitions live in vessels/<id>.js.
  */
-export const SHIP_CATALOGUE_VERSION='0.8.8';
+export const SHIP_CATALOGUE_VERSION='0.8.9';
 export const SHIP_DESIGN_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
 export const SHIP_STRUCTURE_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
 export const WORLD_UNITS_PER_METRE=4/3;
@@ -49,7 +49,7 @@ function prepareDesign(data,structure){
  modelScaleNote:data.modelScaleNote??'Dimensions are historical reference values where stated; rig heights and unrecorded details are reconstruction estimates.',
  hullFormNote:data.hullFormNote??'Original parametric hull loft informed by the cited vessel type; not a traced CAD or surviving lines plan.'});
 }
-export function defineVesselSpec(value){
+export function defineVesselSpec(value,editorDefaults={}){
  if(!value||typeof value.id!=='string'||!value.id)throw new TypeError('Vessel id is required.');
  if(value.design?.id!==value.id)throw new TypeError('Vessel design id must match '+value.id+'.');
  if(!Number.isFinite(value.structure?.frameCount))throw new TypeError('Vessel '+value.id+' requires a frame count.');
@@ -57,13 +57,14 @@ export function defineVesselSpec(value){
  if(!Array.isArray(value.design?.sternTiers))throw new TypeError('Vessel '+value.id+' requires a stern profile.');
  if(!value.design.keelDetails||!value.design.rudderDetails)throw new TypeError('Vessel '+value.id+' requires keel and rudder details.');
  return deepFreeze({id:value.id,design:clone(value.design),structure:clone(value.structure),
- editorModulePath:value.editorModulePath??('ForTests/ships/vessels/'+value.id+'.js'),gameDefinitionPath:'src/world/ships/vessels/'+value.id+'.js'});
+ editorModulePath:value.editorModulePath??('ForTests/ships/vessels/'+value.id+'.js'),gameDefinitionPath:'src/world/ships/vessels/'+value.id+'.js',editorDefaults:deepFreeze(clone(editorDefaults||{}))});
 }
 export function getResolvedVesselDefinition(spec){
  if(!spec?.id)return null;
- const design=mergeData(spec.design,designOverrides.get(spec.id)||{});
- const structure=deepFreeze(mergeData(spec.structure,structureOverrides.get(spec.id)||{}));
- return deepFreeze({id:spec.id,design:prepareDesign(design,structure),structure,editorModulePath:spec.editorModulePath,gameDefinitionPath:spec.gameDefinitionPath});
+ const persisted=spec.editorDefaults||{};
+ const design=mergeData(mergeData(spec.design,persisted.design||{}),designOverrides.get(spec.id)||{});
+ const structure=deepFreeze(mergeData(mergeData(spec.structure,persisted.structure||{}),structureOverrides.get(spec.id)||{}));
+ return deepFreeze({id:spec.id,design:prepareDesign(design,structure),structure,editorModulePath:spec.editorModulePath,gameDefinitionPath:spec.gameDefinitionPath,editorDefaults:persisted});
 }
 export const getShipDesignFromSpec=spec=>getResolvedVesselDefinition(spec)?.design??null;
 export const getShipStructureFromSpec=spec=>getResolvedVesselDefinition(spec)?.structure??null;

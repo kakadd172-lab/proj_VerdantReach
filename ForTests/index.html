@@ -32,7 +32,9 @@
     .brand-copy span{display:block;margin-top:2px;color:var(--dim);font-size:10px}
     .header-meta{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:11px}
     .version-pill{padding:6px 9px;border:1px solid var(--line);border-radius:99px;color:var(--sage);font-size:10px;letter-spacing:.06em}
-    .header-actions{display:flex;gap:7px}
+    .header-actions{display:flex;align-items:center;gap:7px}
+    .save-state{padding:6px 8px;border:1px solid var(--line);border-radius:8px;color:var(--sage);font-size:9px;white-space:nowrap}
+    .save-state.dirty{border-color:rgba(216,191,142,.55);color:#e2c58e;background:rgba(216,191,142,.07)}
     .shell{display:grid;grid-template-columns:minmax(0,1fr) 390px;min-height:calc(100vh - 66px)}
     .viewport-wrap{position:relative;min-width:0;min-height:calc(100vh - 66px);overflow:hidden;background:radial-gradient(ellipse at 50% 42%,#263c3d 0%,#172627 45%,#0d1517 100%)}
     #viewport{position:absolute;inset:0;overflow:hidden}
@@ -113,8 +115,8 @@
       <div class="brand-mark" aria-hidden="true">✦</div>
       <div class="brand-copy"><strong>Verdant Reach Shipyard</strong><span>Modular fleet design studio</span></div>
     </div>
-    <div class="header-meta"><span class="version-pill">SHIP STUDIO · v0.8.8</span><span>Local design workspace</span></div>
-    <div class="header-actions"><button id="save-design" class="btn primary" type="button">Save changes</button><button id="export-design" class="btn" type="button">Export JSON</button></div>
+    <div class="header-meta"><span class="version-pill">SHIP STUDIO · v0.8.9</span><span>Local design workspace</span></div>
+    <div class="header-actions"><span id="save-state" class="save-state">Vessel files saved</span><button id="save-design" class="btn primary" type="button">Save to ship files</button><button id="export-design" class="btn" type="button">Export backup</button></div>
   </header>
 
   <main class="shell">
@@ -253,7 +255,8 @@
             <button id="export-design-secondary" class="btn" type="button">Export backup</button>
           </div>
           <input id="import-file" class="hidden-input" type="file" accept=".json,application/json"/>
-          <p class="note">Import accepts this editor's exported JSON or a saved design-overrides.json file. It does not modify the base vessel modules.</p>
+          <button id="restore-generator-defaults" class="btn danger" style="width:100%;margin-top:8px" type="button">Restore generator originals for this vessel</button>
+          <p class="note">Import creates an editable draft. Save writes a dedicated editor-defaults.js file inside each vessel's own folder. Export creates a portable full-fleet backup. Restore clears the selected vessel's editor defaults without touching its independent part generators.</p>
         </div>
       </details>
 

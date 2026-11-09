@@ -17,7 +17,7 @@ const [css,gameHtml]=await Promise.all([
 const requiredIds=[
   'viewport','ship-select','part-select','undo','redo','position-fields','rotation-fields',
   'scale-fields','design-controls','length','beam','draft','masts','parts','description',
-  'save-design','export-design','status','part-size','part-parent','part-meshes','part-materials',
+  'save-design','export-design','save-state','restore-generator-defaults','status','part-size','part-parent','part-meshes','part-materials',
   'compare-select','compare-summary','measure-toggle','clear-measurement','measurement-value',
   'section-toggle','section-slider','section-value','import-design','import-file',
   'capture-preview','viewport-fullscreen','viewport-readout','box-select-toggle','clear-selection','selection-count',
@@ -49,7 +49,12 @@ test('the shipyard page keeps its vessel choice, parameter, and save workflow ta
   assert.ok(html.includes('data-mode="scale"'));
   assert.ok(html.includes('id="design-controls"'));
   assert.ok(html.includes('id="save-design"'));
+  assert.ok(html.includes('Save to ship files'));
   assert.ok(html.includes('id="export-design"'));
+  assert.ok(html.includes('id="restore-generator-defaults"'));
+  assert.ok(preview.includes('function effectiveVesselConfig(id)'));
+  assert.ok(preview.includes("fetch('/__ship-editor/save'"));
+  assert.ok(preview.includes("fetch('/__ship-editor/reset'"));
 });
 
 test('the refreshed game title menu keeps every original launch and save control',()=>{

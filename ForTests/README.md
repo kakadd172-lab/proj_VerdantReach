@@ -158,9 +158,31 @@ view and side, bow, stern and top views for Barque. To inspect another vessel,
 run `npm run audit:vessel -- brig` (or another vessel id). To audit the whole
 fleet, run `npm run visual-audit`.
 
-Experiments are saved in `design-overrides.json`; they do not rewrite the
-base vessel definitions. Keep this file local unless you deliberately intend
-to commit your saved design adjustments.
+### Persistent vessel authoring
+
+Each vessel folder contains an `editor-defaults.js` module alongside its own
+`<vessel>.js`, `architecture/`, and `generators/` files. The vessel definition
+imports that defaults module, and the shared model lifecycle applies its design,
+structure and component-state defaults when that vessel is generated.
+
+Use **Save to ship files** in the local editor to write the effective design of
+all vessels into their own `ships/vessels/<id>/editor-defaults.js` files. The
+local Vite save endpoint validates vessel IDs, component names, transform values
+and state types before writing. It writes each module atomically and clears the
+old shared `design-overrides.json` migration file after a successful save. The
+editor reloads from the saved modules, so the preview checks the files that will
+actually be committed.
+
+**Export backup** downloads a full-fleet JSON backup; it does not write project
+files. **Import JSON** loads a draft into the editor; it does not write project
+files until Save is pressed. **Restore generator originals** replaces only the
+selected vessel's `editor-defaults.js` with an empty defaults manifest. It does
+not modify that vessel's part-generator source.
+
+Component transforms, visibility, detachment, sail deployment/trim, mast lean,
+rudder state and design/structure overrides are stored as data defaults. They
+remain isolated to the corresponding vessel. Edits to geometry algorithms still
+belong in that vessel's individual `generators/` files.
 
 ## Barque-first review pass
 
@@ -180,6 +202,12 @@ Start with the Barque before changing the other four component-first vessels:
 Record visual issues before changing formulas. The current model is a
 parametric reconstruction, not museum-scanned CAD; check the reference notes
 before changing historically significant hull or rig proportions.
+
+## Visual refinement pass — 0.8.9
+
+The editor now writes validated per-vessel defaults modules, loads those modules
+as part of each vessel's generator lifecycle, supports full-fleet backup/import,
+and can restore one vessel to its original generator defaults.
 
 ## Visual refinement pass — 0.8.8
 

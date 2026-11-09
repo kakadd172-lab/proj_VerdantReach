@@ -21,6 +21,7 @@ export const VESSEL_MODULE_LIST=Object.freeze([Sloop,Schooner,Brigantine,Brig,Sn
 export const VESSEL_MODULES=Object.freeze(Object.fromEntries(VESSEL_MODULE_LIST.map(v=>[v.id,v])));
 export const VESSEL_IDS=Object.freeze(VESSEL_MODULE_LIST.map(v=>v.id));
 export const VESSEL_SPECS=Object.freeze(Object.fromEntries(VESSEL_MODULE_LIST.map(v=>[v.id,v.definition])));
+export const VESSEL_EDITOR_DEFAULTS=Object.freeze(Object.fromEntries(VESSEL_MODULE_LIST.map(v=>[v.id,v.editorDefaults])));
 export const SHIP_DESIGNS=Object.freeze(Object.fromEntries(VESSEL_MODULE_LIST.map(v=>[v.id,v.design])));
 export const HISTORICAL_SHIP_KINDS=Object.freeze(VESSEL_IDS.map(id=>'ship-'+id));
 export {SHIP_DESIGN_MODULE_VERSION,SHIP_STRUCTURE_MODULE_VERSION,SHIP_PART_BASE_NAMES,SHIP_EDITOR_KIT_VERSION,disposeShipModel};

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.8';
+export const SHIP_EDITOR_KIT_VERSION='0.8.9';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -23,7 +23,7 @@ function createMaterials(palette={}){
 }
 export function createShipContext(vessel,palette={}){
  if(!vessel?.design||!vessel?.structure)throw new TypeError('A resolved vessel definition is required.');
- const design={...vessel.design,structure:vessel.structure},root=new THREE.Group();
+ const design={...vessel.design,structure:vessel.structure},root=new THREE.Group(),editorDefaults=vessel.editorDefaults??{};
  root.name='Verdant Reach · '+design.label;
  const materials=createMaterials(palette),registry=new Map();
  function part(name,parent=root){
@@ -53,7 +53,7 @@ export function createShipContext(vessel,palette={}){
  root.userData.shipDimensionsUnits={length:design.hullLengthUnits,beam:design.beamUnits,draft:design.draftUnits};
  root.userData.deckHeightUnits=design.deckHeightUnits;root.userData.deckHeight=design.deckHeightUnits;
  root.userData.vehicle={mode:'boat',vesselType:design.id,deckHeight:design.deckHeightUnits,label:'Board '+design.label};
- return {THREE,V,clamp,design,root,materials,registry,part,mesh,beam,tube,box};
+ return {THREE,V,clamp,design,root,materials,registry,part,mesh,beam,tube,box,editorDefaults};
 }
 function setupPartApi(root,registry,design){
  const unlinked=new THREE.Group();unlinked.name='unlinked-parts';root.add(unlinked);
@@ -98,7 +98,15 @@ export function finishShipModel(ctx,transforms={},saved={}){
  const geometries=new Set(),used=new Set(Object.values(materials));
  root.traverse(o=>{if(!o.isMesh)return;if(o.geometry)geometries.add(o.geometry);if(Array.isArray(o.material))o.material.forEach(m=>used.add(m));else if(o.material)used.add(o.material);o.userData.shipOwned=true;});
  root.userData.ownedGeometries=[...geometries];root.userData.ownedMaterials=[...used];
- const partTransforms=transforms&&Object.keys(transforms).length?transforms:(saved?.partTransforms||{}),state={...(saved||{}),partTransforms};
+ const defaults=ctx.editorDefaults?.componentState||{},patch=saved||{};
+ const state={...defaults,...patch};
+ for(const key of ['hiddenParts','sailTrim','sailDeployment','mastLean']){
+  state[key]=Object.prototype.hasOwnProperty.call(patch,key)?{...(patch[key]||{})}:{...(defaults[key]||{})};
+ }
+ state.unlinkedParts=Object.prototype.hasOwnProperty.call(patch,'unlinkedParts')?[...(patch.unlinkedParts||[])]:[...(defaults.unlinkedParts||[])];
+ const baseTransforms=Object.prototype.hasOwnProperty.call(patch,'partTransforms')?(patch.partTransforms||{}):(defaults.partTransforms||{});
+ const partTransforms={...baseTransforms,...(transforms||{})};
+ state.partTransforms=partTransforms;
  if(Object.keys(partTransforms).length||Object.keys(state.hiddenParts||{}).length||(state.unlinkedParts||[]).length||Object.keys(state.sailTrim||{}).length||Object.keys(state.sailDeployment||{}).length||Object.keys(state.mastLean||{}).length||Number(state.rudderAngle))api.applyShipState(state);
  return root;
 }

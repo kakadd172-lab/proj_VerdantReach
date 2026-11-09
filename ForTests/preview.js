@@ -14,8 +14,8 @@ async function bootShipStudio(){
     const overrideResponse=await fetch('./design-overrides.json',{cache:'no-store'});
     if(!overrideResponse.ok) throw new Error('Could not read design-overrides.json (HTTP '+overrideResponse.status+').');
     const DESIGN_OVERRIDES=await overrideResponse.json();
-    const shipModule=await import('./ships/index.js?v=0.8.8-modular-fleet-16');
-    const {SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
+    const shipModule=await import('./ships/index.js?v=0.8.9-persistent-vessel-authoring');
+    const {SHIP_DESIGNS,VESSEL_IDS,VESSEL_EDITOR_DEFAULTS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
       getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
       createShipModel,disposeShipModel,SHIP_MODEL_MODULE_VERSION}=shipModule;
     const apiProblems=[];
@@ -25,10 +25,11 @@ async function bootShipStudio(){
     if(typeof getShipStructureBlueprint!=='function')apiProblems.push('ships/index.js: getShipStructureBlueprint');
     if(typeof createShipModel!=='function')apiProblems.push('ships/index.js: createShipModel');
     if(typeof disposeShipModel!=='function')apiProblems.push('ships/shared/ship-editor-kit.js: disposeShipModel');
-    if(SHIP_DESIGN_MODULE_VERSION!=='0.8.8')apiProblems.push('ships/index.js design API version '+String(SHIP_DESIGN_MODULE_VERSION));
-    if(SHIP_STRUCTURE_MODULE_VERSION!=='0.8.8')apiProblems.push('ships/index.js structure API version '+String(SHIP_STRUCTURE_MODULE_VERSION));
-    if(SHIP_MODEL_MODULE_VERSION!=='0.8.8')apiProblems.push('ships/shared/ship-editor-kit.js version '+String(SHIP_MODEL_MODULE_VERSION));
+    if(SHIP_DESIGN_MODULE_VERSION!=='0.8.9')apiProblems.push('ships/index.js design API version '+String(SHIP_DESIGN_MODULE_VERSION));
+    if(SHIP_STRUCTURE_MODULE_VERSION!=='0.8.9')apiProblems.push('ships/index.js structure API version '+String(SHIP_STRUCTURE_MODULE_VERSION));
+    if(SHIP_MODEL_MODULE_VERSION!=='0.8.9')apiProblems.push('ships/shared/ship-editor-kit.js version '+String(SHIP_MODEL_MODULE_VERSION));
     if(Object.keys(SHIP_DESIGNS||{}).length!==16)apiProblems.push('ship catalogue count '+Object.keys(SHIP_DESIGNS||{}).length);
+    if(Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length!==16)apiProblems.push('per-vessel editor defaults count '+Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length);
     if(apiProblems.length){
       throw new Error('Ship module mismatch: '+apiProblems.join('; ')+'. Pull the latest ForTests files, restart Vite, then hard-refresh the preview.');
     }
@@ -138,6 +139,7 @@ let suppressCanvasClick=false;
 let activeShipId=selector.value||Object.keys(SHIP_DESIGNS)[0];
 let historyEntries=[];
 let historyCursor=0;
+let hasUnsavedChanges=false;
 let dragSnapshot=null;
 let snapEnabled=false;
 let wireframeEnabled=false;
@@ -196,6 +198,12 @@ function setStatus(message,error=false){
   status.textContent=message;
   status.style.color=error?'#e5a29b':'#a9caa6';
 }
+function updateSaveIndicator(){
+  const node=document.querySelector('#save-state');
+  if(!node)return;
+  node.textContent=hasUnsavedChanges?'Unsaved edits':'Vessel files saved';
+  node.classList.toggle('dirty',hasUnsavedChanges);
+}
 function fit(object){
   object.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(object);
@@ -214,7 +222,7 @@ function fit(object){
   const y=box.min.y-Math.max(.25,diameter*.008);
   ground.position.y=y;grid.position.y=y+.015;
 }
-function syncCurrentShipState(){
+function syncCurrentShipState(forceSnapshot=true){
   if(!ship||!activeShipId)return;
   const config=getConfig(activeShipId);
   const state=ship.userData.getShipState();
@@ -225,7 +233,7 @@ function syncCurrentShipState(){
     ||Object.keys(state.sailTrim||{}).length>0
     ||Object.keys(state.sailDeployment||{}).length>0
     ||Object.keys(state.mastLean||{}).length>0;
-  if(hasState)config.partState=clone(state);
+  if(hasState||forceSnapshot)config.partState=clone(state);
   else delete config.partState;
   if(state.partTransforms&&Object.keys(state.partTransforms).length)config.componentTransforms=clone(state.partTransforms);
   else delete config.componentTransforms;
@@ -248,6 +256,8 @@ function commitHistory(before,label='Edit'){
   historyEntries.push({before,after,label});
   if(historyEntries.length>100)historyEntries.shift();
   historyCursor=historyEntries.length;
+  hasUnsavedChanges=true;
+  updateSaveIndicator();
   refreshHistory();
   setStatus('Recorded: '+label+'.');
   return true;
@@ -647,7 +657,8 @@ function resetVesselDesign(){
   delete overrideConfig[activeShipId];
   applyOverrides();
   loadShip(activeShipId,selectedName,false,true);
-  commitHistory(before,'Reset vessel '+label+' to original design');
+  commitHistory(before,'Discard unsaved edits for '+label);
+  setStatus('Discarded unsaved edits. The last saved vessel defaults are still active.');
 }
 function toggleSnap(){
   snapEnabled=!snapEnabled;
@@ -838,28 +849,58 @@ function changeMode(mode){
   const readout=document.querySelector('#viewport-readout');
   if(readout)readout.textContent='Transform tool · '+mode.toUpperCase();
 }
+function mergePatch(base,patch){
+  if(patch===undefined)return clone(base??{});
+  if(!patch||typeof patch!=='object'||Array.isArray(patch))return clone(patch);
+  const output=clone(base&&typeof base==='object'&&!Array.isArray(base)?base:{});
+  for(const [key,value] of Object.entries(patch)){if(value&&typeof value==='object'&&!Array.isArray(value))output[key]=mergePatch(output[key],value);else output[key]=clone(value);}
+  return output;
+}
+function effectiveVesselConfig(id){
+  const source=VESSEL_EDITOR_DEFAULTS[id]||{},edits=overrideConfig[id]||{},sourceState=source.componentState||{},editState=edits.partState||{};
+  const partState={...clone(sourceState),...clone(editState)};
+  for(const key of ['partTransforms','hiddenParts','sailTrim','sailDeployment','mastLean','unlinkedParts']){
+    if(Object.prototype.hasOwnProperty.call(editState,key))partState[key]=clone(editState[key]);else if(sourceState[key]!==undefined)partState[key]=clone(sourceState[key]);
+  }
+  if(!Object.prototype.hasOwnProperty.call(editState,'partTransforms')&&edits.componentTransforms)partState.partTransforms=clone(edits.componentTransforms);
+  return {design:mergePatch(source.design||{},edits.design),structure:mergePatch(source.structure||{},edits.structure),partState,componentTransforms:clone(partState.partTransforms||{})};
+}
 function buildExport(){
-  syncCurrentShipState();
-  return {format:'verdant-reach-ship-editor',version:2,savedAt:new Date().toISOString(),ships:overrideConfig};
+  syncCurrentShipState();const ships={};for(const id of VESSEL_IDS)ships[id]=effectiveVesselConfig(id);
+  return {format:'verdant-reach-ship-editor',version:3,savedAt:new Date().toISOString(),ships};
 }
 async function saveDesign(){
+  const button=document.querySelector('#save-design');if(button)button.disabled=true;
   try{
-    const response=await fetch('/__ship-editor/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(buildExport().ships)});
+    const response=await fetch('/__ship-editor/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(buildExport())});
     if(!response.ok)throw new Error('Local save endpoint returned '+response.status);
-    const result=await response.json();
-    setStatus('Saved to ForTests/design-overrides.json · '+result.ships+' vessel configuration(s).');
-  }catch(error){setStatus('Local save unavailable. Use Export JSON instead. '+error.message,true);}
+    const result=await response.json();if(!result.saved)throw new Error(result.error||'The local server did not confirm the save.');
+    hasUnsavedChanges=false;updateSaveIndicator();setStatus('Saved '+result.vessels+' per-vessel default modules. Reloading from those source files…');window.location.reload();
+  }catch(error){setStatus('Save failed. Your edits remain in this editor; use Export backup as an additional copy. '+error.message,true);}
+  finally{if(button)button.disabled=false;}
+}
+async function restoreGeneratorDefaults(){
+  if(!activeShipId)return;const label=getShipDesign(activeShipId)?.label||activeShipId;
+  if(!window.confirm('Restore '+label+' to its original generator defaults? This clears only its editor-defaults.js file and leaves all individual part generators untouched.'))return;
+  const button=document.querySelector('#restore-generator-defaults');if(button)button.disabled=true;
+  try{
+    const response=await fetch('/__ship-editor/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shipId:activeShipId})});
+    if(!response.ok)throw new Error('Local reset endpoint returned '+response.status);
+    const result=await response.json();if(!result.saved)throw new Error(result.error||'The local server did not confirm the reset.');
+    setStatus('Restored '+label+' to the original generator defaults. Reloading…');window.location.reload();
+  }catch(error){setStatus('Could not restore generator defaults: '+error.message,true);}
+  finally{if(button)button.disabled=false;}
 }
 function exportDesign(){
-  const blob=new Blob([JSON.stringify(buildExport(),null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob),link=document.createElement('a');
-  link.href=url;link.download='verdant-reach-ship-designs.json';link.click();
-  URL.revokeObjectURL(url);
-  setStatus('Exported design configurations as JSON.');
+  const blob=new Blob([JSON.stringify(buildExport(),null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=url;link.download='verdant-reach-vessel-authoring-backup.json';link.click();URL.revokeObjectURL(url);
+  setStatus('Exported a full backup of all 16 vessels, including saved defaults and current edits.');
 }
 
 renderTransformInputs();
 refreshSelectionCount();
+updateSaveIndicator();
+window.addEventListener('beforeunload',event=>{if(!hasUnsavedChanges)return;event.preventDefault();event.returnValue='';});
 selector.addEventListener('change',()=>{
   syncCurrentShipState();
   loadShip(selector.value);
@@ -906,6 +947,7 @@ document.querySelector('#space-toggle').addEventListener('click',toggleSpace);
 document.querySelector('#snap-toggle').addEventListener('click',toggleSnap);
 document.querySelectorAll('[data-camera]').forEach(button=>button.addEventListener('click',()=>setCameraPreset(button.dataset.camera)));
 document.querySelector('#save-design').addEventListener('click',saveDesign);
+document.querySelector('#restore-generator-defaults')?.addEventListener('click',restoreGeneratorDefaults);
 document.querySelector('#export-design').addEventListener('click',exportDesign);
 document.querySelector('#export-design-secondary')?.addEventListener('click',exportDesign);
 document.querySelector('#compare-select')?.addEventListener('change',updateComparison);
@@ -947,7 +989,8 @@ document.querySelector('#import-file')?.addEventListener('change',async event=>{
       if(!ship)throw new Error('The current vessel could not be rebuilt from this file.');
     }catch(error){overrideConfig=previous;applyOverrides();loadShip(activeShipId,selectedName,false,true);throw error;}
     commitHistory(before,'Import '+file.name);
-    setStatus('Imported '+Object.keys(next).length+' vessel configuration(s) from '+file.name+'. Save to keep them in ForTests.');
+    hasUnsavedChanges=true;updateSaveIndicator();
+    setStatus('Imported '+Object.keys(next).length+' vessel configuration(s) from '+file.name+'. This is an unsaved draft; press Save to ship files to commit it.');
   }catch(error){setStatus('Import failed: '+error.message,true);}
   finally{event.target.value='';}
 });
