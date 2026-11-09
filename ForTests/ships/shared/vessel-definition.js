@@ -57,7 +57,7 @@ export function defineVesselSpec(value){
  if(!Array.isArray(value.design?.sternTiers))throw new TypeError('Vessel '+value.id+' requires a stern profile.');
  if(!value.design.keelDetails||!value.design.rudderDetails)throw new TypeError('Vessel '+value.id+' requires keel and rudder details.');
  return deepFreeze({id:value.id,design:clone(value.design),structure:clone(value.structure),
- editorModulePath:'ForTests/ships/vessels/'+value.id+'.js',gameDefinitionPath:'src/world/ships/vessels/'+value.id+'.js'});
+ editorModulePath:value.editorModulePath??('ForTests/ships/vessels/'+value.id+'.js'),gameDefinitionPath:'src/world/ships/vessels/'+value.id+'.js'});
 }
 export function getResolvedVesselDefinition(spec){
  if(!spec?.id)return null;

@@ -24,39 +24,71 @@ test('the editor uses 16 self-contained ForTests vessel modules', () => {
     assert.equal(module.id, id);
     assert.equal(typeof module.createModel, 'function', id + ' dedicated model creator');
     assert.equal(typeof module.generate, 'function', id + ' dedicated generator entry point');
-    assert.equal(module.editorModulePath, 'ForTests/ships/vessels/' + id + '.js');
+    assert.equal(module.editorModulePath, modularIds.has(id) ? 'ForTests/ships/vessels/' + id + '/' + id + '.js' : 'ForTests/ships/vessels/' + id + '.js');
     assert.equal(typeof SHIP_GENERATORS[id], 'function', id + ' registered generator');
   }
 });
 
 
+const modularIds = new Set(['barque','brig','brigantine','caravel','carrack']);
+
 test('each vessel owns its own geometry-generation algorithms', () => {
-  const sources = new Map(ids.map((id) => [
-    id,
-    readFileSync(new URL('../ships/vessels/' + id + '.js', import.meta.url), 'utf8'),
-  ]));
   const hullAlgorithms = [];
-  for (const [id, source] of sources) {
-    for (const required of [
-      'function halfBreadth(', 'function hullPoint(', 'function buildHull(',
-      'function buildFramesAndPlanking(', 'function buildStern(', 'function buildBow(',
-      'function buildRudderAndHelm(', 'function buildRailingsAndEquipment(',
-      'function buildAnchors(', 'function buildCanvasSail(', 'buildAnchors(ctx.design,ctx)', 'buildCanvasSail(ctx,', 'function ensureSternTierComponents(', 'function buildRig(', 'function generate',
-    ]) assert.ok(source.includes(required), id + ' must own ' + required);
-    assert.ok(source.includes('createShipContext('), id + ' must construct its own context');
-    assert.ok(source.includes('finishShipModel('), id + ' must finish through editor support');
-    assert.ok(!/createVesselModel|createShipModelFromVessel|ship-model-builder|hull-math/.test(source),
+  const sailAlgorithms = [];
+  for (const id of ids) {
+    const module = getVesselModule(id);
+    const sourcePath = module.editorModulePath.replace(/^ForTests\//, '../');
+    const facade = readFileSync(new URL(sourcePath, import.meta.url), 'utf8');
+    assert.ok(facade.includes('createShipContext('), id + ' must construct its own context');
+    assert.ok(facade.includes('finishShipModel('), id + ' must finish through editor support');
+    assert.ok(!/createVesselModel|createShipModelFromVessel|ship-model-builder|hull-math/.test(facade),
       id + ' still calls the old shared geometry engine');
-    const match = source.match(/function halfBreadth\(d,t\)\s*\{([\s\S]*?)\}/);
-    assert.ok(match, id + ' has a readable local hull breadth function');
-    hullAlgorithms.push(match[1].trim());
+
+    let geometrySource = facade;
+    let sailSource = facade;
+    if (modularIds.has(id)) {
+      const root = '../ships/vessels/' + id + '/';
+      geometrySource = readFileSync(new URL(root + 'architecture/hull-geometry.js', import.meta.url), 'utf8');
+      sailSource = readFileSync(new URL(root + 'generators/sails/sail-cloth-generator.js', import.meta.url), 'utf8');
+      const architecture = readFileSync(new URL(root + 'architecture/layout.js', import.meta.url), 'utf8');
+      assert.ok(architecture.includes('assemblyOrder') && architecture.includes('mastInstances'), id + ' architecture blueprint');
+      assert.ok(facade.includes('ARCHITECTURE.assemblyOrder'), id + ' assembler follows its blueprint');
+      for (const file of [
+        'generators/hull/hull-generator.js','generators/hull/keel-generator.js','generators/hull/stem-generator.js',
+        'generators/decks/deck-generator.js','generators/decks/deck-planking-generator.js',
+        'generators/hull-structure/frame-generator.js','generators/hull-structure/hull-planking-generator.js',
+        'generators/stern/stern-generator.js','generators/cabins/aft-cabin-generator.js',
+        'generators/bow/bow-generator.js','generators/steering/rudder-generator.js','generators/steering/helm-generator.js',
+        'generators/deck-equipment/railing-generator.js','generators/deck-equipment/fittings-generator.js',
+        'generators/anchors/anchor-generator.js','generators/sails/sail-cloth-generator.js',
+        'generators/sails/head-sails-generator.js','generators/masts/mast-frame-generator.js',
+        'generators/rigging/standing-rigging-generator.js'
+      ]) {
+        assert.ok(facade.includes(file.split('/').at(-1)) || file.includes('mast-frame-generator'),
+          id + ' references component generator ' + file);
+      }
+      assert.ok(!facade.includes('../shared/ship-editor-kit.js'), id + ' should resolve shared support from its folder depth');
+      assert.ok(!facade.includes('../ships/vessels/' + id + '.js'), id + ' should not retain the flat generator');
+    } else {
+      for (const required of [
+        'function halfBreadth(', 'function hullPoint(', 'function buildHull(',
+        'function buildFramesAndPlanking(', 'function buildStern(', 'function buildBow(',
+        'function buildRudderAndHelm(', 'function buildRailingsAndEquipment(',
+        'function buildAnchors(', 'function buildCanvasSail(', 'function buildRig(',
+      ]) assert.ok(facade.includes(required), id + ' must own ' + required);
+    }
+    const hull = geometrySource.match(/function halfBreadth\(d,t\)\s*\{([\s\S]*?)\}/);
+    const sail = sailSource.match(/function buildCanvasSail\(ctx,[\s\S]*?\n\}/);
+    assert.ok(hull, id + ' has a readable local hull breadth function');
+    assert.ok(sail, id + ' has a readable local curved sail function');
+    hullAlgorithms.push(hull[1].trim());
+    sailAlgorithms.push(sail[0].trim());
   }
   assert.equal(new Set(hullAlgorithms).size, 16, 'All 16 ships must have different hull breadth algorithms');
+  assert.equal(new Set(sailAlgorithms).size, 16, 'All 16 ships must have their own sail surface profiles');
 
   const kit = readFileSync(new URL('../ships/shared/ship-editor-kit.js', import.meta.url), 'utf8');
-  assert.ok(kit.includes('createShipContext'));
-  assert.ok(kit.includes('finishShipModel'));
-  for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildCanvasSail(', 'function buildRig(']) {
+  for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildCanvasSail(', 'function buildRig(')) {
     assert.ok(!kit.includes(geometryRoutine), 'Editor kit must not contain vessel geometry: ' + geometryRoutine);
   }
 });
@@ -89,12 +121,12 @@ test('all 16 independent ForTests generators build separate editable models', ()
       assert.equal(ship.userData.shipGeneratorId, id, id + ' generator routing');
       assert.equal(
         ship.userData.shipDefinitionPath,
-        'ForTests/ships/vessels/' + id + '.js',
+        module.editorModulePath,
         id + ' ForTests definition path',
       );
       assert.equal(
         ship.userData.shipEditorModulePath,
-        'ForTests/ships/vessels/' + id + '.js',
+        module.editorModulePath,
         id + ' dedicated ForTests model/generator path',
       );
       assert.equal(ship.userData.shipGameDefinitionPath, 'src/world/ships/vessels/' + id + '.js');

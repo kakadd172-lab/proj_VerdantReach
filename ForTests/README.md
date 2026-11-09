@@ -151,3 +151,12 @@ also tapered instead of using constant-diameter rods.
 The geometry tests check that generated cloth has real three-dimensional
 fullness and usable sail area, and that square lower courses remain in scale
 with each hull.
+
+
+## Component-first vessel pilot
+
+The first five vessel types in the ship catalogue (barque, brig, brigantine,
+caravel and carrack) now use per-vessel folders under
+`ships/vessels/<id>/`. Each contains a ship architecture blueprint and
+separate component generators. The other eleven vessel generators remain
+unchanged while this architecture is tested in the standalone preview.
