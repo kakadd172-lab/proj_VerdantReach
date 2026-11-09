@@ -112,7 +112,7 @@ test('Creative Shipyard retains local transform, mast and deployment controls', 
   assert.ok(css.includes('.creative-grid-two'));
 });
 
-test('v0.8.6 modular ship modules and browser entry use consistent cache revisions', () => {
+test('v0.8.6 game shell and v0.8.10 component-first ship modules use consistent cache revisions', () => {
   const html = read('index.html');
   const main = read('src/main.js');
   const ui = read('src/ui/interface.js');
@@ -122,25 +122,32 @@ test('v0.8.6 modular ship modules and browser entry use consistent cache revisio
   const structures = read('src/world/ships/core/ship-structures.js');
   const hullMath = read('src/world/ships/core/ship-hull-parameterization.js');
   const registry = read('src/world/ships/index.js');
+  const vessels = read('src/world/ships/vessels/index.js');
+  const definition = read('src/world/ships/core/vessel-definition.js');
+  const kit = read('src/world/ships/core/ship-editor-kit.js');
   assert.ok(html.includes('styles.css?v=0.8.6'));
   assert.ok(html.includes('main.js?v=0.8.6'));
   assert.ok(main.includes('creative-entities.js?v=0.8.6'));
   assert.ok(main.includes('ship-designs.js?v=0.8.6'));
   assert.ok(ui.includes('ship-designs.js?v=0.8.6'));
   assert.ok(entities.includes('ships/index.js?v=0.8.6'));
-  assert.ok(designs.includes('ship-structures.js?v=0.8.6'));
-  assert.ok(designs.includes('vessels/index.js?v=0.8.6'));
-  assert.ok(structures.includes('ship-hull-parameterization.js?v=0.8.6'));
-  assert.ok(models.includes('ship-hull-parameterization.js?v=0.8.6'));
+  assert.ok(designs.includes('vessel-definition.js?v=0.8.10'));
+  assert.ok(designs.includes('vessels/index.js?v=0.8.10'));
+  assert.ok(structures.includes('ship-hull-parameterization.js?v=0.8.10'));
+  assert.ok(structures.includes('vessel-definition.js?v=0.8.10'));
+  assert.ok(models.includes('../index.js?v=0.8.10'));
+  assert.ok(models.includes('ship-editor-kit.js?v=0.8.10'));
+  assert.ok(definition.includes("SHIP_CATALOGUE_VERSION='0.8.10'"));
+  assert.ok(kit.includes("SHIP_EDITOR_KIT_VERSION='0.8.10'"));
   assert.ok(hullMath.includes('getLongitudinalHalfBeamRatio'));
   assert.ok(hullMath.includes('getCrossSectionHalfBreadthRatio'));
   assert.ok(hullMath.includes('getKeelLineHeight'));
-  assert.ok(models.includes('ship-designs.js?v=0.8.6'));
   assert.ok(registry.includes('VESSEL_SPECS'));
   assert.ok(registry.includes('VESSEL_IDS.map'));
+  assert.ok(registry.includes('v.createModel(transforms, savedState)'));
+  assert.ok(vessels.includes("./sloop/sloop.js"));
   assert.ok(registry.includes('getShipGenerator(type)'));
   assert.ok(registry.includes('createShip(type)'));
-  assert.ok(models.includes('ship-structures.js?v=0.8.6'));
   assert.ok(structures.includes('getHullHalfBeam'));
 });
 

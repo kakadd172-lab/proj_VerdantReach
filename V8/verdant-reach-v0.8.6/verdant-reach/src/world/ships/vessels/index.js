@@ -1,19 +1,19 @@
-import Sloop from './sloop.js';
-import Schooner from './schooner.js';
-import Brigantine from './brigantine.js';
-import Brig from './brig.js';
-import Snow from './snow.js';
-import Cutter from './cutter.js';
-import Frigate from './frigate.js';
-import Barque from './barque.js';
-import Caravel from './caravel.js';
-import Carrack from './carrack.js';
-import Galleon from './galleon.js';
-import Fluyt from './fluyt.js';
-import Xebec from './xebec.js';
-import Junk from './junk.js';
-import FirstRate from './first-rate.js';
-import Pinnace from './pinnace.js';
+import Sloop from './sloop/sloop.js';
+import Schooner from './schooner/schooner.js';
+import Brigantine from './brigantine/brigantine.js';
+import Brig from './brig/brig.js';
+import Snow from './snow/snow.js';
+import Cutter from './cutter/cutter.js';
+import Frigate from './frigate/frigate.js';
+import Barque from './barque/barque.js';
+import Caravel from './caravel/caravel.js';
+import Carrack from './carrack/carrack.js';
+import Galleon from './galleon/galleon.js';
+import Fluyt from './fluyt/fluyt.js';
+import Xebec from './xebec/xebec.js';
+import Junk from './junk/junk.js';
+import FirstRate from './first-rate/first-rate.js';
+import Pinnace from './pinnace/pinnace.js';
 
 export const VESSEL_SPECS = Object.freeze({
   'sloop': Sloop,
@@ -33,9 +33,7 @@ export const VESSEL_SPECS = Object.freeze({
   'first-rate': FirstRate,
   'pinnace': Pinnace,
 });
-
 export const VESSEL_IDS = Object.freeze(Object.keys(VESSEL_SPECS));
-
 export function getVesselSpec(type) {
   return VESSEL_SPECS[String(type ?? '').replace(/^ship-/, '')] ?? null;
 }

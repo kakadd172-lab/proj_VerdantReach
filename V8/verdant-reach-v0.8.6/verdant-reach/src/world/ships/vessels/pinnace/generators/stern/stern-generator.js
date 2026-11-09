@@ -1,0 +1,2 @@
+import { deckY, keelY, halfBreadth, hullPoint, V } from "../../architecture/hull-geometry.js";
+export function buildStern(d,ctx){const {part,beam,box,materials,V}=ctx,stern=part('sternworks'),gallery=part('stern-gallery',stern),windows=part('stern-windows',stern),transom=part('open-transom',stern),z=d.hullLengthUnits*.43,y=deckY(d,.94);beam(transom,V(-d.beamUnits*.24,y,z),V(d.beamUnits*.24,y,z),.055,materials.trim,'pinnace-transom');const seat=part('stern-seat',stern),thwart=box(seat,d.beamUnits*.38,.11,.34,materials.plank,'stern-thwart');thwart.position.set(0,y-.18,z-.35);}
