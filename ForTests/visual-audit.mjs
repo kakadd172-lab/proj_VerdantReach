@@ -71,9 +71,32 @@ try{
   await delay(600);
   await page.locator('#viewport').screenshot({path:join(outputDir,id+'-'+angle+'.png')});
  }
+
+ // Exercise real drag-box selection in the browser, then leave the editor clean.
+ await page.locator('#ship-select').selectOption('sloop');
+ await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
+ await page.locator('[data-camera="side"]').click();
+ await delay(700);
+ await page.locator('#box-select-toggle').click();
+ const canvasBounds=await page.locator('#viewport canvas').boundingBox();
+ assert.ok(canvasBounds,'Ship viewport canvas has no visible bounds.');
+ await page.mouse.move(canvasBounds.x+8,canvasBounds.y+8);
+ await page.mouse.down();
+ await page.mouse.move(canvasBounds.x+canvasBounds.width-8,canvasBounds.y+canvasBounds.height-8,{steps:10});
+ await page.mouse.up();
+ await page.waitForFunction(()=>{
+  const label=document.querySelector('#selection-count')?.textContent||'';
+  const count=Number(label.match(/^\\s*(\\d+)/)?.[1]||0);
+  return count>1;
+ },{timeout:8000});
+ const marqueeSelection=await page.locator('#selection-count').textContent();
+ assert.ok(Number(marqueeSelection.match(/^\\s*(\\d+)/)?.[1]||0)>1,'A viewport drag should select multiple Sloop components.');
+ await page.locator('#clear-selection').click();
+ await page.locator('#box-select-toggle').click();
+
  assert.deepEqual(errors,[],'Browser page errors: '+errors.join(' | '));
  const fs=await import('node:fs/promises');
- await fs.writeFile(join(outputDir,'report.json'),JSON.stringify({vessels:report,errors,selectedVessels,cameraViews},null,2));
+ await fs.writeFile(join(outputDir,'report.json'),JSON.stringify({vessels:report,errors,selectedVessels,cameraViews,marqueeSelection},null,2));
  console.log('Captured the selected vessel set plus targeted camera views.');
  console.log(JSON.stringify(report,null,2));
 }finally{
