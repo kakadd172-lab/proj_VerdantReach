@@ -81,15 +81,38 @@ jobs:
             }
           }
 
+          const canonicalSloop = readFileSync('src/world/ships/vessels/sloop/sloop.js', 'utf8');
+          if (!canonicalSloop.includes("label: 'Loguivy decked lobster boat'") ||
+              !canonicalSloop.includes('hullLength: 15.30') ||
+              !canonicalSloop.includes('beam: 2.55')) {
+            throw new Error('The canonical Sloop source is not the revised 15.30 m × 2.55 m Loguivy design.');
+          }
+
+          const legacySloop = readFileSync('src/world/ships/vessels/sloop.js', 'utf8');
+          if (legacySloop.includes('Caribbean merchant sloop')) {
+            throw new Error('The legacy Sloop path still contains the retired vessel definition.');
+          }
+
           const assets = readdirSync(join(dist, 'assets'));
-          if (!assets.some((name) => name.endsWith('.js'))) {
+          const jsAssets = assets.filter((name) => name.endsWith('.js'));
+          if (jsAssets.length === 0) {
             throw new Error('The build has no JavaScript bundle.');
           }
           if (!assets.some((name) => name.endsWith('.css'))) {
             throw new Error('The build has no CSS bundle.');
           }
 
-          console.log(`Verified Verdant Reach v${version}: ${references.length} asset references resolved.`);
+          const productionBundle = jsAssets
+            .map((name) => readFileSync(join(dist, 'assets', name), 'utf8'))
+            .join('\\n');
+          if (!productionBundle.includes('Loguivy decked lobster boat')) {
+            throw new Error('The production JavaScript bundle does not contain the revised Sloop.');
+          }
+          if (productionBundle.includes('Caribbean merchant sloop')) {
+            throw new Error('The production JavaScript bundle still contains the retired Sloop.');
+          }
+
+          console.log(`Verified Verdant Reach v${version}: ${references.length} asset references resolved, including the revised Sloop.`);
           NODE
           touch dist/.nojekyll
 

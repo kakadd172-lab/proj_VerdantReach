@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { boxCollider, circleCollider } from './collision.js';
 import { buildDrapedRoadData } from './road-geometry.js';
-import { createShipModel, disposeShipModel } from './ship-models.js?v=0.8.4-completion';
+import { createShipModel, disposeShipModel } from './ship-models.js?v=0.8.10';
 import {
   createFreeCityModel, createRuinedCastleModel,
   createFreeCityCollisionBodies, createRuinedCastleCollisionBodies,
