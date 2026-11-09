@@ -139,7 +139,7 @@ let suppressCanvasClick=false;
 let activeShipId=selector.value||Object.keys(SHIP_DESIGNS)[0];
 let historyEntries=[];
 let historyCursor=0;
-let hasUnsavedChanges=false;
+let hasUnsavedChanges=Object.keys(overrideConfig||{}).length>0;
 let dragSnapshot=null;
 let snapEnabled=false;
 let wireframeEnabled=false;
@@ -826,7 +826,7 @@ function loadShip(type,preferredPart='',reframe=true,skipSync=false){
   if(!design){setStatus('Unknown vessel design.',true);return;}
   try{
     const config=getConfig(type);
-    const savedState=config.partState||{partTransforms:config.componentTransforms||{}};
+    const savedState=config.partState||(config.componentTransforms?{partTransforms:config.componentTransforms}:{});
     ship=createShipModel(type,savedState.partTransforms||config.componentTransforms||{},savedState);
     scene.add(ship);
     applyWireframe();
