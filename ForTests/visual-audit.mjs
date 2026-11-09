@@ -33,14 +33,25 @@ try{
  assert.ok(ready,'Vite did not start. '+viteOutput);
  browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
  const page=await browser.newPage({viewport:{width:1600,height:1050},deviceScaleFactor:1});
- const errors=[];
+ const errors=[],consoleErrors=[];
  page.on('pageerror',e=>errors.push(e.message));
+ page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});
  await page.goto(requestedShip?baseUrl+'?ship='+encodeURIComponent(requestedShip):baseUrl,{waitUntil:'domcontentloaded',timeout:30000});
  await page.waitForFunction(()=>document.querySelectorAll('#ship-select option').length>=16,{timeout:30000});
  const report=[];
  for(const id of selectedVessels){
   await page.locator('#ship-select').selectOption(id);
-  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '),{timeout:30000});
+  try{
+   await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '),{timeout:30000});
+  }catch(error){
+   const state=await page.evaluate(()=>({
+    status:document.querySelector('#status')?.textContent||'',
+    caption:document.querySelector('#ship-caption')?.textContent||'',
+    partCount:document.querySelectorAll('#part-select option').length,
+    startupNotice:document.querySelector('#viewport')?.innerText||''
+   }));
+   throw new Error('Vessel '+id+' did not finish loading. Editor state: '+JSON.stringify(state)+'; browser errors: '+JSON.stringify(errors)+'; console errors: '+JSON.stringify(consoleErrors)+'; original: '+error.message);
+  }
   await delay(900);
   assert.ok(await page.locator('#viewport canvas').count(),id+' canvas missing');
   await page.locator('#viewport').screenshot({path:join(outputDir,id+'.png'),animations:'disabled'});
