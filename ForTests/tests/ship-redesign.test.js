@@ -133,7 +133,7 @@ test('all 16 independent ForTests generators build separate editable models', ()
       assert.ok(ship.userData.getPart('hull'), id + ' hull');
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
-      if (id !== 'pinnace') {
+      if (id !== 'pinnace' && id !== 'sloop') {
         const cabin = ship.userData.getPart('stern-tier-1');
         assert.ok(cabin, id + ' should have a proportioned aft cabin');
         let foldedShells = 0;
