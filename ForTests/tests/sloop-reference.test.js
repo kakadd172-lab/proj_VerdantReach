@@ -429,7 +429,7 @@ test('Sails reef and furl the full canvas assembly towards their tack',()=>{
   assert.ok(Math.abs(deployment.scale.y-.001)<1e-8);
   assert.ok(Math.abs(deployment.position.y+tackY*.001)<1e-8);
   assert.ok(Math.abs(deployment.scale.y-.001)<1e-8,'boltrope and panel seams receive the same furl scale as the cloth');
-  assert.equal(seamLine.parent,seams,'edge rope stays inside the shared deployment assembly');
+  assert.ok(seamLine.parent===seams,'edge rope stays inside the sail seam assembly');
   assert.equal(ship.userData.getShipState().sailDeployment.single,'furled');
   ship.userData.resetPartTransform('sail-single-gaff');
   assert.ok(Math.abs(deployment.scale.y-1)<1e-8,'reset restores the full canvas assembly');
