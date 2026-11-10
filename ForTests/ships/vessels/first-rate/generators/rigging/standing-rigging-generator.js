@@ -1,6 +1,6 @@
 import { deckY, keelY, halfBreadth, hullPoint, V } from "../../architecture/hull-geometry.js";
-export function buildStandingRigging(d,ctx,mast,z,baseY,totalHeight,lowerHeight){const {part,tube,beam,materials,V}=ctx;
-const standing=part('standing-rigging-'+mast.id),shrouds=part('shrouds-'+mast.id,standing),ratlines=part('ratlines-'+mast.id,standing),stays=part('mast-stays-'+mast.id,standing),running=part('running-rigging-'+mast.id),braces=part('running-braces-'+mast.id,running);
+export function buildStandingRigging(d,ctx,mast,mastGroup,z,baseY,totalHeight,lowerHeight){const {part,tube,beam,materials,V}=ctx;
+const standing=part('standing-rigging-'+mast.id,mastGroup),shrouds=part('shrouds-'+mast.id,standing),ratlines=part('ratlines-'+mast.id,standing),stays=part('mast-stays-'+mast.id,standing),running=part('running-rigging-'+mast.id,mastGroup),braces=part('running-braces-'+mast.id,running);
   const railX=halfBreadth(d,.5+mast.z*.2)*.82,pairs=d.structure.shroudPairs??2;
   for(let side of [-1,1])for(let pair=0;pair<pairs;pair++){const spread=pairs<=1?0:pair/(pairs-1)-.5,attachZ=spread*d.beamUnits*.25;
    tube(shrouds,[V(side*.08,totalHeight-.1,0),V(side*.21,lowerHeight*.58,spread*d.beamUnits*.08),V(side*railX,deckY(d,.5+mast.z*.45)-baseY+.28,attachZ)],.019,materials.rope,'standing-shroud-'+side+'-'+pair,24);}
