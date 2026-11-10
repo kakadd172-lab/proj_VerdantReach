@@ -57,10 +57,12 @@ export function createShipContext(vessel,palette={}){
 }
 function setupPartApi(root,registry,design){
  const unlinked=new THREE.Group();unlinked.name='unlinked-parts';root.add(unlinked);
- const original=new Map(),base=new Map(),state={rudderAngle:0,sailTrim:{},sailDeployment:{},mastLean:{},hiddenParts:{},unlinkedParts:[],partTransforms:{},time:0};
+ const original=new Map(),base=new Map(),generatorBase=new Map(),resetBaseline=new Map(),state={rudderAngle:0,sailTrim:{},sailDeployment:{},mastLean:{},hiddenParts:{},unlinkedParts:[],partTransforms:{},time:0};
  for(const [name,obj] of registry){
-  original.set(name,{parent:obj.parent,position:obj.position.clone(),quaternion:obj.quaternion.clone(),rotation:obj.rotation.clone(),scale:obj.scale.clone()});
-  base.set(name,{position:obj.position.clone(),rotation:obj.rotation.clone(),scale:obj.scale.clone()});
+  original.set(name,{parent:obj.parent,position:obj.position.clone(),quaternion:obj.quaternion.clone(),rotation:obj.rotation.clone(),scale:obj.scale.clone(),visible:obj.visible});
+  const initial={position:obj.position.clone(),rotation:obj.rotation.clone(),scale:obj.scale.clone()};
+  base.set(name,initial);
+  generatorBase.set(name,{position:initial.position.clone(),rotation:initial.rotation.clone(),scale:initial.scale.clone()});
  }
  const sailParts=[...registry.values()].filter(p=>p.userData.sailControl);
  const cloths=new Map(sailParts.map(p=>[p.name,{cloth:registry.get(p.userData.sailControl.clothPart),from:1,target:1,elapsed:0,duration:0}]));
@@ -79,7 +81,8 @@ function setupPartApi(root,registry,design){
   setPartVisible(n,v){const p=registry.get(n);if(!p)return false;p.visible=!!v;state.hiddenParts[n]=!p.visible;return true;},
   setPartTransform(n,t={}){const p=registry.get(n),b=base.get(n);if(!p||!b)return false;const a={x:clamp(t.x,-1000,1000),y:clamp(t.y,-1000,1000),z:clamp(t.z,-1000,1000),rx:clamp(t.rx,-Math.PI*1000,Math.PI*1000),ry:clamp(t.ry,-Math.PI*1000,Math.PI*1000),rz:clamp(t.rz,-Math.PI*1000,Math.PI*1000),sx:clamp(t.sx??1,.001,1000),sy:clamp(t.sy??1,.001,1000),sz:clamp(t.sz??1,.001,1000)};
    p.position.copy(b.position).add(V(a.x,a.y,a.z));p.rotation.set(b.rotation.x+a.rx,b.rotation.y+a.ry,b.rotation.z+a.rz,'XYZ');p.scale.set(b.scale.x*a.sx,b.scale.y*a.sy,b.scale.z*a.sz);state.partTransforms[n]=a;return true;},
-  resetPartTransform(n){const p=registry.get(n),o=original.get(n);if(!p||!o)return false;if(p.parent!==o.parent){p.parent?.remove(p);o.parent.add(p);}p.position.copy(o.position);p.quaternion.copy(o.quaternion);p.rotation.copy(o.rotation);p.scale.copy(o.scale);p.visible=true;p.updateMatrix();base.set(n,{position:o.position.clone(),rotation:o.rotation.clone(),scale:o.scale.clone()});delete state.partTransforms[n];delete state.hiddenParts[n];state.unlinkedParts=state.unlinkedParts.filter(x=>x!==n);return true;},
+  captureResetBaseline(){for(const [name,obj] of registry)resetBaseline.set(name,{parent:obj.parent,position:obj.position.clone(),quaternion:obj.quaternion.clone(),rotation:obj.rotation.clone(),scale:obj.scale.clone(),visible:obj.visible});return true;},
+  resetPartTransform(n){const p=registry.get(n),saved=resetBaseline.get(n)||original.get(n),raw=generatorBase.get(n);if(!p||!saved)return false;if(p.parent!==saved.parent){p.parent?.remove(p);saved.parent.add(p);}p.position.copy(saved.position);p.quaternion.copy(saved.quaternion);p.rotation.copy(saved.rotation);p.scale.copy(saved.scale);p.visible=saved.visible;p.updateMatrix();if(raw)base.set(n,{position:raw.position.clone(),rotation:raw.rotation.clone(),scale:raw.scale.clone()});const transform=api.getPartTransform(n);if(transform&&Object.values(transform).some((x,i)=>i<6?Math.abs(x)>1e-8:Math.abs(x-1)>1e-8))state.partTransforms[n]=transform;else delete state.partTransforms[n];if(p.visible)delete state.hiddenParts[n];else state.hiddenParts[n]=true;if(p.parent===unlinked)state.unlinkedParts=[...new Set([...state.unlinkedParts,n])];else state.unlinkedParts=state.unlinkedParts.filter(x=>x!==n);return true;},
   setRudderAngle(a){const p=registry.get('rudder');if(!p)return false;state.rudderAngle=clamp(a,-.62,.62);p.rotation.y=state.rudderAngle+(state.partTransforms.rudder?.ry||0);return true;},
   setSailTrim(id,a){const targets=sailParts.filter(p=>p.userData.sailControl.mastId===id);if(!targets.length)return false;state.sailTrim[id]=clamp(a,-1.1,1.1);for(const p of targets)p.rotation.y=state.sailTrim[id]+(state.partTransforms[p.name]?.ry||0);return true;},
   setMastLean(id,a){const p=mastParts.find(x=>x.userData.mastControl.mastId===id);if(!p)return false;state.mastLean[id]=clamp(a,-.16,.16);const b=base.get(p.name);p.rotation.x=(b?.rotation.x||0)+state.mastLean[id]+(state.partTransforms[p.name]?.rx||0);return true;},
@@ -108,6 +111,7 @@ export function finishShipModel(ctx,transforms={},saved={}){
  const partTransforms={...baseTransforms,...(transforms||{})};
  state.partTransforms=partTransforms;
  if(Object.keys(partTransforms).length||Object.keys(state.hiddenParts||{}).length||(state.unlinkedParts||[]).length||Object.keys(state.sailTrim||{}).length||Object.keys(state.sailDeployment||{}).length||Object.keys(state.mastLean||{}).length||Number(state.rudderAngle))api.applyShipState(state);
+ api.captureResetBaseline();
  return root;
 }
 export function shipModelSummary(v){

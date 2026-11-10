@@ -50,6 +50,10 @@ export function buildMast(d,ctx,mast){
   tube(topsailHalyards,[V(0,totalHeight*.91,headRun*.18),peakPoint],.009,materials.rope,'topsail-downhaul',24);
 
   const boomLines=part('boom-running-rigging-'+mast.id,running);
+  const braces=part('running-braces-'+mast.id,running);
+  for(const side of [-1,1]){
+   tube(braces,[V(0,totalHeight*.88,0),V(side*d.beamUnits*.42,totalHeight*.83,d.hullLengthUnits*.055)],.012,materials.rope,'yard-brace-'+side,22);
+  }
   const aftDeckY=deckY(d,Math.min(.96,mastT+.22))-baseY+.14;
   tube(boomLines,[masthead,V(0,low*.92,clewRun)],.011,materials.rope,'boom-topping-lift',28);
   tube(boomLines,[V(0,low*.92,clewRun),V(0,aftDeckY,clewRun+.42)],.012,materials.rope,'mainsheet',28);

@@ -9,7 +9,7 @@ const root=join(dirname(fileURLToPath(import.meta.url)),'..');
 test('all 16 vessels own defaults modules beside their generators',async()=>{
  assert.equal(VESSEL_IDS.length,16);assert.equal(Object.keys(VESSEL_EDITOR_DEFAULTS).length,16);
  for(const id of VESSEL_IDS){const defaults=VESSEL_EDITOR_DEFAULTS[id];assert.equal(defaults.format,'verdant-reach-vessel-defaults');assert.equal(defaults.schemaVersion,1);assert.equal(defaults.vesselId,id);assert.ok(VESSEL_MODULES[id].definition.editorDefaults);
-  const file=await readFile(join(root,'ships','vessels',id,'editor-defaults.js'),'utf8');assert.match(file,new RegExp("vesselId: '"+id+"'"));
+  const file=await readFile(join(root,'ships','vessels',id,'editor-defaults.js'),'utf8');assert.ok(file.includes('"vesselId": "'+id+'"')||file.includes("vesselId: '"+id+"'"),id+' saved defaults file identifies its vessel');
   const module=await readFile(join(root,'ships','vessels',id,id+'.js'),'utf8');assert.ok(module.includes("from './editor-defaults.js'"),id+' imports its own defaults');}
 });
 test('persisted design and structure values resolve before geometry generation',()=>{

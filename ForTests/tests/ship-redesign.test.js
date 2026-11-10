@@ -303,6 +303,7 @@ test('component move, rotation, scale and live gizmo values persist in ship stat
   try {
     const mast = ship.userData.getPart('mast-single');
     assert.ok(mast);
+    const initialTransform = ship.userData.getPartTransform('mast-single');
     mast.position.x += 0.75;
     mast.rotation.y += 0.12;
     mast.scale.z *= 1.15;
@@ -310,19 +311,19 @@ test('component move, rotation, scale and live gizmo values persist in ship stat
     const transform = ship.userData.getPartTransform('mast-single');
     assert.ok(Math.abs(transform.x - 0.75) < 1e-8);
     assert.ok(Math.abs(transform.ry - 0.12) < 1e-8);
-    assert.ok(Math.abs(transform.sz - 1.15) < 1e-8);
+    assert.ok(Math.abs(transform.sz - initialTransform.sz * 1.15) < 1e-8);
 
     const state = ship.userData.getShipState();
     assert.ok(Math.abs(state.partTransforms['mast-single'].x - 0.75) < 1e-8);
     assert.ok(Math.abs(state.partTransforms['mast-single'].ry - 0.12) < 1e-8);
-    assert.ok(Math.abs(state.partTransforms['mast-single'].sz - 1.15) < 1e-8);
+    assert.ok(Math.abs(state.partTransforms['mast-single'].sz - initialTransform.sz * 1.15) < 1e-8);
 
     const restored = createShipModel('sloop', state.partTransforms, state);
     try {
       const result = restored.userData.getPartTransform('mast-single');
       assert.ok(Math.abs(result.x - 0.75) < 1e-8);
       assert.ok(Math.abs(result.ry - 0.12) < 1e-8);
-      assert.ok(Math.abs(result.sz - 1.15) < 1e-8);
+      assert.ok(Math.abs(result.sz - initialTransform.sz * 1.15) < 1e-8);
     } finally {
       disposeShipModel(restored);
     }
