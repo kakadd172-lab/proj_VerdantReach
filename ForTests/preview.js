@@ -178,6 +178,15 @@ function refreshSailingControls(){
   const active=Number(preset.dataset.windDirection)===windSettings.directionDeg;
   preset.classList.toggle('active',active);preset.setAttribute('aria-pressed',String(active));
  }
+ const sailState=document.querySelector('#sail-state-value');
+ const sailButtons={full:document.querySelector('#sails-full'),reefed:document.querySelector('#sails-reef'),furled:document.querySelector('#sails-furl')};
+ const savedState=ship?.userData.getShipState();
+ const modes=(SHIP_DESIGNS[activeShipId]?.masts||[]).map(m=>savedState?.sailDeployment?.[m.id]||'full');
+ const commonMode=modes.length&&modes.every(mode=>mode===modes[0])?modes[0]:(modes.length?'mixed':'none');
+ if(sailState)sailState.textContent=commonMode.toUpperCase();
+ for(const [mode,button] of Object.entries(sailButtons)){
+  if(button){const active=commonMode===mode;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));}
+ }
  const rudder=document.querySelector('#rudder-angle'),rudderValue=document.querySelector('#rudder-angle-value');
  const centre=document.querySelector('#rudder-center'),wheelReadout=document.querySelector('#helm-wheel-angle');
  const rudderPart=ship?.userData.getPart('rudder'),wheelPart=ship?.userData.getPart('helm-wheel');
@@ -192,15 +201,23 @@ function refreshSailingControls(){
 function updateSailingTelemetry(){
  const output=document.querySelector('#mast-response-value');
  if(!output)return;
- const mastDefinition=SHIP_DESIGNS[activeShipId]?.masts?.[0];
- const mast=mastDefinition&&ship?.userData.getPart('mast-'+mastDefinition.id);
- const pivot=mast?.userData.mastControl?.pivotGroup||mast?.userData.animationPivot;
- if(!pivot){output.textContent='No articulated mast';return;}
- const heel=THREE.MathUtils.radToDeg(pivot.rotation.z||0);
- const rake=THREE.MathUtils.radToDeg(pivot.rotation.x||0);
- const heelText=Math.abs(heel)<.05?'Neutral':Math.abs(heel).toFixed(1)+'° '+(heel>0?'Port':'Starboard');
- const rakeText=Math.abs(rake)<.05?'Neutral':Math.abs(rake).toFixed(1)+'° '+(rake>0?'Aft':'Forward');
- output.textContent=heelText+' / '+rakeText;
+ const definitions=SHIP_DESIGNS[activeShipId]?.masts||[];
+ const readings=definitions.map(definition=>{
+  const mast=ship?.userData.getPart('mast-'+definition.id);
+  const pivot=mast?.userData.mastControl?.pivotGroup||mast?.userData.animationPivot;
+  if(!pivot)return definition.id+': no pivot';
+  const heel=THREE.MathUtils.radToDeg(pivot.rotation.z||0),rake=THREE.MathUtils.radToDeg(pivot.rotation.x||0);
+  const heelText=Math.abs(heel)<.05?'neutral':Math.abs(heel).toFixed(1)+'° '+(heel>0?'port':'starboard');
+  const rakeText=Math.abs(rake)<.05?'neutral':Math.abs(rake).toFixed(1)+'° '+(rake>0?'aft':'forward');
+  return definition.id+': '+heelText+' / '+rakeText;
+ });
+ output.textContent=readings.length?readings.join(' · '):'No articulated mast';
+}
+function setAllSails(mode,duration=.85){
+ if(!ship||!activeShipId)return false;
+ let applied=false;
+ for(const mast of SHIP_DESIGNS[activeShipId]?.masts||[])applied=ship.userData.setSailDeployment(mast.id,mode,duration)||applied;
+ refreshSailingControls();return applied;
 }
 const raycaster=new THREE.Raycaster();
 const rayPointer=new THREE.Vector2();
@@ -1019,11 +1036,17 @@ document.querySelectorAll('[data-wind-direction]').forEach(button=>button.addEve
   windSettings.directionDeg=Number(button.dataset.windDirection)||0;refreshSailingControls();
 }));
 document.querySelector('#gust-toggle')?.addEventListener('click',()=>{windSettings.gusts=!windSettings.gusts;refreshSailingControls();});
+document.querySelector('#sails-full')?.addEventListener('click',()=>setAllSails('full'));
+document.querySelector('#sails-reef')?.addEventListener('click',()=>setAllSails('reefed'));
+document.querySelector('#sails-furl')?.addEventListener('click',()=>setAllSails('furled'));
 document.querySelector('#simulation-toggle')?.addEventListener('click',()=>{windSettings.paused=!windSettings.paused;refreshSailingControls();});
 document.querySelector('#sailing-reset')?.addEventListener('click',()=>{
   windSettings.enabled=false;windSettings.directionDeg=90;windSettings.speedKnots=12;
   windSettings.gusts=false;windSettings.paused=false;
-  if(ship)ship.userData.setRudderAngle(0);
+  if(ship){
+   ship.userData.setRudderAngle(0);
+   for(const mast of SHIP_DESIGNS[activeShipId]?.masts||[])ship.userData.setSailDeployment(mast.id,'full',0);
+  }
   refreshSailingControls();
 });
 document.querySelector('#rudder-angle')?.addEventListener('input',event=>{if(ship){ship.userData.setRudderAngle(THREE.MathUtils.degToRad(Number(event.target.value)||0));refreshSailingControls();}});

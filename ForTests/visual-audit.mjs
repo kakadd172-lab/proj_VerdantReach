@@ -107,6 +107,14 @@ try{
  await page.locator('#wind-speed').evaluate(el=>{el.value='21';el.dispatchEvent(new Event('input',{bubbles:true}));});
  await page.locator('#gust-toggle').click();
  assert.equal(await page.locator('#gust-toggle').getAttribute('aria-pressed'),'true');
+ await page.locator('#sails-reef').click();
+ assert.equal((await page.locator('#sail-state-value').textContent()).trim(),'REEFED');
+ await page.waitForTimeout(950);
+ await page.locator('#sails-furl').click();
+ assert.equal((await page.locator('#sail-state-value').textContent()).trim(),'FURLED');
+ await page.waitForTimeout(950);
+ await page.locator('#sails-full').click();
+ assert.equal((await page.locator('#sail-state-value').textContent()).trim(),'FULL');
  await page.locator('[data-wind-direction="90"]').click();
  await page.locator('#wind-toggle').click();
  assert.equal(await page.locator('#wind-toggle').getAttribute('aria-pressed'),'true');

@@ -245,6 +245,11 @@ test('Rudder and helm wheel rotate around their pivots and remain mechanically l
  }finally{disposeShipModel(ship);}
 });
 
+function shroudsForTest(ship,name){
+ let result=null;ship.traverse(object=>{if(object.name===name)result=object;});
+ assert.ok(result,'missing dynamic stay '+name);return result;
+}
+
 test('Wind drives boom trim, sail rotation, cloth billow and restrained mast flex without dirtying editor transforms',()=>{
  const ship=createShipModel('sloop');
  try{
@@ -254,6 +259,12 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
   assert.ok(mast&&boom&&mainsail&&jib&&clothMesh);
   assert.ok(boom.userData.pivotPoint);
   assert.ok(mainsail.userData.sailControl.windPivot);
+  const mastPivot=mast.userData.mastControl.pivotGroup;
+  const mastEditorTransform=ship.userData.getPartTransform('mast-single');
+  const chainplates=ship.userData.getPart('chainplates-single');
+  const anchoredShroud=shroudsForTest(ship,'standing-shroud-port-forward');
+  const chainplateWorldBefore=chainplates.getWorldPosition(new Vector3()).clone();
+  const shroudGeometryBefore=anchoredShroud.geometry.uuid;
   const before=ship.userData.getPartTransform('boom-single');
   const boomPivot=boom.userData.animationPivot;
   const mainPivot=mainsail.userData.sailControl.pivotGroup;
@@ -262,8 +273,12 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
   ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:24});
   assert.ok(boomPivot.rotation.y<-.05);
   assert.ok(Math.abs(mainPivot.rotation.y)>.05&&Math.abs(jibPivot.rotation.y)>.03);
-  assert.ok(mast.userData.mastControl.pivotGroup.rotation.z>.0001,'mast rotates around its mast-step pivot under wind');
-  assert.ok(Math.abs(ship.userData.getPartTransform('mast-single').rz)<1e-8,'wind does not modify the mast editor transform');
+  assert.ok(mastPivot.rotation.z>.0001,'mast rotates around its mast-step pivot under wind');
+  assert.equal(chainplates.parent,mast,'chainplates remain outside the moving mast pivot');
+  mast.updateMatrixWorld(true);
+  assert.ok(chainplates.getWorldPosition(new Vector3()).distanceTo(chainplateWorldBefore)<1e-8,'chainplates remain fixed while the mast heels');
+  assert.notEqual(anchoredShroud.geometry.uuid,shroudGeometryBefore,'shroud tube updates as its masthead end moves');
+  assert.deepEqual(ship.userData.getPartTransform('mast-single'),mastEditorTransform,'wind does not modify the mast editor transform');
   for(let frame=0;frame<55;frame++)ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
   const fullHeel=mast.userData.mastControl.pivotGroup.rotation.z;
   assert.ok(fullHeel>0.03&&fullHeel<=2.5*Math.PI/180+1e-5,'mast heel is bounded to its configured range');
@@ -279,6 +294,27 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
   let displaced=false;
   for(let i=0;i<attribute.array.length;i++)if(Math.abs(attribute.array[i]-data.restPositions[i])>1e-5){displaced=true;break;}
   assert.ok(displaced);
+ }finally{disposeShipModel(ship);}
+});
+
+test('Sails reef and furl by gathering canvas towards their tack',()=>{
+ const ship=createShipModel('sloop');
+ try{
+  const sail=ship.userData.getPart('sail-single-gaff'),cloth=ship.userData.getPart('cloth-sail-single-gaff');
+  const tackY=sail.userData.sailControl.pivotPoint[1];
+  assert.ok(cloth&&Math.abs(cloth.scale.y-1)<1e-8);
+  assert.equal(ship.userData.setSailDeployment('single','reefed',0),true);
+  assert.ok(Math.abs(cloth.scale.y-.48)<1e-8);
+  assert.ok(Math.abs(cloth.position.y+tackY*.48)<1e-8,'reefing scales about the tack rather than the keel origin');
+  assert.equal(ship.userData.setSailDeployment('single','furled',.5),true);
+  for(let frame=0;frame<5;frame++)ship.userData.animateShip(.05,{enabled:false});
+  assert.ok(cloth.scale.y<.48&&cloth.scale.y>.001,'furling interpolates smoothly');
+  for(let frame=0;frame<8;frame++)ship.userData.animateShip(.05,{enabled:false});
+  assert.ok(Math.abs(cloth.scale.y-.001)<1e-8);
+  assert.ok(Math.abs(cloth.position.y+tackY*.001)<1e-8);
+  assert.equal(ship.userData.getShipState().sailDeployment.single,'furled');
+  ship.userData.setSailDeployment('single','full',0);
+  assert.ok(Math.abs(cloth.scale.y-1)<1e-8);
  }finally{disposeShipModel(ship);}
 });
 

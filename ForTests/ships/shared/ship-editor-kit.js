@@ -56,9 +56,10 @@ export function createShipContext(vessel,palette={}){
  return {THREE,V,clamp,design,root,materials,registry,part,mesh,beam,tube,box,editorDefaults};
 }
 function setupPartApi(root,registry,design){
- const makeNestedPivot=(component,pivot,name)=>{
+ const makeNestedPivot=(component,pivot,name,excluded=new Set())=>{
   const group=new THREE.Group();group.name=name;group.position.copy(pivot);
   for(const child of [...component.children]){
+   if(excluded.has(child))continue;
    component.remove(child);child.position.sub(pivot);group.add(child);
   }
   component.add(group);return group;
@@ -67,15 +68,28 @@ function setupPartApi(root,registry,design){
  // Install pivots before editor baselines are captured. The component root
  // remains the editable object; only its child assembly rotates at runtime.
  const mastParts=[...registry.values()].filter(p=>p.userData.mastControl);
+ const mastStaySets=new Map();
  for(const mast of mastParts){
-  const control=mast.userData.mastControl;
+  const control=mast.userData.mastControl,id=control.mastId;
+  const standing=mast.getObjectByName('standing-rigging-'+id);
+  const fixedFittings=new Set();
+  for(const name of ['chainplates-'+id,'backstay-chainplates-'+id]){
+   const fitting=standing?.getObjectByName(name);
+   if(fitting){mast.attach(fitting);fixedFittings.add(fitting);}
+  }
   const pivot=control.pivotGroup||mast.userData.animationPivot||
-   makeNestedPivot(mast,V(0,0,0),mast.name+'-mast-step-pivot');
+   makeNestedPivot(mast,V(0,0,0),mast.name+'-mast-step-pivot',fixedFittings);
   control.pivotGroup=pivot;
   control.windHeelMaxDeg=Number(control.windHeelMaxDeg)||2.5;
   control.windRakeMaxDeg=Number(control.windRakeMaxDeg)||1.2;
   mast.userData.animationPivot=pivot;
-  pivot.userData.articulation={kind:'mast-step',mastId:control.mastId,heelLimitDeg:control.windHeelMaxDeg,rakeLimitDeg:control.windRakeMaxDeg};
+  pivot.userData.articulation={kind:'mast-step',mastId:id,heelLimitDeg:control.windHeelMaxDeg,rakeLimitDeg:control.windRakeMaxDeg};
+  const stays=[];
+  pivot.traverse(object=>{
+   const data=object.userData.dynamicMastStay;
+   if(data&&object.isMesh&&object.geometry)stays.push({mesh:object,data,lastQuaternion:pivot.quaternion.clone()});
+  });
+  if(stays.length)mastStaySets.set(id,{pivot,stays});
  }
 
  const rudder=registry.get('rudder');
@@ -112,7 +126,11 @@ function setupPartApi(root,registry,design){
  const cloths=new Map(sailParts.map(p=>{
    const cloth=registry.get(p.userData.sailControl.clothPart);let mesh=null;
    cloth?.traverse(object=>{if(object.isMesh&&object.userData.sailCloth)mesh=object;});
-   return [p.name,{cloth,mesh,from:1,target:1,elapsed:0,duration:0}];
+   return [p.name,{
+    cloth,mesh,from:1,target:1,elapsed:0,duration:0,
+    pivotY:p.userData.sailControl.pivotPoint?.[1]||0,
+    fromPositionY:cloth?.position.y||0,targetPositionY:cloth?.position.y||0
+   }];
   }));
  const runtimeTarget=p=>p.userData.animationPivot||p.userData.steeringControl?.pivotGroup||p.userData.sailControl?.pivotGroup||p;
   const setRuntimeRotation=(name,values={})=>{
@@ -173,7 +191,20 @@ function setupPartApi(root,registry,design){
    },
   setSailTrim(id,a){const targets=sailParts.filter(p=>p.userData.sailControl.mastId===id);if(!targets.length)return false;state.sailTrim[id]=clamp(a,-1.1,1.1);for(const p of targets)setRuntimeRotation(p.name,{ry:state.sailTrim[id]});return true;},
   setMastLean(id,a){const p=mastParts.find(x=>x.userData.mastControl.mastId===id);if(!p)return false;state.mastLean[id]=clamp(a,-.16,.16);setRuntimeRotation(p.name,{rx:state.mastLean[id]});return true;},
-  setSailDeployment(id,mode='full',duration=.85){const targets=sailParts.filter(p=>p.userData.sailControl.mastId===id);if(!targets.length||!['full','reefed','furled'].includes(mode))return false;const scale=mode==='full'?1:mode==='reefed'?.48:.001;state.sailDeployment[id]=mode;for(const p of targets){const a=cloths.get(p.name);if(!a?.cloth)continue;a.from=a.cloth.scale.y;a.target=scale;a.elapsed=0;a.duration=clamp(duration,0,4);if(a.duration===0)a.cloth.scale.y=scale;}return true;},
+  setSailDeployment(id,mode='full',duration=.85){
+   const targets=sailParts.filter(p=>p.userData.sailControl.mastId===id);
+   if(!targets.length||!['full','reefed','furled'].includes(mode))return false;
+   const scale=mode==='full'?1:mode==='reefed'?.48:.001;
+   state.sailDeployment[id]=mode;
+   for(const p of targets){
+    const a=cloths.get(p.name);if(!a?.cloth)continue;
+    a.from=a.cloth.scale.y;a.target=scale;
+    a.fromPositionY=a.cloth.position.y;a.targetPositionY=-a.pivotY*scale;
+    a.elapsed=0;a.duration=clamp(duration,0,4);
+    if(a.duration===0){a.cloth.scale.y=scale;a.cloth.position.y=a.targetPositionY;}
+   }
+   return true;
+  },
   animateShip(dt=.016,weather={}){
     const delta=clamp(dt,0,.05);state.time+=delta;
     const gustEnvelope=weather.gusts===true?(0.72+0.28*(0.5+0.5*Math.sin(state.time*1.25))):1;
@@ -193,6 +224,21 @@ function setupPartApi(root,registry,design){
       rx:(state.mastLean[id]||0)+Math.cos(direction)*state.windBlend*maxRake,
       rz:Math.sin(direction)*state.windBlend*maxHeel
      });
+    }
+    // Keep the deck ends of selected stays fixed while their masthead ends
+    // follow the pivot. Rebuild only when the mast quaternion has changed.
+    for(const {pivot,stays} of mastStaySets.values()){
+     const rotation=pivot.quaternion;
+     for(const {mesh,data,lastQuaternion} of stays){
+      if(1-Math.abs(lastQuaternion.dot(rotation))<1e-9)continue;
+      const inverse=rotation.clone().invert();
+      const moved=data.points.map(point=>new THREE.Vector3(...point).applyQuaternion(rotation));
+      moved[data.fixedEndIndex].set(...data.fixedPoint);
+      const local=moved.map(point=>point.applyQuaternion(inverse));
+      const curve=new THREE.CatmullRomCurve3(local);
+      const geometry=new THREE.TubeGeometry(curve,data.segments,data.radius,7,false);
+      mesh.geometry.dispose();mesh.geometry=geometry;lastQuaternion.copy(rotation);
+     }
     }
     for(const [name,p] of registry){
      const control=p.userData.windControl;
@@ -227,7 +273,9 @@ function setupPartApi(root,registry,design){
      if(animation?.cloth&&animation.elapsed<animation.duration){
       animation.elapsed=Math.min(animation.duration,animation.elapsed+delta);
       const t=animation.duration>0?animation.elapsed/animation.duration:1;
-      animation.cloth.scale.y=THREE.MathUtils.lerp(animation.from,animation.target,t*t*(3-2*t));
+      const eased=t*t*(3-2*t);
+      animation.cloth.scale.y=THREE.MathUtils.lerp(animation.from,animation.target,eased);
+      animation.cloth.position.y=THREE.MathUtils.lerp(animation.fromPositionY,animation.targetPositionY,eased);
      }
     }
    },

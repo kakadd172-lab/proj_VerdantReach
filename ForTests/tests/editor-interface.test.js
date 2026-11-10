@@ -22,7 +22,7 @@ const requiredIds=[
   'section-toggle','section-slider','section-value','import-design','import-file',
   'capture-preview','viewport-fullscreen','viewport-readout','box-select-toggle','clear-selection','selection-count',
   'wind-toggle','wind-state','wind-direction','wind-direction-value','wind-direction-readout','wind-arrow',
-  'wind-speed','wind-speed-value','wind-speed-readout','mast-response-value','gust-toggle','simulation-toggle','sailing-reset',
+  'wind-speed','wind-speed-value','wind-speed-readout','mast-response-value','sail-state-value','sails-full','sails-reef','sails-furl','gust-toggle','simulation-toggle','sailing-reset',
   'rudder-angle','rudder-angle-value','helm-wheel-angle','rudder-center',
 ];
 
@@ -40,6 +40,10 @@ test('all new analysis and import controls are wired to runtime handlers',()=>{
     'function addMeasurementPoint(point)',
     'function refreshSailingControls()',
     'function updateSailingTelemetry()',
+    'function setAllSails(mode,duration=.85)',
+    "document.querySelector('#sails-full')?.addEventListener('click'",
+    "document.querySelector('#sails-reef')?.addEventListener('click'",
+    "document.querySelector('#sails-furl')?.addEventListener('click'",
     'updateSailingTelemetry();',
     "document.querySelector('#wind-toggle')?.addEventListener('click'",
     "document.querySelector('#gust-toggle')?.addEventListener('click'",

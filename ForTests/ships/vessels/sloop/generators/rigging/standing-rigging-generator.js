@@ -20,6 +20,15 @@ export function buildStandingRigging(d,ctx,mast,mastGroup,z,baseY,totalHeight,lo
 
   const localZ=station=>stationZ(d,station,1)-z;
   const deckLocalY=station=>deckY(d,station)-baseY;
+  const markDeckAnchoredStay=(line,points,radius,segments)=>{
+    line.userData.dynamicMastStay={
+      points:points.map(point=>point.toArray()),
+      fixedEndIndex:points.length-1,
+      fixedPoint:points[points.length-1].toArray(),
+      radius,segments
+    };
+    return line;
+  };
   const shroudCount=Math.max(2,d.structure.shroudPairs??2);
   const houndsY=lowerHeight*.92;
   const upperShroudX=.085;
@@ -41,10 +50,14 @@ export function buildStandingRigging(d,ctx,mast,mastGroup,z,baseY,totalHeight,lo
     const foreFoot=V(side*foreRailX,foreDeckY,foreAnchorZ);
     const aftFoot=V(side*aftRailX,aftDeckY,aftAnchorZ);
 
-    tube(shrouds,[foreTop,foreFoot],.015,materials.rope,
-      'standing-shroud-'+(side<0?'port':'starboard')+'-forward',36);
-    tube(shrouds,[aftTop,aftFoot],.015,materials.rope,
-      'standing-shroud-'+(side<0?'port':'starboard')+'-after',36);
+    markDeckAnchoredStay(
+      tube(shrouds,[foreTop,foreFoot],.015,materials.rope,
+        'standing-shroud-'+(side<0?'port':'starboard')+'-forward',36),
+      [foreTop,foreFoot],.015,36);
+    markDeckAnchoredStay(
+      tube(shrouds,[aftTop,aftFoot],.015,materials.rope,
+        'standing-shroud-'+(side<0?'port':'starboard')+'-after',36),
+      [aftTop,aftFoot],.015,36);
 
     // Narrow iron chainplates continue just below the gunwale.
     beam(chainplates,
@@ -83,8 +96,10 @@ export function buildStandingRigging(d,ctx,mast,mastGroup,z,baseY,totalHeight,lo
   for(const side of [-1,1]){
     const head=V(side*.105,totalHeight*.985,0);
     const foot=V(side*backstayRail,backstayY,backstayZ);
-    tube(backstays,[head,foot],.015,materials.rope,
-      'backstay-'+(side<0?'port':'starboard'),40);
+    markDeckAnchoredStay(
+      tube(backstays,[head,foot],.015,materials.rope,
+        'backstay-'+(side<0?'port':'starboard'),40),
+      [head,foot],.015,40);
     beam(backstayChainplates,
       V(side*(backstayRail+.012),backstayY-.32,backstayZ),
       V(side*(backstayRail+.012),backstayY+.08,backstayZ),
