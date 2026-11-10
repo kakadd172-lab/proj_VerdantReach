@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { CivilizationSystem } from '../src/systems/civilization.js';
+import { createShipModel, disposeShipModel } from '../src/world/ships/core/ship-model-builder.js?v=0.8.10';
 
 const root = path.resolve(import.meta.dirname, '..');
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -74,18 +75,42 @@ test('timber-framed housing, resident movement and walking animation remain wire
 
 test('galleon stern structure uses curved, separately addressable tiers and galleries', () => {
   const models = read('src/world/ships/core/ship-model-builder.js');
-  const galleon = read('src/world/ships/vessels/galleon.js');
-  assert.ok(models.includes('function sternHouseGeometry'));
-  assert.ok(models.includes('curved-sternhouse-tier-'));
-  assert.ok(models.includes('function addWindowFrame'));
-  assert.ok(models.includes('gallery-rail-'));
-  assert.ok(models.includes("const tierName = 'stern-tier-' + (index + 1)"));
-  assert.ok(models.includes("registerPart(registry, 'stern-windows', root)"));
-  assert.ok(galleon.includes("id: 'galleon'"));
+  const galleon = read('src/world/ships/vessels/galleon/galleon.js');
+  const stern = read('src/world/ships/vessels/galleon/generators/stern/stern-generator.js');
+  assert.ok(models.includes("import { createShip } from '../index.js?v=0.8.10'"));
+  assert.ok(models.includes('return createShip(type, componentTransforms, savedState);'));
   assert.ok(galleon.includes("sternwork: 'galleon-castle'"));
-  assert.ok(galleon.includes("frameCount: 36"));
-});
+  assert.ok(galleon.includes('sternTiers:'));
+  assert.ok(galleon.includes('ARCHITECTURE.assemblyOrder'));
+  assert.ok(stern.includes('new THREE.Shape()'));
+  assert.ok(stern.includes('new THREE.ExtrudeGeometry'));
 
+  const ship = createShipModel('galleon');
+  try {
+    const tierNames = ship.userData.partNames.filter((name) => /^stern-tier-\d+$/.test(name));
+    assert.deepEqual(tierNames, ['stern-tier-1', 'stern-tier-2', 'stern-tier-3']);
+    for (const name of tierNames) {
+      const tier = ship.userData.getPart(name);
+      assert.ok(tier, name + ' is independently addressable');
+      const meshes = [];
+      tier.traverse((object) => {
+        if (object.isMesh && object.geometry?.getAttribute('position')) meshes.push(object);
+      });
+      assert.ok(meshes.length > 0, name + ' contains generated geometry');
+    }
+    for (const name of ['sternworks', 'stern-gallery', 'stern-windows', 'stern-side-windows']) {
+      assert.ok(ship.userData.getPart(name), name + ' is separately addressable');
+    }
+    const gallery = ship.userData.getPart('stern-gallery');
+    let galleryMeshCount = 0;
+    gallery.traverse((object) => {
+      if (object.isMesh && object.geometry?.getAttribute('position')) galleryMeshCount += 1;
+    });
+    assert.ok(galleryMeshCount > 0, 'stern gallery contains generated rails and supports');
+  } finally {
+    disposeShipModel(ship);
+  }
+});
 test('ruined castles retain broken crenellations, flanking gatehouse towers and reinforced keep corners', () => {
   const castle = read('src/world/settlement-models.js');
   assert.ok(castle.includes('const crenels = Math.max(1, Math.floor(localLength / 3.4))'));

@@ -1,4 +1,5 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
+export const SLOOP_GENERATOR_REVISION = 'loguivy-sloop-15.30x2.55-r1';
 export const SloopDefinition = defineVesselSpec({
   editorModulePath: 'src/world/ships/vessels/sloop/sloop.js',
   id: 'sloop',
@@ -139,9 +140,13 @@ function assembleSloop(vessel,componentTransforms={},savedState={}){
   root.userData.shipAssemblyOrder=[...ARCHITECTURE.assemblyOrder];
   return root;
 }
-export function createSloopModel(componentTransforms={},savedState={}){return assembleSloop(resolveVesselForGeneration(SloopDefinition),componentTransforms,savedState);}
+export function createSloopModel(componentTransforms={},savedState={}){
+  const root=assembleSloop(resolveVesselForGeneration(SloopDefinition),componentTransforms,savedState);
+  root.userData.shipGeneratorRevision=SLOOP_GENERATOR_REVISION;
+  return root;
+}
 export function generateSloop(componentTransforms={},savedState={}){return createSloopModel(componentTransforms,savedState);}
-export const Sloop=Object.freeze({id:SloopDefinition.id,
+export const Sloop=Object.freeze({revision:SLOOP_GENERATOR_REVISION,id:SloopDefinition.id,
   editorDefaults: EDITOR_DEFAULTS,definition:SloopDefinition,design:SloopDefinition.design,structure:SloopDefinition.structure,editorModulePath:SloopDefinition.editorModulePath,architecture:ARCHITECTURE,createModel:createSloopModel,generate:generateSloop});
 export const id=Sloop.id,design=Sloop.design,structure=Sloop.structure,createModel=Sloop.createModel,generate=Sloop.generate;
 export default Sloop;

@@ -1,0 +1,127 @@
+name: Build and deploy Verdant Reach to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'V8/verdant-reach-v0.8.6/verdant-reach/**'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: verdant-reach-pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install game dependencies
+        working-directory: V8/verdant-reach-v0.8.6/verdant-reach
+        run: npm install --no-audit --no-fund --no-package-lock
+
+      - name: Run game tests
+        working-directory: V8/verdant-reach-v0.8.6/verdant-reach
+        run: npm test
+
+      - name: Build production website
+        working-directory: V8/verdant-reach-v0.8.6/verdant-reach
+        run: npm run build
+
+      - name: Verify release version and generated assets
+        working-directory: V8/verdant-reach-v0.8.6/verdant-reach
+        run: |
+          node --input-type=module <<'NODE'
+          import { existsSync, readFileSync, readdirSync } from 'node:fs';
+          import { join } from 'node:path';
+
+          const version = JSON.parse(readFileSync('package.json', 'utf8')).version;
+          if (version !== '0.8.6') {
+            throw new Error(`Expected game version 0.8.6, found ${version}`);
+          }
+
+          const uiSource = readFileSync('src/ui/interface.js', 'utf8');
+          const gameSource = readFileSync('src/main.js', 'utf8');
+          if (!uiSource.includes('v0.8.6')) {
+            throw new Error('The in-game version label is not v0.8.6.');
+          }
+          if (!gameSource.includes("version: '0.8.6'")) {
+            throw new Error('The save-data version is not 0.8.6.');
+          }
+
+          const dist = 'dist';
+          const htmlPath = join(dist, 'index.html');
+          if (!existsSync(htmlPath)) throw new Error('Build did not produce dist/index.html.');
+
+          const html = readFileSync(htmlPath, 'utf8');
+          const references = [...html.matchAll(/(?:src|href)=[\"']([^\"']+)[\"']/g)]
+            .map((match) => match[1])
+            .filter((url) => url.startsWith('/proj_VerdantReach/'));
+
+          if (references.length === 0) {
+            throw new Error('No project-base asset references were found in the built HTML.');
+          }
+
+          for (const url of references) {
+            const localPath = join(dist, url.slice('/proj_VerdantReach/'.length));
+            if (!existsSync(localPath)) {
+              throw new Error(`Built asset is missing: ${url}`);
+            }
+          }
+
+          const canonicalSloop = readFileSync('src/world/ships/vessels/sloop/sloop.js', 'utf8');
+          if (!canonicalSloop.includes("label: 'Loguivy decked lobster boat'") ||
+              !canonicalSloop.includes('hullLength: 15.30') ||
+              !canonicalSloop.includes('beam: 2.55') ||
+              !canonicalSloop.includes("loguivy-sloop-15.30x2.55-r1")) {
+            throw new Error('The canonical Sloop source is not the revised 15.30 m × 2.55 m Loguivy design.');
+          }
+
+          const legacySloop = readFileSync('src/world/ships/vessels/sloop.js', 'utf8');
+          if (legacySloop.includes('Caribbean merchant sloop')) {
+            throw new Error('The legacy Sloop path still contains the retired vessel definition.');
+          }
+
+          const assets = readdirSync(join(dist, 'assets'));
+          const jsAssets = assets.filter((name) => name.endsWith('.js'));
+          if (jsAssets.length === 0) {
+            throw new Error('The build has no JavaScript bundle.');
+          }
+          if (!assets.some((name) => name.endsWith('.css'))) {
+            throw new Error('The build has no CSS bundle.');
+          }
+
+          const productionBundle = jsAssets
+            .map((name) => readFileSync(join(dist, 'assets', name), 'utf8'))
+            .join('\\n');
+          if (!productionBundle.includes('Loguivy decked lobster boat') ||
+              !productionBundle.includes('loguivy-sloop-15.30x2.55-r1')) {
+            throw new Error('The production JavaScript bundle does not contain the current Sloop revision.');
+          }
+          if (productionBundle.includes('Caribbean merchant sloop')) {
+            throw new Error('The production JavaScript bundle still contains the retired Sloop.');
+          }
+
+          console.log(`Verified Verdant Reach v${version}: ${references.length} asset references resolved, including the current Sloop revision.`);
+          NODE
+          touch dist/.nojekyll
+
+      - name: Publish the verified build to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: V8/verdant-reach-v0.8.6/verdant-reach/dist
+          commit_message: 'Deploy Verdant Reach v0.8.6 from main'

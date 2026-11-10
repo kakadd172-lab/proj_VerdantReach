@@ -144,7 +144,7 @@ test('v0.8.6 game shell and v0.8.10 component-first ship modules use consistent 
   assert.ok(hullMath.includes('getKeelLineHeight'));
   assert.ok(registry.includes('VESSEL_SPECS'));
   assert.ok(registry.includes('VESSEL_IDS.map'));
-  assert.ok(registry.includes('v.createModel(transforms, savedState)'));
+  assert.ok(registry.includes('vessel.createModel(transforms, savedState)'));
   assert.ok(vessels.includes("./sloop/sloop.js"));
   assert.ok(registry.includes('getShipGenerator(type)'));
   assert.ok(registry.includes('createShip(type)'));
