@@ -411,8 +411,9 @@ test('Sails reef and furl the full canvas assembly towards their tack',()=>{
   process.stdout.write('SLOOP-SAIL: cloth part retrieved\n');
   const seams=ship.userData.getPart('panel-seams-sail-single-gaff');
   process.stdout.write('SLOOP-SAIL: seams part retrieved\n');
-  const deployment=sail.getObjectByName(sail.userData.sailControl.deploymentPart);
-  process.stdout.write('SLOOP-SAIL: deployment found\n');
+  const pivotGroup=sail.userData.sailControl.pivotGroup;
+  const deployment=pivotGroup?.children.find(child=>child.name===sail.userData.sailControl.deploymentPart);
+  process.stdout.write('SLOOP-SAIL: deployment found by direct parent lookup\n');
   const tackY=sail.userData.sailControl.pivotPoint[1];
   process.stdout.write('SLOOP-SAIL: tack read\n');
   assert.ok(cloth&&seams&&deployment);
