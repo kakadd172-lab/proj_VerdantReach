@@ -401,7 +401,7 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
  }finally{disposeAndRelease(ship);}
 });
 
-test('Sails reef and furl the full canvas assembly towards their tack',()=>{
+test('Sails reef and furl the canvas around its actual luff while preserving the edge rigging',()=>{
  const ship=createShipModel('sloop');
  try{
   const sail=ship.userData.getPart('sail-single-gaff');
@@ -409,30 +409,95 @@ test('Sails reef and furl the full canvas assembly towards their tack',()=>{
   const seams=ship.userData.getPart('panel-seams-sail-single-gaff');
   const pivotGroup=sail.userData.sailControl.pivotGroup;
   const deployment=pivotGroup?.children.find(child=>child.name===sail.userData.sailControl.deploymentPart);
-  const tackY=sail.userData.sailControl.pivotPoint[1];
   assert.ok(cloth&&seams&&deployment);
+
+  let mesh=null;
+  cloth.traverse(object=>{if(object.isMesh&&object.userData.sailCloth)mesh=object;});
+  assert.ok(mesh,'mainsail canvas mesh should expose its grid metadata');
+  const {rows,columns}=mesh.userData.sailCloth;
+  const stride=columns+1;
+  const sampleIndex=Math.floor(rows/2)*stride+Math.floor(columns/2);
+  const sampleLocal=new THREE.Vector3().fromBufferAttribute(mesh.geometry.attributes.position,sampleIndex);
+
   const furlFrame=deployment.children.find(child=>child.name==='sail-furl-frame-sail-single-gaff');
   assert.ok(furlFrame,'deployment assembly should contain its luff-aligned furl frame');
-  assert.ok(cloth.parent===furlFrame,'canvas group must be parented under the luff-aligned furl frame');
-  assert.ok(seams.parent===furlFrame,'panel seams and boltropes must share the canvas furl frame');
-  assert.ok(furlFrame.parent===deployment,'furl frame must remain inside the deployment assembly');
-  assert.ok(Math.abs(deployment.scale.y-1)<1e-8);
-  const seamLine=seams.children.find(child=>child.geometry);
-  assert.ok(seamLine,'sail edge ropes exist inside the deployment group');
+  assert.equal(furlFrame.matrixAutoUpdate,false,'the furl frame is driven by its explicit contraction matrix');
+  assert.equal(cloth.parent,furlFrame,'canvas group must be parented under the luff-aligned furl frame');
+  assert.equal(seams.parent,furlFrame,'panel seams and boltropes must share the canvas furl frame');
+  assert.equal(furlFrame.parent,deployment,'furl frame must remain inside the deployment assembly');
+  const seamLine=seams.children.find(child=>child.geometry?.attributes?.position);
+  assert.ok(seamLine,'sail edge ropes exist inside the shared furl frame');
+  assert.equal(seamLine.parent,seams,'edge ropes remain inside the seam assembly');
+
+  const edge=furlFrame.userData.sailFurlEdge;
+  assert.ok(edge?.start&&edge?.end,'furl frame records the real canvas luff endpoints');
+  const start=new THREE.Vector3(...edge.start);
+  const end=new THREE.Vector3(...edge.end);
+  const axis=end.clone().sub(start).normalize();
+  const getPointInDeployment=(object,localPoint)=>{
+   ship.updateMatrixWorld(true);
+   return deployment.worldToLocal(object.localToWorld(localPoint.clone()));
+  };
+  const projectContracted=(point,scale)=>{
+   const delta=point.clone().sub(start);
+   const along=axis.clone().multiplyScalar(delta.dot(axis));
+   const perpendicular=delta.sub(along);
+   return start.clone().add(along).add(perpendicular.multiplyScalar(scale));
+  };
+  const effectiveContraction=(point,fullPoint)=>{
+   const fullDelta=fullPoint.clone().sub(start);
+   const fullPerpendicular=fullDelta.sub(axis.clone().multiplyScalar(fullDelta.dot(axis)));
+   const currentDelta=point.clone().sub(start);
+   const currentPerpendicular=currentDelta.sub(axis.clone().multiplyScalar(currentDelta.dot(axis)));
+   return currentPerpendicular.length()/fullPerpendicular.length();
+  };
+  const fullPoint=getPointInDeployment(mesh,sampleLocal);
+  const fullPerpendicular=fullPoint.clone().sub(start)
+   .sub(axis.clone().multiplyScalar(fullPoint.clone().sub(start).dot(axis)));
+  assert.ok(fullPerpendicular.length()>.1,'sampled canvas point must lie away from the luff support line');
+  const deploymentPosition=deployment.position.clone();
+  const deploymentScale=deployment.scale.clone();
+
   assert.equal(ship.userData.setSailDeployment('single','reefed',0),true);
-  assert.ok(Math.abs(deployment.scale.y-.48)<1e-8);
-  assert.ok(Math.abs(deployment.position.y+tackY*.48)<1e-8,'reefing scales around the tack rather than the keel origin');
+  const reefedPoint=getPointInDeployment(mesh,sampleLocal);
+  assert.ok(reefedPoint.distanceTo(projectContracted(fullPoint,.48))<1e-4,
+   'reefed canvas vertices contract to 48% of their original perpendicular distance from the luff');
+  assert.ok(Math.abs(effectiveContraction(reefedPoint,fullPoint)-.48)<1e-5,
+   'reefing uses the requested geometric contraction factor');
+  const fixedStart=getPointInDeployment(furlFrame,start);
+  const fixedEnd=getPointInDeployment(furlFrame,end);
+  assert.ok(fixedStart.distanceTo(start)<1e-5,'the tack end of the luff remains fixed while reefing');
+  assert.ok(fixedEnd.distanceTo(end)<1e-5,'the head end of the luff remains fixed while reefing');
+  assert.ok(deployment.position.distanceTo(deploymentPosition)<1e-8,
+   'luff-aligned contraction does not reposition the whole deployment group');
+  assert.ok(deployment.scale.distanceTo(deploymentScale)<1e-8,
+   'luff-aligned contraction does not scale the whole deployment group');
+
   assert.equal(ship.userData.setSailDeployment('single','furled',.5),true);
   for(let frame=0;frame<5;frame++)ship.userData.animateShip(.05,{enabled:false});
-  assert.ok(deployment.scale.y<.48&&deployment.scale.y>.001,'furling interpolates smoothly');
+  const midFurlPoint=getPointInDeployment(mesh,sampleLocal);
+  const midFurlScale=effectiveContraction(midFurlPoint,fullPoint);
+  assert.ok(midFurlScale<.48&&midFurlScale>.001,
+   'furling interpolates the canvas contraction instead of snapping');
+  assert.ok(midFurlScale>.20&&midFurlScale<.28,
+   'the halfway animation frame is near the midpoint between reefed and fully furled');
   for(let frame=0;frame<8;frame++)ship.userData.animateShip(.05,{enabled:false});
-  assert.ok(Math.abs(deployment.scale.y-.001)<1e-8);
-  assert.ok(Math.abs(deployment.position.y+tackY*.001)<1e-8);
-  assert.ok(Math.abs(deployment.scale.y-.001)<1e-8,'boltrope and panel seams receive the same furl scale as the cloth');
-  assert.ok(seamLine.parent===seams,'edge rope stays inside the sail seam assembly');
+  const furledPoint=getPointInDeployment(mesh,sampleLocal);
+  assert.ok(Math.abs(effectiveContraction(furledPoint,fullPoint)-.001)<1e-5,
+   'the complete canvas contracts to its fully furled target');
+  assert.ok(getPointInDeployment(furlFrame,start).distanceTo(start)<1e-5,
+   'the luff remains attached at the tack throughout furling');
+  assert.ok(getPointInDeployment(furlFrame,end).distanceTo(end)<1e-5,
+   'the luff remains attached at the head throughout furling');
+  assert.ok(deployment.position.distanceTo(deploymentPosition)<1e-8);
+  assert.ok(deployment.scale.distanceTo(deploymentScale)<1e-8);
   assert.equal(ship.userData.getShipState().sailDeployment.single,'furled');
-  ship.userData.resetPartTransform('sail-single-gaff');
-  assert.ok(Math.abs(deployment.scale.y-1)<1e-8,'reset restores the full canvas assembly');
+
+  assert.ok(ship.userData.resetPartTransform('sail-single-gaff'));
+  const resetPoint=getPointInDeployment(mesh,sampleLocal);
+  assert.ok(resetPoint.distanceTo(fullPoint)<1e-4,'component reset restores the full canvas geometry');
+  assert.ok(getPointInDeployment(furlFrame,start).distanceTo(start)<1e-5);
+  assert.ok(getPointInDeployment(furlFrame,end).distanceTo(end)<1e-5);
  }finally{disposeAndRelease(ship);}
 });
 test('Aft helm is compact, clear of the aft locker and mounted at the aft quarter',()=>{
