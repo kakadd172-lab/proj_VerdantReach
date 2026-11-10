@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.29';
+export const SHIP_EDITOR_KIT_VERSION='0.8.30';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -91,7 +91,7 @@ function setupPartApi(root,registry,design){
  // from the mast pivot below. Rotating the whole rigging group and then trying
  // to counter-rotate its tube vertices causes endpoint drift.
  const mastParts=[...registry.values()].filter(p=>p.userData.mastControl);
- const mastStaySets=new Map(),pendingMastStays=[];
+ const mastStaySets=new Map(),pendingMastStays=[],migratedTransformFrames=new Map();
  const hullPart=registry.get('hull')||root;
 
  // Capture each stay's authored endpoints in their original source frame
