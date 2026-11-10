@@ -133,8 +133,9 @@ test('all 16 independent ForTests generators build separate editable models', ()
       assert.ok(ship.userData.getPart('hull'), id + ' hull');
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
-      // Every vessel's own mast shrouds/stays now participate in the same
-      // articulation system without replacing its local rigging design.
+      // Conventional standing rigging is articulated where the vessel has it.
+      // Chinese junk masts use battened lug sails and are intentionally unstayed;
+      // do not invent shrouds merely to satisfy the shared animation test.
       for(const mastDefinition of getShipDesign(id).masts){
         const mast=ship.userData.getPart('mast-'+mastDefinition.id);
         const pivot=mast?.userData.mastControl?.pivotGroup;
@@ -143,6 +144,15 @@ test('all 16 independent ForTests generators build separate editable models', ()
         ship.traverse(object=>{
           if(object.isMesh&&object.userData.dynamicMastStay?.mastId===mastDefinition.id)supportLines.push(object);
         });
+        if(mastDefinition.rig==='junk'){
+          assert.equal(supportLines.length,0,id+' '+mastDefinition.id+' battened junk mast remains intentionally unstayed');
+          assert.ok(ship.userData.getPart('junk-battens-'+mastDefinition.id),id+' '+mastDefinition.id+' retains its independent sail battens');
+          const heelBefore=pivot.rotation.z;
+          ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
+          ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
+          assert.ok(Math.abs(pivot.rotation.z-heelBefore)>1e-6,id+' '+mastDefinition.id+' unstayed mast still responds to wind');
+          continue;
+        }
         assert.ok(supportLines.length>0,id+' '+mastDefinition.id+' has articulated standing rigging');
         const sample=supportLines[0],metadata=sample.userData.dynamicMastStay;
         const geometryBefore=sample.geometry.uuid;
