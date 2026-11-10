@@ -31,8 +31,10 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Verify the standalone ForTests vessel definitions and shared geometry engine
         run: npm run check:modules
-      - name: Run standalone vessel geometry and editor integration tests
-        run: npm test
+      - name: Run standalone editor, persistence and 16-vessel generator tests
+        run: npm run test:core
+      - name: Run Sloop reference, rigging and articulation tests in isolation
+        run: npm run test:sloop
       - name: Build the standalone modular ship editor
         run: npm run build
       - name: Verify all 16 standalone vessel generators load in the editor
