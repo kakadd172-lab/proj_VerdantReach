@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Vector3 } from 'three';
 import * as THREE from 'three';
-import { getShipDesign, createShipModel, disposeShipModel } from '../ships/index.js?v=0.8.9-persistent-vessel-authoring';
+import { getShipDesign, getVesselModule, createShipModel, disposeShipModel } from '../ships/index.js?v=0.8.9-persistent-vessel-authoring';
 import { deckY, keelY, hullPoint, stationZ, halfBreadth, hullShapeStation, sectionBreadth } from '../ships/vessels/sloop/architecture/hull-geometry.js';
 
 test('Loguivy homardier keeps the dimensions and rig described by the 1866 sheet',()=>{
@@ -175,6 +175,15 @@ test('The gaff mainsail remains intact and the topsail plus two distinct headsai
 test('The Sloop rig has continuous, correctly led standing and running rigging',()=>{
  const ship=createShipModel('sloop');
  try{
+  const defaults=getVesselModule('sloop').editorDefaults.componentState.partTransforms;
+  const standing=ship.userData.getPart('standing-rigging-single');
+  assert.equal(standing.parent,ship,'standing rigging is migrated out of the mast into the ship frame');
+  assert.deepEqual(ship.userData.getPartTransform('standing-rigging-single'),defaults['standing-rigging-single'],'legacy standing-rigging transform survives coordinate-frame migration');
+  assert.deepEqual(ship.userData.getPartTransform('shrouds-single'),defaults['shrouds-single'],'nested shroud transform remains unchanged during migration');
+  assert.ok(ship.userData.detachPart('standing-rigging-single'));
+  assert.ok(ship.userData.relinkPart('standing-rigging-single'));
+  assert.equal(standing.parent,ship,'relink restores the migrated standing-rigging parent');
+  assert.deepEqual(ship.userData.getPartTransform('standing-rigging-single'),defaults['standing-rigging-single'],'relink preserves the saved standing-rigging transform');
   const shrouds=ship.userData.getPart('shrouds-single');
   const ratlines=ship.userData.getPart('ratlines-single');
   const backstays=ship.userData.getPart('backstays-single');
