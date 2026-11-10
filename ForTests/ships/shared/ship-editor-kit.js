@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.17';
+export const SHIP_EDITOR_KIT_VERSION='0.8.18';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -158,24 +158,44 @@ function setupPartApi(root,registry,design){
   }
   return center.multiplyScalar(1/stride);
  }
- function rebaseMigratedPart(object){
-  if(!object)return;
-  const applied=state.partTransforms[object.name]||{};
-  const neutralScale=V(applied.sx??1,applied.sy??1,applied.sz??1);
-  const neutral={
-   position:object.position.clone().sub(V(applied.x||0,applied.y||0,applied.z||0)),
-   rotation:new THREE.Euler(
-    object.rotation.x-(applied.rx||0),
-    object.rotation.y-(applied.ry||0),
-    object.rotation.z-(applied.rz||0),'XYZ'),
-   scale:object.scale.clone().divide(neutralScale)
-  };
+ function migratePartPreservingWorld(object,newParent){
+  if(!object||!newParent||object.parent===newParent)return;
+  root.updateMatrixWorld(true);
+  const oldParent=object.parent,oldBase=base.get(object.name);
+  if(!oldParent||!oldBase)return;
+  // Re-express the original generator baseline through the old parent's
+  // current world matrix. This converts saved parent transforms correctly,
+  // including rotations and non-uniform scale.
+  const baseQuaternion=new THREE.Quaternion().setFromEuler(oldBase.rotation);
+  const baselineLocal=new THREE.Matrix4().compose(oldBase.position,baseQuaternion,oldBase.scale);
+  const baselineWorld=oldParent.matrixWorld.clone().multiply(baselineLocal);
+  const hadSavedTransform=Object.prototype.hasOwnProperty.call(state.partTransforms,object.name);
+  newParent.attach(object);
+  root.updateMatrixWorld(true);
+  const baselineInNewParent=newParent.matrixWorld.clone().invert().multiply(baselineWorld);
+  const basePosition=new THREE.Vector3(),baseQuaternionNew=new THREE.Quaternion(),baseScale=new THREE.Vector3();
+  baselineInNewParent.decompose(basePosition,baseQuaternionNew,baseScale);
+  const baseRotation=new THREE.Euler().setFromQuaternion(baseQuaternionNew,'XYZ');
+  const neutral={position:basePosition,rotation:baseRotation,scale:baseScale};
   base.set(object.name,neutral);
   generatorBase.set(object.name,{
-   position:neutral.position.clone(),
-   rotation:neutral.rotation.clone(),
-   scale:neutral.scale.clone()
+   position:basePosition.clone(),rotation:baseRotation.clone(),scale:baseScale.clone()
   });
+  if(hadSavedTransform){
+   // Store the equivalent delta in the new parent frame so get/set/save/reset
+   // continue to describe the same world-space edit after migration.
+   state.partTransforms[object.name]={
+    x:object.position.x-basePosition.x,
+    y:object.position.y-basePosition.y,
+    z:object.position.z-basePosition.z,
+    rx:object.rotation.x-baseRotation.x,
+    ry:object.rotation.y-baseRotation.y,
+    rz:object.rotation.z-baseRotation.z,
+    sx:object.scale.x/(baseScale.x||1),
+    sy:object.scale.y/(baseScale.y||1),
+    sz:object.scale.z/(baseScale.z||1)
+   };
+  }
  }
  function isUnlinked(object){
   for(let parent=object;parent;parent=parent.parent)if(parent===unlinked)return true;
@@ -189,14 +209,12 @@ function setupPartApi(root,registry,design){
   for(const stay of pendingMastStays){
    if(stay.standing&&!isUnlinked(stay.standing)&&stay.standing.parent!==root){
     root.updateMatrixWorld(true);
-    root.attach(stay.standing);
-    rebaseMigratedPart(stay.standing);
+    migratePartPreservingWorld(stay.standing,root);
    }
    for(const fitting of stay.fittings||[]){
     if(!isUnlinked(fitting)&&fitting.parent!==hullPart){
      root.updateMatrixWorld(true);
-     hullPart.attach(fitting);
-     rebaseMigratedPart(fitting);
+     migratePartPreservingWorld(fitting,hullPart);
     }
    }
   }
