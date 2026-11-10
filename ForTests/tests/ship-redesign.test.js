@@ -163,10 +163,11 @@ test('all 16 independent ForTests generators build separate editable models', ()
         // other vessel generators retain the default immediate-parent space.
         const fixedFrame=metadata.coordinateSpace==='mast-group'?mast:parent;
         const fixedBefore=fixedFrame.localToWorld(new Vector3Type(...metadata.fixedPoint));
-        const initialAttribute=sample.geometry.attributes.position,initialEndCenter=new Vector3Type();
+        const attribute=sample.geometry.attributes.position,radial=metadata.radialSegments??7,stride=radial+1;
+        const initialEndCenter=new Vector3Type();
         for(let i=0;i<=radial;i++){
           const offset=metadata.segments*stride+i;
-          initialEndCenter.add(new Vector3Type(initialAttribute.getX(offset),initialAttribute.getY(offset),initialAttribute.getZ(offset)));
+          initialEndCenter.add(new Vector3Type(attribute.getX(offset),attribute.getY(offset),attribute.getZ(offset)));
         }
         initialEndCenter.multiplyScalar(1/(radial+1));
         const initialFixed=sample.localToWorld(initialEndCenter.clone());
@@ -175,7 +176,6 @@ test('all 16 independent ForTests generators build separate editable models', ()
         ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
         assert.equal(sample.geometry.uuid,geometryBefore,id+' '+mastDefinition.id+' standing rig reuses its tube geometry');
         assert.ok(sample.geometry.attributes.position.array.some((value,index)=>Math.abs(value-positionsBefore[index])>1e-6),id+' '+mastDefinition.id+' stay vertices respond to mast heel');
-        const attribute=sample.geometry.attributes.position,radial=metadata.radialSegments??7,stride=radial+1;
         const endCenter=new Vector3Type();
         for(let i=0;i<=radial;i++){
           const offset=metadata.segments*stride+i;
