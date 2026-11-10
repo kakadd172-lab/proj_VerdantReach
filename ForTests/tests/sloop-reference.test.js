@@ -269,13 +269,16 @@ test('Sloop rigging transforms survive a save/reload across coordinate-frame ver
  const first=createShipModel('sloop');
  let restored=null;
  try{
+  first.userData.setRudderAngle(.17);
   const saved=first.userData.getShipState();
   assert.equal(saved.transformFrameVersion,2,'the editor exports the migrated coordinate-frame version');
+  assert.ok(Math.abs(saved.rudderAngle-.17)<1e-8,'the save contains the current steering state');
   first.updateMatrixWorld(true);
   const names=['mast-single','hull','standing-rigging-single','chainplates-single','backstay-chainplates-single'];
   const expected=Object.fromEntries(names.map(name=>[name,first.userData.getPart(name).matrixWorld.clone()]));
   restored=createShipModel('sloop',saved.partTransforms,saved);
   restored.updateMatrixWorld(true);
+  assert.ok(Math.abs(restored.userData.getShipState().rudderAngle-.17)<1e-8,'partial rigging transform application does not reset steering');
   for(const name of names){
    const actual=restored.userData.getPart(name).matrixWorld;
    for(let i=0;i<16;i++)assert.ok(Math.abs(actual.elements[i]-expected[name].elements[i])<1e-5,
