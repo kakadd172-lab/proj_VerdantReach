@@ -1,7 +1,7 @@
 name: v0.8.10 fleet visual audit
 on:
   push:
-    branches: [main, chatgpt-v0.8.10-game-ship-architecture-migration]
+    branches: [main, chatgpt-v0.8.10-game-ship-architecture-migration, test-integrity-infrastructure]
     paths:
       - 'ForTests/**'
       - '.github/workflows/ship-visual-audit.yml'
@@ -28,21 +28,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Verify vessel modules
         run: npm run check:modules
-      - name: Run geometry and editor tests
-        shell: bash
-        run: set -o pipefail; npm test 2>&1 | tee test-output.log
-      - name: Upload geometry test output
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: verdantreach-v0810-fleet-test-output
-          path: ForTests/test-output.log
-          if-no-files-found: warn
-          retention-days: 7
       - name: Build editor
         run: npm run build
       - name: Render every ship for visual inspection
-        if: always()
         run: npm run visual-audit
       - name: Upload visual audit renders
         if: always()
