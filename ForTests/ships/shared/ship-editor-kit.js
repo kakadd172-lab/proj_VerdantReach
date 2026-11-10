@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.28';
+export const SHIP_EDITOR_KIT_VERSION='0.8.29';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -168,7 +168,9 @@ function setupPartApi(root,registry,design){
   // including rotations and non-uniform scale.
   const baseQuaternion=new THREE.Quaternion().setFromEuler(oldBase.rotation);
   const baselineLocal=new THREE.Matrix4().compose(oldBase.position,baseQuaternion,oldBase.scale);
-  const baselineWorld=oldParent.matrixWorld.clone().multiply(baselineLocal);
+  const oldParentWorld=oldParent.matrixWorld.clone();
+  const newParentWorld=newParent.matrixWorld.clone();
+  const baselineWorld=oldParentWorld.clone().multiply(baselineLocal);
   const hadSavedTransform=Object.prototype.hasOwnProperty.call(state.partTransforms,object.name);
   newParent.attach(object);
   root.updateMatrixWorld(true);
@@ -180,6 +182,11 @@ function setupPartApi(root,registry,design){
   base.set(object.name,neutral);
   generatorBase.set(object.name,{
    position:basePosition.clone(),rotation:baseRotation.clone(),scale:baseScale.clone()
+  });
+  migratedTransformFrames.set(object.name,{
+   oldParentWorld,newParentWorld:newParent.matrixWorld.clone(),
+   oldBase:{position:oldBase.position.clone(),rotation:oldBase.rotation.clone(),scale:oldBase.scale.clone()},
+   newBase:{position:basePosition.clone(),rotation:baseRotation.clone(),scale:baseScale.clone()}
   });
   if(hadSavedTransform){
    // Store the equivalent delta in the new parent frame so get/set/save/reset
@@ -456,7 +463,43 @@ function setupPartApi(root,registry,design){
   setPartVisible(n,v){const p=registry.get(n);if(!p)return false;p.visible=!!v;state.hiddenParts[n]=!p.visible;return true;},
   setPartTransform(n,t={}){const p=registry.get(n),b=base.get(n);if(!p||!b)return false;const a={x:clamp(t.x,-1000,1000),y:clamp(t.y,-1000,1000),z:clamp(t.z,-1000,1000),rx:clamp(t.rx,-Math.PI*1000,Math.PI*1000),ry:clamp(t.ry,-Math.PI*1000,Math.PI*1000),rz:clamp(t.rz,-Math.PI*1000,Math.PI*1000),sx:clamp(t.sx??1,.001,1000),sy:clamp(t.sy??1,.001,1000),sz:clamp(t.sz??1,.001,1000)};
    p.position.copy(b.position).add(V(a.x,a.y,a.z));state.partTransforms[n]=a;const pose=runtimeTarget(p)===p?(state.runtimePose[n]||{}):{};p.rotation.set(b.rotation.x+a.rx+(pose.rx||0),b.rotation.y+a.ry+(pose.ry||0),b.rotation.z+a.rz+(pose.rz||0),'XYZ');p.scale.set(b.scale.x*a.sx,b.scale.y*a.sy,b.scale.z*a.sz);return true;},
-  captureResetBaseline(){for(const [name,obj] of registry){const neutral=base.get(name)||generatorBase.get(name),authored=original.get(name);if(!neutral)continue;resetBaseline.set(name,{parent:obj.parent,position:neutral.position.clone(),quaternion:new THREE.Quaternion().setFromEuler(neutral.rotation),rotation:neutral.rotation.clone(),scale:neutral.scale.clone(),visible:authored?.visible??obj.visible});}return true;},
+  captureResetBaseline(defaultState={},defaultFrameVersion=1){
+   const defaultTransforms=defaultState.partTransforms||{},hidden=defaultState.hiddenParts||{},unlinkedNames=new Set(defaultState.unlinkedParts||[]);
+   const convertLegacy=(name,t)=>{
+    const frame=migratedTransformFrames.get(name);if(!frame)return t;
+    const oldBase=frame.oldBase,newBase=frame.newBase;
+    const oldPosition=oldBase.position.clone().add(V(t.x||0,t.y||0,t.z||0));
+    const oldRotation=new THREE.Euler(oldBase.rotation.x+(t.rx||0),oldBase.rotation.y+(t.ry||0),oldBase.rotation.z+(t.rz||0),'XYZ');
+    const oldScale=oldBase.scale.clone().multiply(V(t.sx??1,t.sy??1,t.sz??1));
+    const local=new THREE.Matrix4().compose(oldPosition,new THREE.Quaternion().setFromEuler(oldRotation),oldScale);
+    const world=frame.oldParentWorld.clone().multiply(local);
+    const next=frame.newParentWorld.clone().invert().multiply(world);
+    const position=new THREE.Vector3(),quaternion=new THREE.Quaternion(),scale=new THREE.Vector3();
+    next.decompose(position,quaternion,scale);
+    const rotation=new THREE.Euler().setFromQuaternion(quaternion,'XYZ');
+    return {x:position.x-newBase.position.x,y:position.y-newBase.position.y,z:position.z-newBase.position.z,
+     rx:rotation.x-newBase.rotation.x,ry:rotation.y-newBase.rotation.y,rz:rotation.z-newBase.rotation.z,
+     sx:scale.x/(newBase.scale.x||1),sy:scale.y/(newBase.scale.y||1),sz:scale.z/(newBase.scale.z||1)};
+   };
+   const intendedParent=name=>{
+    if(unlinkedNames.has(name))return unlinked;
+    for(const stay of pendingMastStays){
+     if(stay.standing?.name===name)return root;
+     if((stay.fittings||[]).some(fitting=>fitting.name===name))return hullPart;
+    }
+    return original.get(name)?.parent||registry.get(name)?.parent||root;
+   };
+   for(const [name,obj] of registry){
+    const neutral=generatorBase.get(name)||base.get(name),authored=original.get(name);
+    if(!neutral)continue;
+    const stored=defaultTransforms[name]||{},transform=Number(defaultFrameVersion)>=2?stored:convertLegacy(name,stored);
+    const position=neutral.position.clone().add(V(transform.x||0,transform.y||0,transform.z||0));
+    const rotation=new THREE.Euler(neutral.rotation.x+(transform.rx||0),neutral.rotation.y+(transform.ry||0),neutral.rotation.z+(transform.rz||0),'XYZ');
+    const scale=neutral.scale.clone().multiply(V(transform.sx??1,transform.sy??1,transform.sz??1));
+    resetBaseline.set(name,{parent:intendedParent(name),position,quaternion:new THREE.Quaternion().setFromEuler(rotation),rotation,scale,visible:authored?.visible!==false&&!hidden[name]});
+   }
+   return true;
+  },
   resetPartTransform(n){
    const p=registry.get(n),saved=resetBaseline.get(n)||original.get(n);
    if(!p||!saved)return false;
@@ -473,7 +516,7 @@ function setupPartApi(root,registry,design){
     api.setSailDeployment(p.userData.sailControl.mastId,'full',0);
    }
    if(n==='rudder'||n==='helm-wheel')api.setRudderAngle(0);
-   base.set(n,{position:saved.position.clone(),rotation:saved.rotation.clone(),scale:saved.scale.clone()});
+   const raw=generatorBase.get(n);if(raw)base.set(n,{position:raw.position.clone(),rotation:raw.rotation.clone(),scale:raw.scale.clone()});
    const transform=api.getPartTransform(n);
    if(transform&&Object.values(transform).some((x,i)=>i<6?Math.abs(x)>1e-8:Math.abs(x-1)>1e-8))state.partTransforms[n]=transform;
    else delete state.partTransforms[n];
@@ -653,7 +696,7 @@ export function finishShipModel(ctx,transforms={},saved={}){
   api.migrateMastRigging();
  }
  api.finalizeMastStays();
- api.captureResetBaseline();
+ api.captureResetBaseline(defaults,Number(defaults.transformFrameVersion)||1);
  return root;
 }
 export function shipModelSummary(v){
