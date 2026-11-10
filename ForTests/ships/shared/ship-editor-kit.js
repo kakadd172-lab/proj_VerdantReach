@@ -117,25 +117,13 @@ function setupPartApi(root,registry,design){
    });
   });
 
-  // Sloop used to nest its standing rig under the mast. That made the
-  // "fixed" stays inherit mast editor transforms even though their feet are
-  // deck fittings. Put the standing assembly in the ship frame, matching
-  // the other vessel generators, while keeping its authored world pose.
+  // Keep the original hierarchy intact while saved component transforms
+  // are applied. These rigging transforms were authored relative to this
+  // hierarchy; reparenting before loading them would apply legacy offsets and
+  // scales in a different coordinate frame and compound them.
   const standing=registry.get('standing-rigging-'+id)||mast.getObjectByName('standing-rigging-'+id);
-  if(standing&&standing.parent!==root){
-   root.updateMatrixWorld(true);
-   root.attach(standing);
-  }
-
-  // Chainplates are physical hull fittings. They follow the hull component,
-  // never the editable mast or the movable standing-rigging assembly.
-  for(const name of ['chainplates-'+id,'backstay-chainplates-'+id]){
-   const fitting=registry.get(name);
-   if(fitting&&fitting.parent!==hullPart){
-    root.updateMatrixWorld(true);
-    hullPart.attach(fitting);
-   }
-  }
+  const fittings=['chainplates-'+id,'backstay-chainplates-'+id]
+   .map(name=>registry.get(name)).filter(Boolean);
 
   const pivot=control.pivotGroup||mast.userData.animationPivot||
    makeNestedPivot(mast,V(0,0,0),mast.name+'-mast-step-pivot');
@@ -149,6 +137,8 @@ function setupPartApi(root,registry,design){
   for(const stay of pending){
    stay.pivot=pivot;
    stay.startPivotLocal=pivot.worldToLocal(stay.mastHeadWorld.clone()).toArray();
+   stay.standing=standing;
+   stay.fittings=fittings;
    pendingMastStays.push(stay);
   }
  }
@@ -162,6 +152,21 @@ function setupPartApi(root,registry,design){
   return center.multiplyScalar(1/stride);
  }
  function finalizeMastStays(){
+  // Saved transforms have now been applied in the original authored
+  // hierarchy. Only now detach standing rigging from the mast and move the
+  // physical chainplates to the hull, preserving their fully edited world pose.
+  for(const stay of pendingMastStays){
+   if(stay.standing&&stay.standing.parent!==root){
+    root.updateMatrixWorld(true);
+    root.attach(stay.standing);
+   }
+   for(const fitting of stay.fittings||[]){
+    if(fitting.parent!==hullPart){
+     root.updateMatrixWorld(true);
+     hullPart.attach(fitting);
+    }
+   }
+  }
   root.updateMatrixWorld(true);
   mastStaySets.clear();
   for(const stay of pendingMastStays){
