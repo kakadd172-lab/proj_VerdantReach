@@ -67,6 +67,7 @@ export const SloopDefinition = defineVesselSpec({
 
 import { defineVesselSpec, resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext, finishShipModel } from '../../shared/ship-editor-kit.js';
+import { attachSloopRocking } from './animation/rocking-animation.js';
 import { SLOOP_ARCHITECTURE } from './architecture/layout.js';
 import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';
@@ -135,6 +136,7 @@ function assembleSloop(vessel,componentTransforms={},savedState={}){
     generate();
   }
   const root=finishShipModel(ctx,componentTransforms,savedState);
+  attachSloopRocking(root);
   root.userData.shipArchitecture=ARCHITECTURE;
   root.userData.shipAssemblyOrder=[...ARCHITECTURE.assemblyOrder];
   return root;
