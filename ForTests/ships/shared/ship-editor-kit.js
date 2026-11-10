@@ -106,10 +106,13 @@ function setupPartApi(root,registry,design){
    const sourceFrame=metadata.coordinateSpace==='mast-group'?mast:object.parent;
    const fixedPoint=metadata.fixedPoint||
     (Array.isArray(metadata.points)?metadata.points[metadata.fixedEndIndex??metadata.points.length-1]:null);
-   const mastHeadPoint=Array.isArray(metadata.points)?metadata.points[0]:null;
-   if(!Array.isArray(fixedPoint)||!Array.isArray(mastHeadPoint)||!sourceFrame)return;
+   if(!Array.isArray(fixedPoint)||!sourceFrame)return;
    const fixedWorld=sourceFrame.localToWorld(new THREE.Vector3(...fixedPoint));
-   const mastHeadWorld=sourceFrame.localToWorld(new THREE.Vector3(...mastHeadPoint));
+   // Use the actual generated tube ring for the moving end. Across the fleet,
+   // some generators author tube points in the mast frame and others in the
+   // ship frame; metadata.points[0] alone cannot safely identify that frame.
+   const startCenter=ringCenterFromArray(attribute.array,0,segments,radialSegments);
+   const mastHeadWorld=object.localToWorld(startCenter.clone());
    pending.push({
     mesh:object,mast,metadata,segments,radialSegments,
     fixedHullLocal:hullPart.worldToLocal(fixedWorld.clone()).toArray(),
