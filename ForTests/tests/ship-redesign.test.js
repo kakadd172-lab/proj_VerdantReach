@@ -1,6 +1,7 @@
 import test from 'node:test';
 import { existsSync, readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
+import * as THREE from 'three';
 
 import {
   SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,resetShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
@@ -552,10 +553,14 @@ test('sail fullness reverses to the lee side as wind direction changes', () => {
       const calmStride = calmMetadata.columns + 1;
       const calmCenter = Math.floor(calmMetadata.rows / 2) * calmStride + Math.floor(calmMetadata.columns / 2);
       const calmAxis = calmMetadata.axis === 'x' ? 0 : 2;
-      const before = calmPosition.getComponent(calmCenter, calmAxis);
+      const c0 = calmPosition.getComponent(0, calmAxis);
+      const c1 = calmPosition.getComponent(calmMetadata.columns, calmAxis);
+      const c2 = calmPosition.getComponent(calmMetadata.rows * calmStride, calmAxis);
+      const c3 = calmPosition.getComponent(calmMetadata.rows * calmStride + calmMetadata.columns, calmAxis);
+      const neutral = THREE.MathUtils.lerp(THREE.MathUtils.lerp(c0, c1, .5), THREE.MathUtils.lerp(c2, c3, .5), .5);
       calmShip.userData.animateShip(.05, { enabled: false, directionDeg: 90, speedKnots: 0 });
-      assert.ok(Math.abs(calmPosition.getComponent(calmCenter, calmAxis) - before) < 1e-8,
-        'A calm sail must return to its neutral, flat reference surface');
+      assert.ok(Math.abs(calmPosition.getComponent(calmCenter, calmAxis) - neutral) < 1e-8,
+        'A calm sail must relax to its neutral, flat reference surface');
     } finally {
       disposeShipModel(calmShip);
     }
