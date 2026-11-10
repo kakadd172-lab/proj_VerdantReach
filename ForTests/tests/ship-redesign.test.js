@@ -14,7 +14,7 @@ const ids = Object.keys(SHIP_DESIGNS).sort();
 test('the editor uses 16 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.9');
-  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.9');
+  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.10');
   assert.equal(ids.length, 16);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
