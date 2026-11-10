@@ -64,6 +64,11 @@ try{
 
   // Sea-state test bench exposes environmental inputs without animating the ship yet.
   assert.equal(await page.locator('#sea-state-value').innerText(),'OFF');
+  assert.equal(await page.locator('#sea-surface-toggle').getAttribute('aria-pressed'),'true');
+  await page.locator('#sea-surface-toggle').click();
+  assert.equal(await page.locator('#sea-surface-toggle').getAttribute('aria-pressed'),'false');
+  await page.locator('#sea-surface-toggle').click();
+  assert.equal(await page.locator('#sea-surface-toggle').getAttribute('aria-pressed'),'true');
   assert.equal(await page.locator('#wave-height').inputValue(),'0');
   assert.equal(await page.locator('#wave-period').inputValue(),'5');
   await page.locator('[data-sea-preset="moderate"]').click();
