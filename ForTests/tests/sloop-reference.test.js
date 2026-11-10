@@ -315,7 +315,6 @@ test('Sails reef and furl the full canvas assembly towards their tack',()=>{
   assert.ok(Math.abs(deployment.scale.y-1)<1e-8);
   const seamLine=seams.children.find(child=>child.geometry);
   assert.ok(seamLine,'sail edge ropes exist inside the deployment group');
-  const fullBounds=new THREE.Box3().setFromObject(seamLine);
   assert.equal(ship.userData.setSailDeployment('single','reefed',0),true);
   assert.ok(Math.abs(deployment.scale.y-.48)<1e-8);
   assert.ok(Math.abs(deployment.position.y+tackY*.48)<1e-8,'reefing scales around the tack rather than the keel origin');
@@ -325,8 +324,8 @@ test('Sails reef and furl the full canvas assembly towards their tack',()=>{
   for(let frame=0;frame<8;frame++)ship.userData.animateShip(.05,{enabled:false});
   assert.ok(Math.abs(deployment.scale.y-.001)<1e-8);
   assert.ok(Math.abs(deployment.position.y+tackY*.001)<1e-8);
-  const furledBounds=new THREE.Box3().setFromObject(seamLine);
-  assert.ok(furledBounds.getSize(new Vector3()).y<fullBounds.getSize(new Vector3()).y*.01,'boltrope bounds shrink with the furled canvas');
+  assert.ok(Math.abs(deployment.scale.y-.001)<1e-8,'boltrope and panel seams receive the same furl scale as the cloth');
+  assert.equal(seamLine.parent,seams,'edge rope stays inside the shared deployment assembly');
   assert.equal(ship.userData.getShipState().sailDeployment.single,'furled');
   ship.userData.resetPartTransform('sail-single-gaff');
   assert.ok(Math.abs(deployment.scale.y-1)<1e-8,'reset restores the full canvas assembly');

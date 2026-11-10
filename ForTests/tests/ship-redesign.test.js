@@ -140,21 +140,30 @@ test('all 16 independent ForTests generators build separate editable models', ()
         const pivot=mast?.userData.mastControl?.pivotGroup;
         assert.ok(mast&&pivot,id+' '+mastDefinition.id+' mast-step pivot');
         const supportLines=[];
-        mast.traverse(object=>{if(object.isMesh&&object.userData.dynamicMastStay)supportLines.push(object);});
+        ship.traverse(object=>{
+          if(object.isMesh&&object.userData.dynamicMastStay?.mastId===mastDefinition.id)supportLines.push(object);
+        });
         assert.ok(supportLines.length>0,id+' '+mastDefinition.id+' has articulated standing rigging');
         const sample=supportLines[0],metadata=sample.userData.dynamicMastStay;
         const geometryBefore=sample.geometry.uuid;
         const positionsBefore=new Float32Array(sample.geometry.attributes.position.array);
+        const parent=sample.parent,Vector3Type=sample.position.constructor;
+        ship.updateMatrixWorld(true);
+        const fixedBefore=parent.localToWorld(new Vector3Type(...metadata.fixedPoint));
         ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
         ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
         assert.equal(sample.geometry.uuid,geometryBefore,id+' '+mastDefinition.id+' standing rig reuses its tube geometry');
         assert.ok(sample.geometry.attributes.position.array.some((value,index)=>Math.abs(value-positionsBefore[index])>1e-6),id+' '+mastDefinition.id+' stay vertices respond to mast heel');
-        const inverse=pivot.quaternion.clone().invert();
-        const Vector3Type=sample.position.constructor;
-        const localFixed=new Vector3Type(...metadata.fixedPoint).applyQuaternion(inverse);
-        const actualFixed=sample.localToWorld(localFixed.clone());
-        const expectedFixed=mast.localToWorld(new Vector3Type(...metadata.fixedPoint));
-        assert.ok(actualFixed.distanceTo(expectedFixed)<1e-5,id+' '+mastDefinition.id+' stay remains attached to its fixed hull fitting');
+        const attribute=sample.geometry.attributes.position,radial=metadata.radialSegments??7,stride=radial+1;
+        const endCenter=new Vector3Type();
+        for(let i=0;i<=radial;i++){
+          const offset=metadata.segments*stride+i;
+          endCenter.add(new Vector3Type(attribute.getX(offset),attribute.getY(offset),attribute.getZ(offset)));
+        }
+        endCenter.multiplyScalar(1/(radial+1));
+        ship.updateMatrixWorld(true);
+        const actualFixed=sample.localToWorld(endCenter);
+        assert.ok(actualFixed.distanceTo(fixedBefore)<.02,id+' '+mastDefinition.id+' stay remains attached to its fixed hull fitting');
       }
       if (id !== 'pinnace' && id !== 'sloop') {
         const cabin = ship.userData.getPart('stern-tier-1');

@@ -22,6 +22,7 @@ export function buildStandingRigging(d,ctx,mast,mastGroup,z,baseY,totalHeight,lo
   const deckLocalY=station=>deckY(d,station)-baseY;
   const markDeckAnchoredStay=(line,points,radius,segments)=>{
     line.userData.dynamicMastStay={
+      mastId:mast.id,
       points:points.map(point=>point.toArray()),
       fixedEndIndex:points.length-1,
       fixedPoint:points[points.length-1].toArray(),

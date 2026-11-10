@@ -46,8 +46,10 @@ export function createShipContext(vessel,palette={}){
   // Mast-supporting tubes are authored in mast-local space. Record their
   // original centerline so the shared mast-step system can keep the final
   // deck/bow/stern fitting fixed while moving the masthead end.
-  if(/^(?:shrouds|mast-stays|backstays)-/.test(parent.name||'')){
+  const mastStayGroup=(parent.name||'').match(/^(?:shrouds|mast-stays|backstays)-(.+)$/);
+  if(mastStayGroup){
    line.userData.dynamicMastStay={
+    mastId:mastStayGroup[1],
     points:curvePoints.map(point=>point.toArray()),
     fixedEndIndex:curvePoints.length-1,
     fixedPoint:curvePoints[curvePoints.length-1].toArray(),
@@ -98,13 +100,23 @@ function setupPartApi(root,registry,design){
   mast.userData.animationPivot=pivot;
   pivot.userData.articulation={kind:'mast-step',mastId:id,heelLimitDeg:control.windHeelMaxDeg,rakeLimitDeg:control.windRakeMaxDeg};
   const stays=[];
-  pivot.traverse(object=>{
+  root.updateMatrixWorld(true);
+  root.traverse(object=>{
    const metadata=object.userData.dynamicMastStay,attribute=object.geometry?.attributes?.position;
-   if(metadata&&object.isMesh&&attribute){
-    // Keep large vertex snapshots transient; do not embed them in exported userData.
-    const data={...metadata,radialSegments:metadata.radialSegments??7,restPositions:new Float32Array(attribute.array)};
-    stays.push({mesh:object,data,lastQuaternion:pivot.quaternion.clone()});
-   }
+   if(!metadata||metadata.mastId!==id||!object.isMesh||!attribute||!object.parent)return;
+   const parent=object.parent;
+   const pivotPoints=metadata.points.map(point=>{
+    const world=parent.localToWorld(new THREE.Vector3(...point));
+    return pivot.worldToLocal(world.clone()).toArray();
+   });
+   const fixedWorld=parent.localToWorld(new THREE.Vector3(...metadata.fixedPoint));
+   const fixedRootPoint=root.worldToLocal(fixedWorld.clone()).toArray();
+   const data={
+    ...metadata,pivotPoints,fixedRootPoint,
+    radialSegments:metadata.radialSegments??7,
+    restPositions:new Float32Array(attribute.array)
+   };
+   stays.push({mesh:object,parent,data,lastQuaternion:pivot.quaternion.clone()});
   });
   if(stays.length)mastStaySets.set(id,{pivot,stays});
  }
@@ -309,27 +321,31 @@ function setupPartApi(root,registry,design){
     }
     // Keep the deck ends of selected stays fixed while their masthead ends
     // follow the pivot. Rebuild only when the mast quaternion has changed.
+    root.updateMatrixWorld(true);
     for(const {pivot,stays} of mastStaySets.values()){
      const rotation=pivot.quaternion;
-     for(const {mesh,data,lastQuaternion} of stays){
+     for(const {mesh,parent,data,lastQuaternion} of stays){
       if(1-Math.abs(lastQuaternion.dot(rotation))<1e-9)continue;
-      const inverse=rotation.clone().invert();
-      const fixed=new THREE.Vector3(...data.fixedPoint);
-      const correction=fixed.clone().sub(fixed.clone().applyQuaternion(rotation)).applyQuaternion(inverse);
+      const worldPoints=data.pivotPoints.map(point=>pivot.localToWorld(new THREE.Vector3(...point)));
+      worldPoints[data.fixedEndIndex]=root.localToWorld(new THREE.Vector3(...data.fixedRootPoint));
+      const localPoints=worldPoints.map(point=>parent.worldToLocal(point.clone()));
+      const curve=new THREE.CatmullRomCurve3(localPoints);
+      const frames=curve.computeFrenetFrames(data.segments,false);
       const attribute=mesh.geometry.attributes.position;
-      const rest=data.restPositions,radialSegments=data.radialSegments??7,stride=radialSegments+1;
-      if(attribute&&rest&&rest.length===attribute.array.length){
-       const array=attribute.array;
+      const radialSegments=data.radialSegments??7,stride=radialSegments+1;
+      if(attribute&&attribute.count===(data.segments+1)*stride){
        for(let ring=0;ring<=data.segments;ring++){
-        const weight=ring/data.segments;
+        const center=curve.getPointAt(ring/data.segments);
         for(let radial=0;radial<=radialSegments;radial++){
-         const offset=(ring*stride+radial)*3;
-         array[offset]=rest[offset]+correction.x*weight;
-         array[offset+1]=rest[offset+1]+correction.y*weight;
-         array[offset+2]=rest[offset+2]+correction.z*weight;
+         const angle=radial/radialSegments*Math.PI*2;
+         const normal=frames.normals[ring].clone().multiplyScalar(Math.cos(angle))
+          .add(frames.binormals[ring].clone().multiplyScalar(Math.sin(angle)));
+         const vertex=center.clone().addScaledVector(normal,data.radius);
+         attribute.setXYZ(ring*stride+radial,vertex.x,vertex.y,vertex.z);
         }
        }
        attribute.needsUpdate=true;
+       mesh.geometry.computeVertexNormals();
        mesh.geometry.computeBoundingBox();
        mesh.geometry.computeBoundingSphere();
       }
