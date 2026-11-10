@@ -97,7 +97,28 @@ function setupPartApi(root,registry,design){
   setPartTransform(n,t={}){const p=registry.get(n),b=base.get(n);if(!p||!b)return false;const a={x:clamp(t.x,-1000,1000),y:clamp(t.y,-1000,1000),z:clamp(t.z,-1000,1000),rx:clamp(t.rx,-Math.PI*1000,Math.PI*1000),ry:clamp(t.ry,-Math.PI*1000,Math.PI*1000),rz:clamp(t.rz,-Math.PI*1000,Math.PI*1000),sx:clamp(t.sx??1,.001,1000),sy:clamp(t.sy??1,.001,1000),sz:clamp(t.sz??1,.001,1000)};
    p.position.copy(b.position).add(V(a.x,a.y,a.z));state.partTransforms[n]=a;const pose=runtimeTarget(p)===p?(state.runtimePose[n]||{}):{};p.rotation.set(b.rotation.x+a.rx+(pose.rx||0),b.rotation.y+a.ry+(pose.ry||0),b.rotation.z+a.rz+(pose.rz||0),'XYZ');p.scale.set(b.scale.x*a.sx,b.scale.y*a.sy,b.scale.z*a.sz);return true;},
   captureResetBaseline(){for(const [name,obj] of registry)resetBaseline.set(name,{parent:obj.parent,position:obj.position.clone(),quaternion:obj.quaternion.clone(),rotation:obj.rotation.clone(),scale:obj.scale.clone(),visible:obj.visible});return true;},
-  resetPartTransform(n){const p=registry.get(n),saved=resetBaseline.get(n)||original.get(n),raw=generatorBase.get(n);if(!p||!saved)return false;if(p.parent!==saved.parent){p.parent?.remove(p);saved.parent.add(p);}p.position.copy(saved.position);p.quaternion.copy(saved.quaternion);p.rotation.copy(saved.rotation);p.scale.copy(saved.scale);p.visible=saved.visible;p.updateMatrix();if(raw)base.set(n,{position:raw.position.clone(),rotation:raw.rotation.clone(),scale:raw.scale.clone()});const transform=api.getPartTransform(n);if(transform&&Object.values(transform).some((x,i)=>i<6?Math.abs(x)>1e-8:Math.abs(x-1)>1e-8))state.partTransforms[n]=transform;else delete state.partTransforms[n];if(p.visible)delete state.hiddenParts[n];else state.hiddenParts[n]=true;if(p.parent===unlinked)state.unlinkedParts=[...new Set([...state.unlinkedParts,n])];else state.unlinkedParts=state.unlinkedParts.filter(x=>x!==n);return true;},
+  resetPartTransform(n){
+   const p=registry.get(n),saved=resetBaseline.get(n)||original.get(n),raw=generatorBase.get(n);
+   if(!p||!saved)return false;
+   if(p.parent!==saved.parent){p.parent?.remove(p);saved.parent.add(p);}
+   p.position.copy(saved.position);p.quaternion.copy(saved.quaternion);p.rotation.copy(saved.rotation);p.scale.copy(saved.scale);p.visible=saved.visible;p.updateMatrix();
+   // Runtime pivots are not part of a design transform. Reset them separately so
+   // a wind/steering pose cannot survive a component reset.
+   const target=runtimeTarget(p);
+   if(target!==p)target.rotation.set(0,0,0,'XYZ');
+   delete state.runtimePose[n];
+   if(p.userData.mastControl)state.mastLean[p.userData.mastControl.mastId]=0;
+   if(p.userData.sailControl)state.sailTrim[p.userData.sailControl.mastId]=0;
+   if(n==='rudder'||n==='helm-wheel')api.setRudderAngle(0);
+   if(raw)base.set(n,{position:raw.position.clone(),rotation:raw.rotation.clone(),scale:raw.scale.clone()});
+   const transform=api.getPartTransform(n);
+   if(transform&&Object.values(transform).some((x,i)=>i<6?Math.abs(x)>1e-8:Math.abs(x-1)>1e-8))state.partTransforms[n]=transform;
+   else delete state.partTransforms[n];
+   if(p.visible)delete state.hiddenParts[n];else state.hiddenParts[n]=true;
+   if(p.parent===unlinked)state.unlinkedParts=[...new Set([...state.unlinkedParts,n])];
+   else state.unlinkedParts=state.unlinkedParts.filter(x=>x!==n);
+   return true;
+  },
   setRudderAngle(a){
     const p=registry.get('rudder');if(!p)return false;state.rudderAngle=clamp(a,-.62,.62);
     const rc=p.userData.steeringControl||{};setRuntimeRotation('rudder',{ry:state.rudderAngle*(rc.rotationSign??1)});

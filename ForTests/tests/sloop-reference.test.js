@@ -235,6 +235,13 @@ test('Rudder and helm wheel rotate around their pivots and remain mechanically l
   assert.ok(Math.abs(ship.userData.getShipState().rudderAngle-.62)<1e-6);
   ship.userData.setRudderAngle(0);
   assert.ok(Math.abs(wheelPivot.rotation.z)<1e-6);
+  ship.userData.setRudderAngle(.42);
+  assert.ok(Math.abs(rudderPivot.rotation.y)>.4);
+  assert.ok(ship.userData.resetPartTransform('rudder'));
+  assert.ok(Math.abs(rudderPivot.rotation.y)<1e-8,'reset clears the nested rudder stock pose');
+  assert.ok(Math.abs(wheelPivot.rotation.z)<1e-8,'reset also clears the mechanically linked wheel pose');
+  assert.equal(ship.userData.getShipState().rudderAngle,0);
+  assert.deepEqual(ship.userData.getPartTransform('rudder'),rudderEditorTransform,'reset preserves the saved rudder component baseline');
  }finally{disposeShipModel(ship);}
 });
 
@@ -257,6 +264,9 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
   assert.ok(Math.abs(mainPivot.rotation.y)>.05&&Math.abs(jibPivot.rotation.y)>.03);
   assert.ok(Math.abs(mast.rotation.z)>.0001);
   assert.ok(Math.abs(ship.userData.getPartTransform('boom-single').ry-before.ry)<1e-8);
+  assert.ok(ship.userData.resetPartTransform('boom-single'));
+  assert.ok(Math.abs(boomPivot.rotation.x)+Math.abs(boomPivot.rotation.y)+Math.abs(boomPivot.rotation.z)<1e-8,'component reset clears wind-driven boom pivot rotation');
+  assert.deepEqual(ship.userData.getPartTransform('boom-single'),before,'component reset restores the original component transform');
   const data=clothMesh.userData.sailCloth,attribute=clothMesh.geometry.attributes.position;
   let displaced=false;
   for(let i=0;i<attribute.array.length;i++)if(Math.abs(attribute.array[i]-data.restPositions[i])>1e-5){displaced=true;break;}
