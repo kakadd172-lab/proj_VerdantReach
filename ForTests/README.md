@@ -48,12 +48,11 @@ ForTests/
 
 ## Per-vessel generation
 
-Each vessel owns its historical/reference notes, dimensions, and
-hull/structure proportions. For the five pilot vessels, edit the relevant
-component generator inside `ships/vessels/<id>/generators/` and update
-`architecture/layout.js` when mount points, dependencies or assembly order
-change. For the other eleven, edit that vessel's module (for example
-`ships/vessels/galleon.js`). The registry only selects the vessel-specific
+Each vessel owns its historical/reference notes, dimensions, hull/structure
+proportions, architecture blueprint, and component generators. Edit the
+relevant component generator inside `ships/vessels/<id>/generators/` and update
+that vessel's `architecture/layout.js` when mount points, dependencies, mast
+stations or assembly order change. The registry only selects the vessel-specific
 module; it does not provide a shared geometry builder.
 
 The shared directory is intentionally limited to support code:
@@ -82,6 +81,14 @@ sixteen generator modules and exposes the editor API.
 - Inspect hull cross-sections, measure spans, and compare two ship dimensions.
 - Save/import/export JSON designs and capture the viewport as a PNG.
 - Toggle wireframe, grid and shadows.
+- Test wind-from direction and speed, gusts, pause/resume and reset without
+  changing saved vessel defaults.
+- Watch every mast's live heel/rake around its mast-step pivot; mast-supporting
+  stays adjust while deck ends remain fixed.
+- Steer the rudder with the test slider and see the helm wheel follow its axle
+  pivot through the configured steering ratio.
+- Set all sails full, reefed or furled; canvas, panel seams and boltropes gather
+  together towards each sail's tack.
 
 ## Local setup on Windows
 
@@ -94,15 +101,15 @@ Open PowerShell and switch to the shipyard branch:
 cd D:\Projects\VerdantReach
 git status --short
 git fetch origin
-git switch chatgpt-v0.8.9-persistent-vessel-authoring
-git pull --ff-only origin chatgpt-v0.8.9-persistent-vessel-authoring
+git switch chatgpt-v0.8.10-game-ship-architecture-migration
+git pull --ff-only origin chatgpt-v0.8.10-game-ship-architecture-migration
 ```
 
 If Git says the local branch does not exist, use this once instead of the
 `git switch` line:
 
 ```powershell
-git switch --track -c chatgpt-v0.8.9-persistent-vessel-authoring origin/chatgpt-v0.8.9-persistent-vessel-authoring
+git switch --track -c chatgpt-v0.8.10-game-ship-architecture-migration origin/chatgpt-v0.8.10-game-ship-architecture-migration
 ```
 
 Install the shipyard dependencies (first setup, or after dependency changes):
@@ -187,6 +194,34 @@ rudder state and design/structure overrides are stored as data defaults. They
 remain isolated to the corresponding vessel. Edits to geometry algorithms still
 belong in that vessel's individual `generators/` files.
 
+## Sailing articulation and wind test bench
+
+Open the **Wind & steering test bench** in the preview editor.
+
+- **Wind direction** is a wind-from angle relative to the vessel: 0° bow,
+  90° starboard, 180° stern, and 270° port. The compass readout and presets
+  use the same convention.
+- **Wind speed** ranges from 0 to 30 knots. The optional gust switch varies
+  the applied visual wind pressure. Pause freezes the current animation pose;
+  Reset test returns wind, sails and steering to their default test state.
+- Each mast has a nested **mast-step pivot**. Wind applies limited sideways
+  heel (up to 2.5°) and fore-and-aft rake (up to 1.2°), and the live readout
+  shows the actual angles for every mast.
+- Standing shrouds and backstays follow their masthead attachment while their
+  lower ends remain fixed at the hull. Their existing tube geometry is updated
+  in place; it is not rebuilt on every animation frame.
+- Each rudder rotates about its stock pivot. The helm wheel rotates about its
+  axle and follows the rudder angle using that vessel's configured ratio.
+- **Set full**, **Reef sails**, and **Furl sails** act on every mast in the
+  selected vessel. The canvas, panel seams and boltropes share one deployment
+  group and gather around the sail tack. Sail deployment is stored as
+  per-vessel component state.
+
+This is an editor/visual test system, not a full aerodynamic, hull-stability or
+navigation simulation. The direction response and angular limits are tunable
+preview values; they should be treated as animation controls until a separate
+gameplay wind-and-sailing physics model is implemented.
+
 ## Barque-first review pass
 
 Start with the Barque before changing the other four component-first vessels:
@@ -205,6 +240,23 @@ Start with the Barque before changing the other four component-first vessels:
 Record visual issues before changing formulas. The current model is a
 parametric reconstruction, not museum-scanned CAD; check the reference notes
 before changing historically significant hull or rig proportions.
+
+When reviewing mast movement, inspect both the mast's heel/rake and the
+shroud/backstay lower endpoints. When reviewing furling, check that the cloth,
+seams and boltropes collapse together without moving the tack.
+
+## Sailing articulation and rigging refinement — 0.8.10
+
+The preview adds wind direction/speed, gusts, pause/resume, and a safe test
+reset. All 16 vessels now receive nested mast-step, rudder-stock and helm-axle
+pivots through the shared editor lifecycle. Mast heel/rake remains separate
+from saved editor transforms, the helm wheel follows the rudder, and
+mast-supporting rigging adjusts in place while holding its hull attachment.
+
+Sail deployment now has full, reefed and furled modes in the preview. The
+entire sail assembly (canvas, panel seams and boltropes) gathers around the
+tack, and resetting a sail restores its full deployment without overwriting
+saved editor defaults.
 
 ## Visual refinement pass — 0.8.9
 
