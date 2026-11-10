@@ -177,13 +177,34 @@ test('The Sloop rig has continuous, correctly led standing and running rigging',
  try{
   const defaults=getVesselModule('sloop').editorDefaults.componentState.partTransforms;
   const standing=ship.userData.getPart('standing-rigging-single');
+  const mast=ship.userData.getPart('mast-single');
+  const hull=ship.userData.getPart('hull');
+  const chainplates=ship.userData.getPart('chainplates-single');
+  const backstayChainplates=ship.userData.getPart('backstay-chainplates-single');
+  ship.updateMatrixWorld(true);
   assert.equal(standing.parent,ship,'standing rigging is migrated out of the mast into the ship frame');
-  assert.deepEqual(ship.userData.getPartTransform('standing-rigging-single'),defaults['standing-rigging-single'],'legacy standing-rigging transform survives coordinate-frame migration');
+  assert.equal(chainplates.parent,hull,'shroud chainplates are attached to the hull frame');
+  assert.equal(backstayChainplates.parent,hull,'backstay chainplates are attached to the hull frame');
+  // The old saved transform was authored in mast-local space. Its world pose
+  // must survive migration even though its equivalent local delta changes.
+  const authored=defaults['standing-rigging-single'];
+  const authoredLocal=new THREE.Matrix4().compose(
+   new THREE.Vector3(authored.x,authored.y,authored.z),
+   new THREE.Quaternion().setFromEuler(new THREE.Euler(authored.rx,authored.ry,authored.rz,'XYZ')),
+   new THREE.Vector3(authored.sx,authored.sy,authored.sz));
+  const expectedWorld=mast.matrixWorld.clone().multiply(authoredLocal);
+  const actualWorld=standing.matrixWorld.clone();
+  for(let i=0;i<16;i++)assert.ok(Math.abs(actualWorld.elements[i]-expectedWorld.elements[i])<1e-5,'standing rigging world matrix survives parent migration at element '+i);
+  const migratedTransform=ship.userData.getPartTransform('standing-rigging-single');
+  assert.ok(Object.values(migratedTransform).every(Number.isFinite),'migrated transform remains finite');
   assert.deepEqual(ship.userData.getPartTransform('shrouds-single'),defaults['shrouds-single'],'nested shroud transform remains unchanged during migration');
+  const beforeRelink=standing.matrixWorld.clone();
   assert.ok(ship.userData.detachPart('standing-rigging-single'));
   assert.ok(ship.userData.relinkPart('standing-rigging-single'));
+  ship.updateMatrixWorld(true);
   assert.equal(standing.parent,ship,'relink restores the migrated standing-rigging parent');
-  assert.deepEqual(ship.userData.getPartTransform('standing-rigging-single'),defaults['standing-rigging-single'],'relink preserves the saved standing-rigging transform');
+  for(let i=0;i<16;i++)assert.ok(Math.abs(standing.matrixWorld.elements[i]-beforeRelink.elements[i])<1e-5,'relink preserves world pose at element '+i);
+  assert.deepEqual(ship.userData.getPartTransform('standing-rigging-single'),migratedTransform,'relink preserves the converted parent-frame transform');
   const shrouds=ship.userData.getPart('shrouds-single');
   const ratlines=ship.userData.getPart('ratlines-single');
   const backstays=ship.userData.getPart('backstays-single');
