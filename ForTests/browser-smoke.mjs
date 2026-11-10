@@ -241,6 +241,7 @@ try{
   assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-16.4)<1e-6,'Redo did not restore the imported vessel configuration.');
 
   assert.deepEqual(pageErrors,[],'Browser runtime errors: '+pageErrors.join(' | '));
+  assert.deepEqual(consoleErrors,[],'Browser console errors: '+consoleErrors.join(' | '));
   assert.deepEqual(duplicateThreeWarnings,[],'Multiple Three.js instances detected: '+duplicateThreeWarnings.join(' | '));
   console.log('Browser smoke test passed.');
   console.log('Vessels in dropdown: '+optionCount);
