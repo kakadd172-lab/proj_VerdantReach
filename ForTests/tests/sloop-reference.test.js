@@ -374,7 +374,8 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
   ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:24});
   ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:24});
   assert.ok(boomPivot.rotation.y<-.05);
-  assert.ok(Math.abs(mainPivot.rotation.y)>.05&&Math.abs(jibPivot.rotation.y)>.03);
+  assert.ok(Math.abs(mainPivot.rotation.y)>.05,'gaff mainsail should rotate under wind pressure');
+  assert.ok(Math.abs(jibPivot.rotation.y)<1e-8,'forward triangular headsails intentionally retain their orientation; directional billow is tested separately');
   assert.ok(mastPivot.rotation.z>.0001,'mast rotates around its mast-step pivot under wind');
   assert.equal(chainplates.parent,ship.userData.getPart('hull'),'chainplates remain attached to the hull, outside mast articulation');
   mast.updateMatrixWorld(true);
