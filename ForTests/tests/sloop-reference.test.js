@@ -266,7 +266,7 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
   assert.ok(Math.abs(ship.userData.getPartTransform('mast-single').rz)<1e-8,'wind does not modify the mast editor transform');
   for(let frame=0;frame<55;frame++)ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
   const fullHeel=mast.userData.mastControl.pivotGroup.rotation.z;
-  assert.ok(fullHeel>0.03&&fullHeel<=THREE.MathUtils.degToRad(2.5)+1e-5,'mast heel is bounded to its configured range');
+  assert.ok(fullHeel>0.03&&fullHeel<=2.5*Math.PI/180+1e-5,'mast heel is bounded to its configured range');
   for(let frame=0;frame<55;frame++)ship.userData.animateShip(.05,{enabled:true,directionDeg:270,speedKnots:30});
   assert.ok(mast.userData.mastControl.pivotGroup.rotation.z<-.03,'reversing wind reverses mast heel');
   for(let frame=0;frame<55;frame++)ship.userData.animateShip(.05,{enabled:false,directionDeg:270,speedKnots:0});
