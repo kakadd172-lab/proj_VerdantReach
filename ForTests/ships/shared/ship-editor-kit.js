@@ -421,7 +421,30 @@ function setupPartApi(root,registry,design){
    cloth?.traverse(object=>{
     if(object.isMesh&&object.userData.sailCloth){
      mesh=object;
-     sailCloth={...object.userData.sailCloth,restPositions:new Float32Array(object.geometry.attributes.position.array)};
+     const metadata=object.userData.sailCloth;
+     const position=object.geometry.attributes.position;
+     const restPositions=new Float32Array(position.array);
+     const rows=metadata.rows,columns=metadata.columns,stride=columns+1;
+     const axisIndex=metadata.axis==='x'?0:2;
+     const baseAxis=new Float32Array(position.count),camberOffsets=new Float32Array(position.count);
+     if(rows>0&&columns>0&&position.count===(rows+1)*stride){
+      const p00=restPositions[axisIndex];
+      const p10=restPositions[columns*3+axisIndex];
+      const p01=restPositions[(rows*stride)*3+axisIndex];
+      const p11=restPositions[(rows*stride+columns)*3+axisIndex];
+      for(let row=0;row<=rows;row++){
+       const v=row/rows;
+       for(let col=0;col<=columns;col++){
+        const u=col/columns,index=row*stride+col;
+        const lower=THREE.MathUtils.lerp(p00,p10,u);
+        const upper=THREE.MathUtils.lerp(p01,p11,u);
+        const flat=THREE.MathUtils.lerp(lower,upper,v);
+        baseAxis[index]=flat;
+        camberOffsets[index]=restPositions[index*3+axisIndex]-flat;
+       }
+      }
+      sailCloth={...metadata,restPositions,axisIndex,baseAxis,camberOffsets};
+     }
     }
    });
    const anchorY=p.userData.sailControl.deploymentAnchorY??p.userData.sailControl.pivotPoint?.[1]??0;
@@ -611,29 +634,41 @@ function setupPartApi(root,registry,design){
      if(control?.kind==='boom')setRuntimeRotation(name,{ry:trimAngle*(control.trimScale??1)});
      else if(control?.kind==='gaff')setRuntimeRotation(name,{ry:trimAngle,rx:Math.cos(direction)*state.windBlend*.012});
     }
+    // Update sail trim first, then evaluate the wind in each canvas's own
+    // rotated frame. directionDeg is the side the wind comes FROM:
+    // 0° bow, 90° starboard, 180° stern, 270° port.
     for(const p of sailParts){
      const id=p.userData.sailControl.mastId,type=p.userData.sailControl.sailType||'';
      const scale=/jib|staysail|headsail/i.test(type)?.78:/topsail/i.test(type)?.86:1;
      const gust=Math.sin(state.time*1.7+p.name.length*.71)*.018*state.windBlend;
      setRuntimeRotation(p.name,{ry:(state.sailTrim[id]||0)+trimAngle*scale+gust});
+    }
+    root.updateMatrixWorld(true);
+    const rootWorldQuaternion=root.getWorldQuaternion(new THREE.Quaternion());
+    const windFromShip=new THREE.Vector3(Math.sin(direction),0,-Math.cos(direction));
+    const windFromWorld=windFromShip.applyQuaternion(rootWorldQuaternion);
+    for(const p of sailParts){
      const animation=cloths.get(p.name);
      if(animation?.mesh){
       const data=animation.sailCloth,attribute=animation.mesh.geometry.attributes.position;
-      if(data&&attribute){
-       const luff=(1+Math.cos(direction))*.5,amplitude=state.windBlend*(.018+.026*luff);
-       const array=attribute.array,rest=data.restPositions,stride=data.columns+1;
-       for(let row=0;row<=data.rows;row++){
-        const v=row/data.rows;
-        for(let col=0;col<=data.columns;col++){
-         const u=col/data.columns,index=row*stride+col,offset=index*3;
-         const envelope=Math.sin(Math.PI*u)*Math.sin(Math.PI*v);
-         const phase=state.time*4.8-u*6.2+v*2.1+p.name.length*.13;
-         const displacement=amplitude*envelope*Math.sin(phase);
-         array[offset]=rest[offset]+(data.axis==='x'?displacement:0);
-         array[offset+2]=rest[offset+2]+(data.axis==='z'?displacement:0);
-        }
+      if(data&&attribute&&data.camberOffsets&&data.baseAxis){
+       const sailWorldQuaternion=animation.mesh.getWorldQuaternion(new THREE.Quaternion());
+       const windFromCanvas=windFromWorld.clone().applyQuaternion(sailWorldQuaternion.invert());
+       // Pressure pushes the canvas away from the wind source. The sign is
+       // calculated in the canvas frame, so sail trim and mast orientation
+       // naturally change which side receives the bulge.
+       const pressure=THREE.MathUtils.clamp(-windFromCanvas.getComponent(data.axisIndex),-1,1);
+       const gustPulse=weather.gusts===true
+        ?(0.88+0.12*(0.5+0.5*Math.sin(state.time*4.8+p.name.length*.37))):1;
+       const billow=pressure*state.windBlend*gustPulse;
+       const array=attribute.array,axisOffset=data.axisIndex;
+       for(let index=0;index<attribute.count;index++){
+        array[index*3+axisOffset]=data.baseAxis[index]+data.camberOffsets[index]*billow;
        }
-       attribute.needsUpdate=true;animation.mesh.geometry.computeVertexNormals();
+       attribute.needsUpdate=true;
+       animation.mesh.geometry.computeVertexNormals();
+       animation.mesh.geometry.computeBoundingBox();
+       animation.mesh.geometry.computeBoundingSphere();
       }
      }
      if(animation?.cloth&&animation.elapsed<animation.duration){
