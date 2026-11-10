@@ -16,15 +16,15 @@ export const SLOOP_ARCHITECTURE = Object.freeze({
   "deck-planking":{generator:"./generators/decks/deck-planking-generator.js",mount:"open-deck-around-livewell"},
   "stern":{generator:"./generators/stern/stern-generator.js",mount:"broad-rounded-flat-transom"},
   "aft-cabins":{generator:"./generators/cabins/aft-cabin-generator.js",mount:"no-raised-aft-cabin-in-source-plan"},
-  "bow":{generator:"./generators/bow/bow-generator.js",mount:"long-bowsprit-and-fine-stem"},
+  "bow":{generator:"./generators/bow/bow-generator.js",mount:"long-bowsprit-with-bobstay-and-port-starboard-guys"},
   "rudder":{generator:"./generators/steering/rudder-generator.js",mount:"transom-hung-rudder"},
   "helm":{generator:"./generators/steering/helm-generator.js",mount:"compact-aft-quarter-wheel-clear-of-locker"},
   "railings":{generator:"./generators/deck-equipment/railing-generator.js",mount:"low-working-gunwale"},
   "deck-equipment":{generator:"./generators/deck-equipment/fittings-generator.js",mount:"fore-and-aft-working-lockers"},
   "anchors":{generator:"./generators/anchors/anchor-generator.js",mount:"forward-hawse-and-bow-cheeks"},
   "masts":{generator:"./generators/masts/mast-frame-generator.js",mount:"single-mast-at-58-percent-from-bow"},
-  "head-sails":{generator:"./generators/sails/head-sails-generator.js",mount:"fuller-outer-jib-and-inner-staysail-on-separate-stays"},
-  "standing-rigging":{generator:"./generators/rigging/standing-rigging-generator.js",mount:"single-mast-standing-rigging"}
+  "head-sails":{generator:"./generators/sails/head-sails-generator.js",mount:"fuller-outer-jib-and-inner-staysail-with-independent-forestays-and-sheets"},
+  "standing-rigging":{generator:"./generators/rigging/standing-rigging-generator.js",mount:"paired-shrouds-chainplates-ratlines-and-quarter-backstays"}
  }),
  mastInstances:Object.freeze([
   Object.freeze({id:"single",foreAftStation:0.08,heightScale:1,radiusScale:1,yardScale:1,generator:"./generators/masts/singlemast-generator.js"})

@@ -94,7 +94,7 @@ test('The transom, rudder, anchors and expanded single-mast rig assemble as sepa
   assert.ok(ship.userData.getPart('mast-stays-single'));
   assert.ok(ship.userData.getPart('backstays-single'));
   assert.ok(!ship.userData.getPart('running-braces-single'),'this gaff sloop has no unattached yard braces');
-  assert.ok(!ship.userData.getPart('forestay-single'),'the outer-jib luff already provides the forestay');
+  assert.ok(!ship.userData.getPart('forestay-single'),'the forestay is registered with the head-sail standing rigging, not duplicated as a mast part');
   assert.equal(ship.userData.getPart('ratlines-single').children.length,18,'ratlines form two short ladders, one on each side');
   assert.ok(ship.userData.getPart('cloth-sail-head-1'));
   assert.ok(ship.userData.getPart('cloth-sail-head-2'));
@@ -146,8 +146,22 @@ test('The gaff mainsail remains intact and the topsail plus two distinct headsai
   );
   const jibSheet=ship.userData.getPart('head-sheets-outer-jib');
   const staysailSheet=ship.userData.getPart('head-sheets-inner-staysail');
-  assert.equal(jibSheet.children.length,1,'the jib gets one clean working sheet');
-  assert.equal(staysailSheet.children.length,1,'the staysail gets one clean working sheet');
+  assert.equal(jibSheet.children.length,2,'the jib has port and starboard sheets');
+  assert.equal(staysailSheet.children.length,2,'the staysail has port and starboard sheets');
+  assert.deepEqual(
+   jibSheet.children.map(line=>line.userData.sheetSide).sort(),
+   ['port','starboard'],
+   'the jib sheets must lead to both quarters'
+  );
+  assert.deepEqual(
+   staysailSheet.children.map(line=>line.userData.sheetSide).sort(),
+   ['port','starboard'],
+   'the staysail sheets must lead to both quarters'
+  );
+  assert.ok(ship.userData.getPart('head-stays-1').children.some(line=>line.name==='outer-jib-forestay'));
+  assert.ok(ship.userData.getPart('head-stays-2').children.some(line=>line.name==='inner-staysail-stay'));
+  assert.ok(ship.userData.getPart('head-halyards-outer-jib').children.some(line=>line.name==='outer-jib-halyard-fall'));
+  assert.ok(ship.userData.getPart('head-halyards-inner-staysail').children.some(line=>line.name==='inner-staysail-halyard-fall'));
   for(const name of ['cloth-sail-head-1','cloth-sail-head-2']){
    let sailMesh=null;ship.userData.getPart(name).traverse(object=>{if(object.isMesh&&object.name==='sail-shaped-cloth')sailMesh=object;});
    assert.ok(sailMesh,name+' canvas is present');sailMesh.geometry.computeBoundingBox();
@@ -156,6 +170,51 @@ test('The gaff mainsail remains intact and the topsail plus two distinct headsai
  }finally{disposeShipModel(ship);}
 });
 
+
+test('The Sloop rig has continuous, correctly led standing and running rigging',()=>{
+ const ship=createShipModel('sloop');
+ try{
+  const shrouds=ship.userData.getPart('shrouds-single');
+  const ratlines=ship.userData.getPart('ratlines-single');
+  const backstays=ship.userData.getPart('backstays-single');
+  const chainplates=ship.userData.getPart('chainplates-single');
+  const bowspritRig=ship.userData.getPart('bowsprit-standing-rigging');
+  const mastRunning=ship.userData.getPart('running-rigging-single');
+  const boomRunning=ship.userData.getPart('boom-running-rigging-single');
+  assert.ok(shrouds&&ratlines&&backstays&&chainplates&&bowspritRig&&mastRunning&&boomRunning);
+  assert.equal(shrouds.children.length,4,'two shrouds on each side support the mast');
+  assert.equal(ratlines.children.length,18,'nine ratlines form each port and starboard ladder');
+  assert.equal(backstays.children.length,2,'one backstay leads to each quarter');
+  assert.equal(chainplates.children.length,4,'each lower shroud has its own chainplate');
+  assert.ok(bowspritRig.children.some(group=>group.name==='bowsprit-side-guys'));
+  assert.ok(bowspritRig.children.some(group=>group.name==='bowsprit-heel-lashings'));
+  assert.ok(bowspritRig.children.some(line=>line.name==='bowsprit-bobstay'));
+  assert.ok(mastRunning.getObjectByName('gaff-throat-halyard'));
+  assert.ok(mastRunning.getObjectByName('gaff-peak-halyard'));
+  assert.ok(boomRunning.getObjectByName('boom-topping-lift'));
+  assert.ok(boomRunning.getObjectByName('mainsheet'));
+  assert.ok(boomRunning.getObjectByName('mainsheet-tail'));
+  assert.ok(boomRunning.getObjectByName('boom-vang'));
+  for(const name of [
+   'bowsprit-bobstay',
+   'standing-shroud-port-forward',
+   'standing-shroud-starboard-after',
+   'backstay-port',
+   'backstay-starboard',
+   'gaff-throat-halyard',
+   'gaff-peak-halyard',
+   'boom-topping-lift',
+   'mainsheet',
+   'boom-vang'
+  ]){
+   let line=null;ship.traverse(object=>{if(object.name===name)line=object;});
+   assert.ok(line?.geometry,'rigging line '+name+' must have real tube geometry');
+   line.geometry.computeBoundingBox();
+   const size=line.geometry.boundingBox.getSize(new Vector3());
+   assert.ok(size.length()>.25,'rigging line '+name+' must span between distinct fittings');
+  }
+ }finally{disposeShipModel(ship);}
+});
 
 test('Aft helm is compact, clear of the aft locker and mounted at the aft quarter',()=>{
  const ship=createShipModel('sloop');
