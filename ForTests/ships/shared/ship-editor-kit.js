@@ -131,17 +131,6 @@ function setupPartApi(root,registry,design){
   const standing=registry.get('standing-rigging-'+id)||mast.getObjectByName('standing-rigging-'+id);
   const fittings=['chainplates-'+id,'backstay-chainplates-'+id]
    .map(name=>registry.get(name)).filter(Boolean);
-  const relativePose=(frame,object)=>{
-   root.updateMatrixWorld(true);
-   object.updateWorldMatrix(true,false);
-   const relative=frame.matrixWorld.clone().invert().multiply(object.matrixWorld);
-   const position=new THREE.Vector3(),quaternion=new THREE.Quaternion(),scale=new THREE.Vector3();
-   relative.decompose(position,quaternion,scale);
-   return {position,rotation:new THREE.Euler().setFromQuaternion(quaternion,'XYZ'),scale};
-  };
-  const standingBase=standing?relativePose(root,standing):null;
-  const fittingBases=fittings.map(fitting=>({fitting,basePose:relativePose(hullPart,fitting)}));
-
   const excluded=new Set(standing?[standing]:[]);
   const pivot=control.pivotGroup||mast.userData.animationPivot||
    makeNestedPivot(mast,V(0,0,0),mast.name+'-mast-step-pivot',excluded);
@@ -156,8 +145,7 @@ function setupPartApi(root,registry,design){
    stay.pivot=pivot;
    stay.startPivotLocal=pivot.worldToLocal(stay.mastHeadWorld.clone()).toArray();
    stay.standing=standing;
-   stay.standingBase=standingBase;
-   stay.fittingBases=fittingBases;
+   stay.fittings=fittings;
    pendingMastStays.push(stay);
   }
  }
@@ -170,42 +158,45 @@ function setupPartApi(root,registry,design){
   }
   return center.multiplyScalar(1/stride);
  }
- function applyMigratedPose(object,parent,basePose){
-  if(!object||!parent||!basePose)return;
+ function rebaseMigratedPart(object){
+  if(!object)return;
   const applied=state.partTransforms[object.name]||{};
-  parent.add(object);
-  object.position.copy(basePose.position).add(V(applied.x||0,applied.y||0,applied.z||0));
-  object.rotation.set(
-   basePose.rotation.x+(applied.rx||0),
-   basePose.rotation.y+(applied.ry||0),
-   basePose.rotation.z+(applied.rz||0),'XYZ');
-  object.scale.copy(basePose.scale).multiply(V(applied.sx??1,applied.sy??1,applied.sz??1));
-  const neutral={position:basePose.position.clone(),rotation:basePose.rotation.clone(),scale:basePose.scale.clone()};
+  const neutralScale=V(applied.sx??1,applied.sy??1,applied.sz??1);
+  const neutral={
+   position:object.position.clone().sub(V(applied.x||0,applied.y||0,applied.z||0)),
+   rotation:new THREE.Euler(
+    object.rotation.x-(applied.rx||0),
+    object.rotation.y-(applied.ry||0),
+    object.rotation.z-(applied.rz||0),'XYZ'),
+   scale:object.scale.clone().divide(neutralScale)
+  };
   base.set(object.name,neutral);
-  generatorBase.set(object.name,{position:neutral.position.clone(),rotation:neutral.rotation.clone(),scale:neutral.scale.clone()});
+  generatorBase.set(object.name,{
+   position:neutral.position.clone(),
+   rotation:neutral.rotation.clone(),
+   scale:neutral.scale.clone()
+  });
  }
-
  function isUnlinked(object){
   for(let parent=object;parent;parent=parent.parent)if(parent===unlinked)return true;
   return false;
  }
  function finalizeMastStays(){
-  // Saved transforms have now been applied in the original authored
-  // hierarchy. Only now detach standing rigging from the mast and move the
-  // physical chainplates to the hull, preserving their fully edited world pose.
-  // Explicitly detached editor parts remain detached and are not reattached.
-  const migratedNames=new Set();
+  // Apply the editor's saved transforms in the original hierarchy first.
+  // Object3D.attach then moves each component to its physical parent while
+  // preserving its actual world matrix; no offsets are reinterpreted in a
+  // different coordinate frame.
   for(const stay of pendingMastStays){
    if(stay.standing&&!isUnlinked(stay.standing)&&stay.standing.parent!==root){
-    applyMigratedPose(stay.standing,root,stay.standingBase);
+    root.updateMatrixWorld(true);
+    root.attach(stay.standing);
+    rebaseMigratedPart(stay.standing);
    }
-   for(const entry of stay.fittingBases||[]){
-    const {fitting,basePose}=entry;
+   for(const fitting of stay.fittings||[]){
     if(!isUnlinked(fitting)&&fitting.parent!==hullPart){
-     // Chainplates were authored in mast-local coordinates. Move their
-     // component origin into hull-local space, retaining only their own saved
-     // editor delta rather than inheriting the mast/standing-rig transforms.
-     applyMigratedPose(fitting,hullPart,basePose);
+     root.updateMatrixWorld(true);
+     hullPart.attach(fitting);
+     rebaseMigratedPart(fitting);
     }
    }
   }
