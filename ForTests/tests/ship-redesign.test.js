@@ -7,14 +7,14 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.13-in-place-stay-deformation';
+} from '../ships/index.js?v=0.8.14-fixed-fitting-endpoints';
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
 test('the editor uses 16 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.9');
-  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.13');
+  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.14');
   assert.equal(ids.length, 16);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
@@ -163,6 +163,14 @@ test('all 16 independent ForTests generators build separate editable models', ()
         // other vessel generators retain the default immediate-parent space.
         const fixedFrame=metadata.coordinateSpace==='mast-group'?mast:parent;
         const fixedBefore=fixedFrame.localToWorld(new Vector3Type(...metadata.fixedPoint));
+        const initialAttribute=sample.geometry.attributes.position,initialEndCenter=new Vector3Type();
+        for(let i=0;i<=radial;i++){
+          const offset=metadata.segments*stride+i;
+          initialEndCenter.add(new Vector3Type(initialAttribute.getX(offset),initialAttribute.getY(offset),initialAttribute.getZ(offset)));
+        }
+        initialEndCenter.multiplyScalar(1/(radial+1));
+        const initialFixed=sample.localToWorld(initialEndCenter.clone());
+        assert.ok(initialFixed.distanceTo(fixedBefore)<.02,id+' '+mastDefinition.id+' stay starts at its declared hull fitting');
         ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
         ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
         assert.equal(sample.geometry.uuid,geometryBefore,id+' '+mastDefinition.id+' standing rig reuses its tube geometry');
