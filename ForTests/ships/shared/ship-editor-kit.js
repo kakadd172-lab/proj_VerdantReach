@@ -448,7 +448,8 @@ function setupPartApi(root,registry,design){
     }
    });
    const anchorY=p.userData.sailControl.deploymentAnchorY??p.userData.sailControl.pivotPoint?.[1]??0;
-   const geometryBounds=mesh?.geometry?.boundingBox||mesh?.geometry?.computeBoundingBox();
+   if(mesh?.geometry&&!mesh.geometry.boundingBox)mesh.geometry.computeBoundingBox();
+   const geometryBounds=mesh?.geometry?.boundingBox;
    // Furling/reefing gathers the canvas upward to its head (highest attached
    // edge), rather than collapsing it down toward the lower tack.
    const furlAnchorY=geometryBounds?.max?.y??anchorY;
