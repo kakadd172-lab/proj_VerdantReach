@@ -159,7 +159,10 @@ test('all 16 independent ForTests generators build separate editable models', ()
         const positionsBefore=new Float32Array(sample.geometry.attributes.position.array);
         const parent=sample.parent,Vector3Type=sample.position.constructor;
         ship.updateMatrixWorld(true);
-        const fixedBefore=parent.localToWorld(new Vector3Type(...metadata.fixedPoint));
+        // Sloop standing-rigging metadata is authored in mast-component space;
+        // other vessel generators retain the default immediate-parent space.
+        const fixedFrame=metadata.coordinateSpace==='mast-group'?mast:parent;
+        const fixedBefore=fixedFrame.localToWorld(new Vector3Type(...metadata.fixedPoint));
         ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
         ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
         assert.equal(sample.geometry.uuid,geometryBefore,id+' '+mastDefinition.id+' standing rig reuses its tube geometry');
