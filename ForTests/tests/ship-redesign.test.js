@@ -20,6 +20,7 @@ function disposeAndRelease(ship) {
   }
   ship.userData.ownedGeometries = [];
   ship.userData.ownedMaterials = [];
+  globalThis.gc?.();
 }
 
 
