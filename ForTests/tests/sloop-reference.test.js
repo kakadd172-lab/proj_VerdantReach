@@ -277,7 +277,7 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
   assert.ok(boomPivot.rotation.y<-.05);
   assert.ok(Math.abs(mainPivot.rotation.y)>.05&&Math.abs(jibPivot.rotation.y)>.03);
   assert.ok(mastPivot.rotation.z>.0001,'mast rotates around its mast-step pivot under wind');
-  assert.equal(chainplates.parent,mast,'chainplates remain outside the moving mast pivot');
+  assert.equal(chainplates.parent,ship.userData.getPart('hull'),'chainplates remain attached to the hull, outside mast articulation');
   mast.updateMatrixWorld(true);
   assert.ok(chainplates.getWorldPosition(new Vector3()).distanceTo(chainplateWorldBefore)<1e-8,'chainplates remain fixed while the mast heels');
   assert.equal(anchoredShroud.geometry.uuid,shroudGeometryBefore,'shroud tube geometry is reused during mast motion');
