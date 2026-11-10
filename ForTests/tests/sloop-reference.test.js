@@ -403,19 +403,13 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
 
 test('Sails reef and furl the full canvas assembly towards their tack',()=>{
  const ship=createShipModel('sloop');
- process.stdout.write('SLOOP-SAIL: model created\n');
  try{
   const sail=ship.userData.getPart('sail-single-gaff');
-  process.stdout.write('SLOOP-SAIL: sail part retrieved\n');
   const cloth=ship.userData.getPart('cloth-sail-single-gaff');
-  process.stdout.write('SLOOP-SAIL: cloth part retrieved\n');
   const seams=ship.userData.getPart('panel-seams-sail-single-gaff');
-  process.stdout.write('SLOOP-SAIL: seams part retrieved\n');
   const pivotGroup=sail.userData.sailControl.pivotGroup;
   const deployment=pivotGroup?.children.find(child=>child.name===sail.userData.sailControl.deploymentPart);
-  process.stdout.write('SLOOP-SAIL: deployment found by direct parent lookup\n');
   const tackY=sail.userData.sailControl.pivotPoint[1];
-  process.stdout.write('SLOOP-SAIL: tack read\n');
   assert.ok(cloth&&seams&&deployment);
   const furlFrame=deployment.children.find(child=>child.name==='sail-furl-frame-sail-single-gaff');
   assert.ok(furlFrame,'deployment assembly should contain its luff-aligned furl frame');
@@ -428,22 +422,16 @@ test('Sails reef and furl the full canvas assembly towards their tack',()=>{
   assert.equal(ship.userData.setSailDeployment('single','reefed',0),true);
   assert.ok(Math.abs(deployment.scale.y-.48)<1e-8);
   assert.ok(Math.abs(deployment.position.y+tackY*.48)<1e-8,'reefing scales around the tack rather than the keel origin');
-  process.stdout.write('SLOOP-SAIL: reefed instantly\n');
   assert.equal(ship.userData.setSailDeployment('single','furled',.5),true);
-  process.stdout.write('SLOOP-SAIL: furl started\n');
   for(let frame=0;frame<5;frame++)ship.userData.animateShip(.05,{enabled:false});
-  process.stdout.write('SLOOP-SAIL: first animation batch\n');
   assert.ok(deployment.scale.y<.48&&deployment.scale.y>.001,'furling interpolates smoothly');
   for(let frame=0;frame<8;frame++)ship.userData.animateShip(.05,{enabled:false});
-  process.stdout.write('SLOOP-SAIL: second animation batch\n');
   assert.ok(Math.abs(deployment.scale.y-.001)<1e-8);
   assert.ok(Math.abs(deployment.position.y+tackY*.001)<1e-8);
   assert.ok(Math.abs(deployment.scale.y-.001)<1e-8,'boltrope and panel seams receive the same furl scale as the cloth');
   assert.equal(seamLine.parent,seams,'edge rope stays inside the shared deployment assembly');
   assert.equal(ship.userData.getShipState().sailDeployment.single,'furled');
-  process.stdout.write('SLOOP-SAIL: before reset\n');
   ship.userData.resetPartTransform('sail-single-gaff');
-  process.stdout.write('SLOOP-SAIL: after reset\n');
   assert.ok(Math.abs(deployment.scale.y-1)<1e-8,'reset restores the full canvas assembly');
  }finally{disposeAndRelease(ship);}
 });
