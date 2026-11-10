@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.20';
+export const SHIP_EDITOR_KIT_VERSION='0.8.21';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -234,16 +234,9 @@ function setupPartApi(root,registry,design){
   const fixedWorld=best&&best.distance<1?best.point:target;
   return hullPart.worldToLocal(fixedWorld.clone()).toArray();
  }
- function finalizeMastStays(){
-  // Resolve the hull anchor after saved transforms, against the actual
-  // chainplate geometry. Then migrate components while preserving world pose.
-  root.updateMatrixWorld(true);
-  for(const stay of pendingMastStays){
-   const resolved=resolveFixedFitting(stay);
-   if(resolved)stay.fixedHullLocal=resolved;
-  }
-  // Object3D.attach preserves each component's actual world matrix; converted
-  // editor deltas are recalculated in the new parent frame below.
+ function migrateMastRigging(){
+  // Reparent the structural groups once. Call before applying v2 saved
+  // transforms, or after applying legacy mast-local transforms.
   for(const stay of pendingMastStays){
    if(stay.standing&&!isUnlinked(stay.standing)&&stay.standing.parent!==root){
     root.updateMatrixWorld(true);
@@ -255,6 +248,17 @@ function setupPartApi(root,registry,design){
      migratePartPreservingWorld(fitting,hullPart);
     }
    }
+  }
+  root.updateMatrixWorld(true);
+  return true;
+ }
+ function finalizeMastStays(){
+  // Resolve the hull anchor after saved transforms, against the actual
+  // chainplate geometry. This runs after migration and state application.
+  root.updateMatrixWorld(true);
+  for(const stay of pendingMastStays){
+   const resolved=resolveFixedFitting(stay);
+   if(resolved)stay.fixedHullLocal=resolved;
   }
   root.updateMatrixWorld(true);
   mastStaySets.clear();
@@ -422,6 +426,7 @@ function setupPartApi(root,registry,design){
   };
  const api={
   parts:registry,
+  migrateMastRigging,
   finalizeMastStays,
   getPart(n){return registry.get(n)||null;},
   getPartTransform(n){const p=registry.get(n),b=base.get(n);if(!p||!b)return null;const pose=runtimeTarget(p)===p?(state.runtimePose[n]||{}):{};return {
@@ -581,7 +586,7 @@ function setupPartApi(root,registry,design){
      }
     }
    },
-  getShipState(){const partTransforms=Object.fromEntries([...registry.keys()].map(n=>[n,api.getPartTransform(n)]).filter(([,v])=>v&&Object.values(v).some((x,i)=>i<6?Math.abs(x)>1e-8:Math.abs(x-1)>1e-8)));return {rudderAngle:state.rudderAngle,sailTrim:{...state.sailTrim},sailDeployment:{...state.sailDeployment},mastLean:{...state.mastLean},hiddenParts:Object.fromEntries(Object.entries(state.hiddenParts).filter(([,v])=>v)),unlinkedParts:[...state.unlinkedParts],partTransforms};},
+  getShipState(){const partTransforms=Object.fromEntries([...registry.keys()].map(n=>[n,api.getPartTransform(n)]).filter(([,v])=>v&&Object.values(v).some((x,i)=>i<6?Math.abs(x)>1e-8:Math.abs(x-1)>1e-8)));return {transformFrameVersion:2,rudderAngle:state.rudderAngle,sailTrim:{...state.sailTrim},sailDeployment:{...state.sailDeployment},mastLean:{...state.mastLean},hiddenParts:Object.fromEntries(Object.entries(state.hiddenParts).filter(([,v])=>v)),unlinkedParts:[...state.unlinkedParts],partTransforms};},
   applyShipState(s={}){for(const n of s.unlinkedParts||[])if(registry.has(n))api.detachPart(n);for(const [n,t] of Object.entries(s.partTransforms||{}))if(registry.has(n))api.setPartTransform(n,t);api.setRudderAngle(s.rudderAngle||0);for(const [id,v] of Object.entries(s.sailTrim||{}))api.setSailTrim(id,v);for(const [id,v] of Object.entries(s.sailDeployment||{}))api.setSailDeployment(id,v,0);for(const [id,v] of Object.entries(s.mastLean||{}))api.setMastLean(id,v);for(const [n,v] of Object.entries(s.hiddenParts||{}))if(registry.has(n))api.setPartVisible(n,!v);return true;},
   summary(){return {type:design.id,label:design.label,dimensions:{length:design.hullLength,beam:design.beam,draft:design.draft},lengthBeamRatio:design.lengthBeamRatio,rig:design.rig,era:design.era,reference:design.reference,sources:(design.sources||[]).map(s=>({...s})),hullProfile:design.hullProfile,partCount:registry.size,parts:[...registry.keys()],unlinkedParts:[...state.unlinkedParts]};}
  };
@@ -603,7 +608,18 @@ export function finishShipModel(ctx,transforms={},saved={}){
  const baseTransforms=Object.prototype.hasOwnProperty.call(patch,'partTransforms')?(patch.partTransforms||{}):(defaults.partTransforms||{});
  const partTransforms={...baseTransforms,...(transforms||{})};
  state.partTransforms=partTransforms;
- if(Object.keys(partTransforms).length||Object.keys(state.hiddenParts||{}).length||(state.unlinkedParts||[]).length||Object.keys(state.sailTrim||{}).length||Object.keys(state.sailDeployment||{}).length||Object.keys(state.mastLean||{}).length||Number(state.rudderAngle))api.applyShipState(state);
+ const newTransformFrame=Number(state.transformFrameVersion)>=2;
+ if(newTransformFrame){
+  // Apply unlink/visibility/sailing state, migrate, then apply transforms in
+  // their versioned post-migration coordinate frames.
+  api.applyShipState({...state,partTransforms:{}});
+  api.migrateMastRigging();
+  api.applyShipState(state);
+ }else{
+  // Older defaults store rigging transforms in mast-local coordinates.
+  if(Object.keys(partTransforms).length||Object.keys(state.hiddenParts||{}).length||(state.unlinkedParts||[]).length||Object.keys(state.sailTrim||{}).length||Object.keys(state.sailDeployment||{}).length||Object.keys(state.mastLean||{}).length||Number(state.rudderAngle))api.applyShipState(state);
+  api.migrateMastRigging();
+ }
  api.finalizeMastStays();
  api.captureResetBaseline();
  return root;
