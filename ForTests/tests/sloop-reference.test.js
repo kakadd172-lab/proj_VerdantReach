@@ -12,7 +12,7 @@ test('Loguivy homardier keeps the dimensions and rig described by the 1866 sheet
  assert.ok(Math.abs(d.freeboard+d.draft-2.50)<0.01);
  assert.equal(d.masts.length,1);
  assert.equal(d.masts[0].rig,'gaff');
- assert.equal(d.headsails,1);
+ assert.equal(d.headsails,2);
  assert.equal(d.sternTiers.length,0,'source drawing has no raised aft cabin');
 });
 
@@ -77,7 +77,7 @@ test('The central vivier is an editable open-deck component, not a box placed on
  }finally{disposeShipModel(ship);}
 });
 
-test('The transom, rudder, anchors and single-mast rig all assemble as separate editable parts',()=>{
+test('The transom, rudder, anchors and expanded single-mast rig assemble as separate editable parts',()=>{
  const ship=createShipModel('sloop');
  try{
   assert.ok(ship.userData.getPart('sternworks'));
@@ -86,11 +86,16 @@ test('The transom, rudder, anchors and single-mast rig all assemble as separate 
   assert.ok(ship.userData.getPart('anchor-starboard'));
   assert.ok(ship.userData.getPart('mast-single'));
   assert.ok(ship.userData.getPart('sail-single-gaff'));
+  assert.ok(ship.userData.getPart('sail-single-gaff-topsail'));
+  assert.ok(ship.userData.getPart('topsail-jackyard-single'));
+  assert.ok(ship.userData.getPart('gaff-halyards-single'));
+  assert.ok(ship.userData.getPart('backstays-single'));
   assert.ok(ship.userData.getPart('cloth-sail-head-1'));
+  assert.ok(ship.userData.getPart('cloth-sail-head-2'));
  }finally{disposeShipModel(ship);}
 });
 
-test('The gaff mainsail is a complete quadrilateral with a forward headsail',()=>{
+test('The gaff mainsail remains intact and the topsail plus two distinct headsails are generated',()=>{
  const ship=createShipModel('sloop');
  try{
   const sail=ship.userData.getPart('cloth-sail-single-gaff');
@@ -103,6 +108,15 @@ test('The gaff mainsail is a complete quadrilateral with a forward headsail',()=
   assert.ok(size.y>4.5);
   assert.ok(size.z>3.0);
   assert.ok(ship.userData.getPart('cloth-sail-head-1'));
+  assert.ok(ship.userData.getPart('cloth-sail-head-2'));
+  const topsail=ship.userData.getPart('cloth-sail-single-gaff-topsail');
+  assert.ok(topsail);
+  let topsailMesh=null;
+  topsail.traverse(object=>{if(object.isMesh&&object.name==='sail-shaped-cloth')topsailMesh=object;});
+  assert.ok(topsailMesh,'gaff topsail should have separate curved canvas');
+  topsailMesh.geometry.computeBoundingBox();
+  const topsailSize=topsailMesh.geometry.boundingBox.getSize(new Vector3());
+  assert.ok(topsailSize.y>1.0&&topsailSize.z>1.0,'topsail should have visible area');
  }finally{disposeShipModel(ship);}
 });
 

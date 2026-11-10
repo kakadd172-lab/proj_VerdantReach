@@ -1,16 +1,50 @@
-import { deckY, halfBreadth, V } from "../../architecture/hull-geometry.js";
-export function buildStandingRigging(d,ctx,mast,z,baseY,totalHeight,lowerHeight){
+import { deckY, halfBreadth, stationZ, V } from "../../architecture/hull-geometry.js";
+
+export function buildStandingRigging(d,ctx,mast,mastGroup,z,baseY,totalHeight,lowerHeight){
  const {part,tube,beam,materials,V}=ctx;
- const mastStation=0.5+mast.z,standing=part('standing-rigging-'+mast.id),shrouds=part('shrouds-'+mast.id,standing),ratlines=part('ratlines-'+mast.id,standing),stays=part('mast-stays-'+mast.id,standing),running=part('running-rigging-'+mast.id),braces=part('running-braces-'+mast.id,running);
- const railX=halfBreadth(d,mastStation)*0.82,pairs=d.structure.shroudPairs??2;
- for(const side of [-1,1])for(let pair=0;pair<pairs;pair++){
-  const spread=pairs<=1?0:pair/(pairs-1)-.5,attachZ=spread*d.beamUnits*.18;
-  tube(shrouds,[V(side*.08,totalHeight-.1,0),V(side*.21,lowerHeight*.58,spread*d.beamUnits*.07),V(side*railX,deckY(d,mastStation)-baseY+.24,attachZ)],.016,materials.rope,'standing-shroud-'+side+'-'+pair,28);
+ const mastStation=0.5+mast.z;
+ const standing=part('standing-rigging-'+mast.id,mastGroup);
+ const shrouds=part('shrouds-'+mast.id,standing);
+ const ratlines=part('ratlines-'+mast.id,standing);
+ const stays=part('mast-stays-'+mast.id,standing);
+ const backstays=part('backstays-'+mast.id,standing);
+ const railX=halfBreadth(d,mastStation)*.82;
+ const pairs=d.structure.shroudPairs??2;
+ const deckLocalY=deckY(d,mastStation)-baseY+.22;
+
+ // Port and starboard shrouds run from the topmast to separate channels at
+ // the working gunwale; the ratlines stay in the same mast-local frame.
+ for(const side of [-1,1]){
+  for(let pair=0;pair<pairs;pair++){
+   const spread=pairs<=1?0:pair/(pairs-1)-.5;
+   const attachZ=spread*d.beamUnits*.18;
+   tube(shrouds,[
+    V(side*.08,totalHeight-.10,0),
+    V(side*.23,lowerHeight*.58,spread*d.beamUnits*.07),
+    V(side*railX,deckLocalY,attachZ)
+   ],.016,materials.rope,'standing-shroud-'+side+'-'+pair,28);
+  }
  }
- for(let r=0;r<(d.structure.ratlines??9);r++){
-  const y=lowerHeight*(r+1)/((d.structure.ratlines??9)+1),half=railX*.48;
+
+ const ratlineCount=d.structure.ratlines??9;
+ for(let r=0;r<ratlineCount;r++){
+  const y=lowerHeight*(r+1)/(ratlineCount+1);
+  const half=railX*.48;
   beam(ratlines,V(-half,y,0),V(half,y,0),.010,materials.rope,'ratline-'+r);
  }
- tube(stays,[V(0,totalHeight,0),V(0,.18,-d.hullLengthUnits*.43-z)],.016,materials.rope,'mast-stay',32);
- for(let side of [-1,1])tube(braces,[V(0,totalHeight*.88,0),V(side*d.beamUnits*.42,totalHeight*.83,d.hullLengthUnits*.055)],.012,materials.rope,'yard-brace-'+side,22);
+
+ // Forestay and paired aft backstays triangulate the single mast.
+ const bowspritLength=(d.bowspritLength??2.7)*(4/3);
+ const bowZ=stationZ(d,.012,1)-bowspritLength-z;
+ const bowY=deckY(d,.035)+.22-baseY;
+ tube(stays,[V(0,totalHeight-.05,0),V(0,bowY,bowZ)],.016,materials.rope,'forestay-single',36);
+
+ const aftStation=Math.min(.96,mastStation+.28);
+ const aftZ=stationZ(d,aftStation,1)-z;
+ const aftY=deckY(d,aftStation)-baseY+.16;
+ const aftRail=halfBreadth(d,aftStation)*.72;
+ for(const side of [-1,1]){
+  tube(backstays,[V(0,totalHeight*.98,0),V(side*aftRail,aftY,aftZ)],.014,materials.rope,
+   'backstay-'+(side<0?'port':'starboard'),32);
+ }
 }

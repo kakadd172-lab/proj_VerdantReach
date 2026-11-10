@@ -10,7 +10,7 @@ export const SloopDefinition = defineVesselSpec({
     beam: 2.55,
     draft: 1.20,
     freeboard: 1.30,
-    rig: 'Single-masted fore-and-aft homardier rig: gaff mainsail aft, one headsail forward, and a long bowsprit.',
+    rig: 'Single-masted gaff rig with mainsail, gaff topsail, outer jib and inner staysail on a long bowsprit.',
     hullProfile: 'Long, narrow decked fishing hull; fine rising bow, nearly parallel middle and aft waterlines, broad rounded transom, deep curved bilges and strongly flared upper sides.',
     reference: 'Côte Nord de Bretagne — decked Loguivy homardier, measured by Armand Pâris in 1866. This Sloop is reconstructed from the supplied plan of forms; dimensions are taken from the drawing where legible and offsets are proportionally traced from its plan and body views.',
     hullFormNote: 'Blueprint-derived station loft from the top plan, body plan and sheer/lines drawing. The 1866 sheet is a scanned historical drawing, so the mesh is a faithful proportional reconstruction rather than a certified CAD transcription.',
@@ -43,7 +43,7 @@ export const SloopDefinition = defineVesselSpec({
     sailingSpeed: 8.2,
     handling: 1.15,
     masts: [{ id: 'single', z: 0.08, height: 9.6, rig: 'gaff', span: 0.42, squares: 0 }],
-    headsails: 1,
+    headsails: 2,
     oars: false
   },
   structure: {
