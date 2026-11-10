@@ -267,7 +267,7 @@ test('The Sloop rig has continuous, correctly led standing and running rigging',
 
 test('Sloop rigging transforms survive a save/reload across coordinate-frame versions',()=>{
  const first=createShipModel('sloop');
- let restored=null;
+ let restored=null,detached=null;
  try{
   first.userData.setRudderAngle(.17);
   const saved=first.userData.getShipState();
@@ -288,9 +288,18 @@ test('Sloop rigging transforms survive a save/reload across coordinate-frame ver
   const secondStay=restored.userData.getPart('shrouds-single').getObjectByName('standing-shroud-port-forward');
   assert.deepEqual(Array.from(secondStay.geometry.attributes.position.array),Array.from(firstStay.geometry.attributes.position.array),
    'standing stay geometry is identical after save/reload');
+  const detachedState={...saved,unlinkedParts:[...saved.unlinkedParts,'standing-rigging-single']};
+  detached=createShipModel('sloop',detachedState.partTransforms,detachedState);
+  const detachedStanding=detached.userData.getPart('standing-rigging-single');
+  assert.equal(detachedStanding.parent.name,'unlinked-parts','saved detached standing rigging remains detached');
+  assert.equal(detached.userData.getPart('chainplates-single').parent,detached.userData.getPart('hull'),
+   'hull chainplates are extracted even when their original standing group is detached');
+  assert.equal(detached.userData.getPart('backstay-chainplates-single').parent,detached.userData.getPart('hull'),
+   'backstay chainplates remain hull-mounted when standing rigging is detached');
  }finally{
   disposeShipModel(first);
   if(restored)disposeShipModel(restored);
+  if(detached)disposeShipModel(detached);
  }
 });
 
