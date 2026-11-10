@@ -3,7 +3,7 @@ import { V } from "../../architecture/hull-geometry.js";
 export function buildCanvasSail(ctx,name,mastId,corners,fullness=.09,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
- control.userData.sailControl={mastId,clothPart:'cloth-'+name};
+ control.userData.sailControl={mastId,clothPart:'cloth-'+name,windPivot:true};
  const cloth=part('cloth-'+name,control);
  const points=corners.map(point=>point?.isVector3?point.clone():V(...point));
  const triangular=points[0].distanceTo(points[3])<.001;
@@ -38,7 +38,8 @@ export function buildCanvasSail(ctx,name,mastId,corners,fullness=.09,parent=ctx.
  const geometry=new THREE.BufferGeometry();
  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
  geometry.setIndex(indices);geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.computeBoundingSphere();
- mesh(cloth,geometry,materials.sail,'sail-shaped-cloth');
+ const clothMesh=mesh(cloth,geometry,materials.sail,'sail-shaped-cloth');
+ clothMesh.userData.sailCloth={rows,columns,axis,restPositions:new Float32Array(positions)};
 
  const seams=part('panel-seams-'+name,control);
  const vertexAt=(u,v)=>{
@@ -81,5 +82,10 @@ export function buildCanvasSail(ctx,name,mastId,corners,fullness=.09,parent=ctx.
   for(let i=1;i<=3;i++)seam('reef-'+i,i/4,true);
   for(let i=1;i<=2;i++)seam('panel-'+i,i/3,false);
  }
+ const pivot=points[0].clone();
+ for(const child of control.children)child.position.sub(pivot);
+ control.position.add(pivot);
+ control.userData.sailControl.pivotPoint=pivot.toArray();
+ control.userData.windControl={kind:'sail'};
  return control;
 }

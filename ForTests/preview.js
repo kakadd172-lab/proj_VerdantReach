@@ -149,6 +149,39 @@ let measureEnabled=false;
 let measurementPoints=[];
 let measurementLine=null;
 let sectionEnabled=false;
+const windSettings={enabled:false,directionDeg:90,speedKnots:12};
+function windDirectionName(degrees){
+ const angle=((Math.round(degrees)%360)+360)%360;
+ if(angle<45||angle>=315)return 'Bow';
+ if(angle<135)return 'Starboard';
+ if(angle<225)return 'Stern';
+ return 'Port';
+}
+function refreshSailingControls(){
+ const toggle=document.querySelector('#wind-toggle'),windState=document.querySelector('#wind-state');
+ const direction=document.querySelector('#wind-direction'),speed=document.querySelector('#wind-speed');
+ const arrow=document.querySelector('#wind-arrow'),directionValue=document.querySelector('#wind-direction-value');
+ const directionReadout=document.querySelector('#wind-direction-readout'),speedValue=document.querySelector('#wind-speed-value'),speedReadout=document.querySelector('#wind-speed-readout');
+ if(toggle){toggle.textContent=windSettings.enabled?'Wind on':'Wind off';toggle.classList.toggle('active',windSettings.enabled);toggle.setAttribute('aria-pressed',String(windSettings.enabled));}
+ if(windState)windState.textContent=windSettings.enabled?'BLOWING':'CALM';
+ if(direction)direction.value=String(windSettings.directionDeg);
+ if(speed)speed.value=String(windSettings.speedKnots);
+ if(arrow)arrow.style.setProperty('--wind-direction',windSettings.directionDeg+'deg');
+ if(directionValue)directionValue.textContent=windSettings.directionDeg+'° · '+windDirectionName(windSettings.directionDeg);
+ if(directionReadout)directionReadout.textContent=windSettings.directionDeg+'°';
+ if(speedValue)speedValue.textContent=windSettings.speedKnots+' knots · '+(windSettings.enabled?'Wind active':'Wind disabled');
+ if(speedReadout)speedReadout.textContent=windSettings.speedKnots+' kn';
+ const rudder=document.querySelector('#rudder-angle'),rudderValue=document.querySelector('#rudder-angle-value');
+ const centre=document.querySelector('#rudder-center'),wheelReadout=document.querySelector('#helm-wheel-angle');
+ const rudderPart=ship?.userData.getPart('rudder'),wheelPart=ship?.userData.getPart('helm-wheel');
+ if(rudder)rudder.disabled=!rudderPart;
+ if(centre)centre.disabled=!rudderPart;
+ const angle=ship?THREE.MathUtils.radToDeg(ship.userData.getShipState().rudderAngle||0):0;
+ if(rudder&&document.activeElement!==rudder)rudder.value=String(Math.round(angle));
+ if(rudderValue){const rounded=Math.round(angle);rudderValue.textContent=Math.abs(rounded)<1?'0° · Center':Math.abs(rounded)+'° · '+(rounded>0?'Starboard':'Port');}
+ if(wheelReadout&&wheelPart){const rotation=THREE.MathUtils.radToDeg(wheelPart.rotation.z||0);wheelReadout.textContent=(rotation<0?'−':'')+Math.abs(rotation).toFixed(0)+'°';}
+ else if(wheelReadout)wheelReadout.textContent='Not fitted';
+}
 const raycaster=new THREE.Raycaster();
 const rayPointer=new THREE.Vector2();
 const identity={x:0,y:0,z:0,rx:0,ry:0,rz:0,sx:1,sy:1,sz:1};
@@ -843,6 +876,7 @@ function loadShip(type,preferredPart='',reframe=true,skipSync=false){
     const chosen=preferredPart&&ship.userData.getPart(preferredPart)?preferredPart:(ship.userData.partNames.includes('hull')?'hull':ship.userData.partNames[0]);
     selectPart(chosen);
     renderDesignInputs();
+    refreshSailingControls();
     setStatus('Loaded '+design.label+' · '+ship.userData.partNames.length+' editable components.');
   }catch(error){
     setStatus('Could not build ship: '+(error?.message||String(error)),true);
@@ -958,6 +992,11 @@ document.querySelector('#restore-generator-defaults')?.addEventListener('click',
 document.querySelector('#export-design').addEventListener('click',exportDesign);
 document.querySelector('#export-design-secondary')?.addEventListener('click',exportDesign);
 document.querySelector('#compare-select')?.addEventListener('change',updateComparison);
+document.querySelector('#wind-toggle')?.addEventListener('click',()=>{windSettings.enabled=!windSettings.enabled;refreshSailingControls();});
+document.querySelector('#wind-direction')?.addEventListener('input',event=>{windSettings.directionDeg=Number(event.target.value)||0;refreshSailingControls();});
+document.querySelector('#wind-speed')?.addEventListener('input',event=>{windSettings.speedKnots=Number(event.target.value)||0;refreshSailingControls();});
+document.querySelector('#rudder-angle')?.addEventListener('input',event=>{if(ship){ship.userData.setRudderAngle(THREE.MathUtils.degToRad(Number(event.target.value)||0));refreshSailingControls();}});
+document.querySelector('#rudder-center')?.addEventListener('click',()=>{if(ship){const field=document.querySelector('#rudder-angle');if(field)field.value='0';ship.userData.setRudderAngle(0);refreshSailingControls();}});
 document.querySelector('#measure-toggle')?.addEventListener('click',toggleMeasure);
 document.querySelector('#clear-measurement')?.addEventListener('click',clearMeasurement);
 document.querySelector('#section-toggle')?.addEventListener('click',toggleSection);
@@ -1071,7 +1110,7 @@ window.addEventListener('keydown',event=>{
   const target=event.target;
   const typing=target instanceof HTMLElement&&(
     target.isContentEditable||
-    (target.tagName==='INPUT'&&['text','search','email','password'].includes(target.type))
+    ['INPUT','TEXTAREA','SELECT'].includes(target.tagName)
   );
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'){
     if(typing)return;
@@ -1094,7 +1133,13 @@ function resize(){
   renderer.setSize(width,height,false);camera.aspect=width/height;camera.updateProjectionMatrix();
 }
 const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(viewport);resize();
-function animate(){requestAnimationFrame(animate);orbit.update();updateSelectionHelpers();renderer.render(scene,camera);}
+const animationClock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const delta=Math.min(animationClock.getDelta(),.05);
+  if(ship?.userData.animateShip)ship.userData.animateShip(delta,windSettings);
+  orbit.update();updateSelectionHelpers();renderer.render(scene,camera);
+}
 loadShip(selector.value||Object.keys(SHIP_DESIGNS)[0],reviewPartName);
 if(['top','side','bow','stern'].includes(reviewCamera))setCameraPreset(reviewCamera);
 animate();

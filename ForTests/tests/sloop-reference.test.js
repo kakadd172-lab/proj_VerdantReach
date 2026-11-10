@@ -216,6 +216,47 @@ test('The Sloop rig has continuous, correctly led standing and running rigging',
  }finally{disposeShipModel(ship);}
 });
 
+test('Rudder and helm wheel rotate around their pivots and remain mechanically linked',()=>{
+ const ship=createShipModel('sloop');
+ try{
+  const rudder=ship.userData.getPart('rudder'),wheel=ship.userData.getPart('helm-wheel');
+  assert.equal(rudder.userData.steeringControl.axis,'y');
+  assert.equal(rudder.userData.steeringControl.rotationSign,1);
+  assert.equal(wheel.userData.steeringControl.axis,'z');
+  assert.equal(wheel.userData.steeringControl.ratio,4.5);
+  ship.userData.setRudderAngle(.30);
+  assert.ok(Math.abs(rudder.rotation.y-.30)<1e-6);
+  assert.ok(Math.abs(wheel.rotation.z-1.35)<1e-6);
+  ship.userData.setRudderAngle(2);
+  assert.ok(Math.abs(ship.userData.getShipState().rudderAngle-.62)<1e-6);
+  ship.userData.setRudderAngle(0);
+  assert.ok(Math.abs(wheel.rotation.z)<1e-6);
+ }finally{disposeShipModel(ship);}
+});
+
+test('Wind drives boom trim, sail rotation, cloth billow and restrained mast flex without dirtying editor transforms',()=>{
+ const ship=createShipModel('sloop');
+ try{
+  const mast=ship.userData.getPart('mast-single'),boom=ship.userData.getPart('boom-single');
+  const mainsail=ship.userData.getPart('sail-single-gaff'),jib=ship.userData.getPart('sail-head-1');
+  let clothMesh=null;mainsail.traverse(object=>{if(object.isMesh&&object.userData.sailCloth)clothMesh=object;});
+  assert.ok(mast&&boom&&mainsail&&jib&&clothMesh);
+  assert.ok(boom.userData.pivotPoint);
+  assert.ok(mainsail.userData.sailControl.windPivot);
+  const before=ship.userData.getPartTransform('boom-single');
+  ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:24});
+  ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:24});
+  assert.ok(boom.rotation.y<-.05);
+  assert.ok(Math.abs(mainsail.rotation.y)>.05&&Math.abs(jib.rotation.y)>.03);
+  assert.ok(Math.abs(mast.rotation.z)>.0001);
+  assert.ok(Math.abs(ship.userData.getPartTransform('boom-single').ry-before.ry)<1e-8);
+  const data=clothMesh.userData.sailCloth,attribute=clothMesh.geometry.attributes.position;
+  let displaced=false;
+  for(let i=0;i<attribute.array.length;i++)if(Math.abs(attribute.array[i]-data.restPositions[i])>1e-5){displaced=true;break;}
+  assert.ok(displaced);
+ }finally{disposeShipModel(ship);}
+});
+
 test('Aft helm is compact, clear of the aft locker and mounted at the aft quarter',()=>{
  const ship=createShipModel('sloop');
  try{

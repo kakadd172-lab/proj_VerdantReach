@@ -94,4 +94,8 @@ export function buildRudder(d,ctx){
     materials.trim,
     'sloop-rudder-tiller-head'
   );
+  const pivotY=0.35,pivotZ=transomZAt(pivotY);
+  rudder.position.set(0,upperY+pivotY,pivotZ);
+  for(const child of rudder.children)child.position.sub(V(0,pivotY,pivotZ));
+  rudder.userData.steeringControl={axis:'y',rotationSign:1,maxAngle:.62};
 }

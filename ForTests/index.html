@@ -98,6 +98,17 @@
     .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
     #status{min-height:34px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(14,23,22,.75);color:var(--sage-strong);font-size:10px;line-height:1.5}
     .range-row{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:9px}
+    .wind-status{display:flex;align-items:center;gap:11px;margin:9px 0;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:rgba(8,15,15,.24)}
+    .wind-compass{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border:1px solid var(--line-strong);border-radius:50%;background:radial-gradient(circle,rgba(168,189,157,.12),rgba(8,15,15,.12))}
+    .wind-compass-arrow{display:block;color:var(--gold);font-size:24px;line-height:1;transform:rotate(var(--wind-direction,90deg));transition:transform .16s ease}
+    .wind-status-copy{min-width:0;display:grid;gap:3px}
+    .wind-status-copy strong{color:var(--sage-strong);font-size:10px}
+    .wind-status-copy span{color:var(--dim);font-size:9px}
+    .control-value{color:var(--sage-strong);font-variant-numeric:tabular-nums}
+    .steering-readouts{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+    .steering-readout{padding:8px;border:1px solid var(--line);border-radius:9px;background:rgba(8,15,15,.2)}
+    .steering-readout span{display:block;color:var(--dim);font-size:8px;text-transform:uppercase;letter-spacing:.07em}
+    .steering-readout strong{display:block;margin-top:4px;color:var(--sage-strong);font-size:11px;font-variant-numeric:tabular-nums}
     .hidden-input{display:none!important}
     @media(max-width:1050px){.shell{grid-template-columns:minmax(0,1fr) 350px}}
     @media(max-width:760px){
@@ -154,6 +165,27 @@
           <option value="pinnace">Ship’s pinnace</option>
         </select>
       </section>
+
+      <details class="section-card" open>
+        <summary>Wind & steering test bench</summary>
+        <div class="section-content">
+          <div class="row"><button id="wind-toggle" class="btn" type="button" aria-pressed="false">Wind off</button>
+            <div class="steering-readout"><span>Wind state</span><strong id="wind-state">CALM</strong></div></div>
+          <div class="wind-status"><div class="wind-compass" aria-hidden="true"><span id="wind-arrow" class="wind-compass-arrow">↑</span></div>
+            <div class="wind-status-copy"><strong id="wind-direction-value">90° · Starboard</strong><span id="wind-speed-value">12 knots · Wind disabled</span></div></div>
+          <label for="wind-direction">Wind direction · relative to the ship</label>
+          <input id="wind-direction" type="range" min="0" max="359" step="1" value="90"/>
+          <div class="range-row"><span>0° Bow · 90° Starboard · 180° Stern · 270° Port</span><strong class="control-value" id="wind-direction-readout">90°</strong></div>
+          <label for="wind-speed" style="margin-top:11px">Wind speed</label>
+          <input id="wind-speed" type="range" min="0" max="30" step="1" value="12"/>
+          <div class="range-row"><span>Calm to strong test breeze</span><strong class="control-value" id="wind-speed-readout">12 kn</strong></div>
+          <p class="note">Wind drives boom trim, sail rotation, cloth billow and restrained mast flex. Direction is relative to the vessel, not a world compass bearing.</p>
+          <div class="range-row" style="margin-top:14px"><span>Rudder angle</span><strong class="control-value" id="rudder-angle-value">0° · Center</strong></div>
+          <input id="rudder-angle" type="range" min="-35" max="35" step="1" value="0"/>
+          <div class="steering-readouts"><div class="steering-readout"><span>Helm wheel rotation</span><strong id="helm-wheel-angle">0°</strong></div><button id="rudder-center" class="btn" type="button">Centre rudder</button></div>
+          <p class="note">Positive rudder angle is starboard; negative is port. The wheel follows the rudder through its configured steering ratio.</p>
+        </div>
+      </details>
 
       <details class="section-card" open>
         <summary>Build & transform</summary>

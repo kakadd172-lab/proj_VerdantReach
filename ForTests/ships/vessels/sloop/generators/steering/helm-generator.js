@@ -67,4 +67,8 @@ export function buildHelm(d,ctx){
       'helm-spoke-'+i
     );
   }
+  const wheelPivot=V(0,centerY,z);
+  wheel.position.copy(wheelPivot);
+  for(const child of wheel.children)child.position.sub(wheelPivot);
+  wheel.userData.steeringControl={axis:'z',ratio:4.5,rotationSign:1};
 }
