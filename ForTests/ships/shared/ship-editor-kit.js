@@ -417,7 +417,7 @@ function setupPartApi(root,registry,design){
  const cloths=new Map(sailParts.map(p=>{
    const cloth=registry.get(p.userData.sailControl.clothPart);
    const deployment=p.getObjectByName(p.userData.sailControl.deploymentPart);
-   let mesh=null,sailCloth=null;
+   let mesh=null,sailCloth=null,gridRows=0,gridColumns=0,gridStride=0;
    cloth?.traverse(object=>{
     if(object.isMesh&&object.userData.sailCloth){
      mesh=object;
@@ -425,6 +425,7 @@ function setupPartApi(root,registry,design){
      const position=object.geometry.attributes.position;
      const restPositions=new Float32Array(position.array);
      const rows=metadata.rows,columns=metadata.columns,stride=columns+1;
+     gridRows=rows;gridColumns=columns;gridStride=stride;
      const axisIndex=metadata.axis==='x'?0:2;
      const baseAxis=new Float32Array(position.count),camberOffsets=new Float32Array(position.count);
      if(rows>0&&columns>0&&position.count===(rows+1)*stride){
@@ -447,19 +448,65 @@ function setupPartApi(root,registry,design){
      }
     }
    });
-   const anchorY=p.userData.sailControl.deploymentAnchorY??p.userData.sailControl.pivotPoint?.[1]??0;
-   if(mesh?.geometry&&!mesh.geometry.boundingBox)mesh.geometry.computeBoundingBox();
-   const geometryBounds=mesh?.geometry?.boundingBox;
-   // Furling/reefing gathers the canvas upward to its head (highest attached
-   // edge), rather than collapsing it down toward the lower tack.
-   const furlAnchorY=geometryBounds?.max?.y??anchorY;
+   // Derive the actual tack-to-head attachment line from the first mesh
+   // column. For headsails this follows the forestay/luff; for mast sails it
+   // follows the mast-side edge. That line is the invariant furling anchor.
+   let furlFrame=null,furlAnchor=null,furlAxis=null;
+   if(mesh?.geometry?.attributes?.position&&deployment&&gridRows>0&&gridColumns>0){
+    root.updateMatrixWorld(true);
+    const attribute=mesh.geometry.attributes.position;
+    const pointInDeployment=index=>{
+     const point=new THREE.Vector3().fromBufferAttribute(attribute,index);
+     return deployment.worldToLocal(mesh.localToWorld(point));
+    };
+    const supportStart=pointInDeployment(0);
+    const supportEnd=pointInDeployment(gridRows*gridStride);
+    const supportAxis=supportEnd.clone().sub(supportStart);
+    if(supportAxis.lengthSq()>1e-10){
+     furlAnchor=supportStart.clone();
+     furlAxis=supportAxis.normalize();
+     furlFrame=new THREE.Group();
+     furlFrame.name='sail-furl-frame-'+p.name;
+     furlFrame.matrixAutoUpdate=false;
+     furlFrame.userData.sailFurlEdge={start:supportStart.toArray(),end:supportEnd.toArray()};
+     // Identity at full sail: child coordinates remain unchanged when moved
+     // beneath the new frame. The frame later contracts perpendicular to the
+     // authored support line, preserving its full length, position and angle.
+     for(const child of [...deployment.children]){
+      deployment.remove(child);
+      furlFrame.add(child);
+     }
+     deployment.add(furlFrame);
+    }
+   }
    return [p.name,{
-    cloth,deployment,mesh,sailCloth,from:1,target:1,elapsed:0,duration:0,
+    cloth,deployment,mesh,sailCloth,from:1,target:1,currentScale:1,elapsed:0,duration:0,
     pivotY:anchorY,furlAnchorY,
-    fromPositionY:deployment?.position.y||0,targetPositionY:deployment?.position.y||0
+    fromPositionY:deployment?.position.y||0,targetPositionY:deployment?.position.y||0,
+    furlFrame,furlAnchor,furlAxis
    }];
   }));
- const runtimeTarget=p=>p.userData.animationPivot||p.userData.steeringControl?.pivotGroup||p.userData.sailControl?.pivotGroup||p;
+ const applySailFurlScale=(animation,scale)=>{
+  if(!animation?.furlFrame||!animation.furlAnchor||!animation.furlAxis)return;
+  const axis=animation.furlAxis,anchor=animation.furlAnchor,k=1-scale;
+  // S = scale*I + (1-scale)*(axis*axis^T). This contracts every direction
+  // perpendicular to the real luff while leaving every point on that angled
+  // line exactly fixed. No world-horizontal/world-vertical assumption exists.
+  const m00=scale+k*axis.x*axis.x,m01=k*axis.x*axis.y,m02=k*axis.x*axis.z;
+  const m10=k*axis.y*axis.x,m11=scale+k*axis.y*axis.y,m12=k*axis.y*axis.z;
+  const m20=k*axis.z*axis.x,m21=k*axis.z*axis.y,m22=scale+k*axis.z*axis.z;
+  const tx=anchor.x-(m00*anchor.x+m01*anchor.y+m02*anchor.z);
+  const ty=anchor.y-(m10*anchor.x+m11*anchor.y+m12*anchor.z);
+  const tz=anchor.z-(m20*anchor.x+m21*anchor.y+m22*anchor.z);
+  animation.furlFrame.matrix.set(
+   m00,m01,m02,tx,
+   m10,m11,m12,ty,
+   m20,m21,m22,tz,
+   0,0,0,1
+  );
+  animation.furlFrame.matrixWorldNeedsUpdate=true;
+ };
+ const runtimeTarget=p=>p.userData.animationPivot||p.userData.steeringControl?.pivotGroup||p;
   const setRuntimeRotation=(name,values={})=>{
    const p=registry.get(name),b=base.get(name);if(!p||!b)return false;
    const target=runtimeTarget(p);
@@ -571,11 +618,14 @@ function setupPartApi(root,registry,design){
    state.sailDeployment[id]=mode;
    for(const p of targets){
     const a=cloths.get(p.name);if(!a?.deployment)continue;
-    a.from=a.deployment.scale.y;a.target=scale;
+    a.from=a.furlFrame?(a.currentScale??1):a.deployment.scale.y;a.target=scale;
     a.fromPositionY=a.deployment.position.y;
     a.targetPositionY=(1-scale)*a.furlAnchorY-a.pivotY;
     a.elapsed=0;a.duration=clamp(duration,0,4);
-    if(a.duration===0){a.deployment.scale.y=scale;a.deployment.position.y=a.targetPositionY;}
+    if(a.duration===0){
+     if(a.furlFrame){a.currentScale=scale;applySailFurlScale(a,scale);}
+     else{a.deployment.scale.y=scale;a.deployment.position.y=a.targetPositionY;}
+    }
    }
    return true;
   },
@@ -685,8 +735,13 @@ function setupPartApi(root,registry,design){
       animation.elapsed=Math.min(animation.duration,animation.elapsed+delta);
       const t=animation.duration>0?animation.elapsed/animation.duration:1;
       const eased=t*t*(3-2*t);
-      animation.deployment.scale.y=THREE.MathUtils.lerp(animation.from,animation.target,eased);
-      animation.deployment.position.y=THREE.MathUtils.lerp(animation.fromPositionY,animation.targetPositionY,eased);
+      if(animation.furlFrame){
+       animation.currentScale=THREE.MathUtils.lerp(animation.from,animation.target,eased);
+       applySailFurlScale(animation,animation.currentScale);
+      }else{
+       animation.deployment.scale.y=THREE.MathUtils.lerp(animation.from,animation.target,eased);
+       animation.deployment.position.y=THREE.MathUtils.lerp(animation.fromPositionY,animation.targetPositionY,eased);
+      }
      }
     }
    },
