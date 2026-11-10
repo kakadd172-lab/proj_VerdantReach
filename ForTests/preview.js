@@ -11,9 +11,27 @@ async function bootShipStudio(){
     const THREE=await import('three');
     const {OrbitControls}=await import('three/addons/controls/OrbitControls.js');
     const {TransformControls}=await import('three/addons/controls/TransformControls.js');
-    const overrideResponse=await fetch('./design-overrides.json',{cache:'no-store'});
-    if(!overrideResponse.ok) throw new Error('Could not read design-overrides.json (HTTP '+overrideResponse.status+').');
-    const DESIGN_OVERRIDES=await overrideResponse.json();
+    // Resolve this data file from the module itself, not from the current document URL.
+    // This keeps the preview working when it is opened through a nested route or a
+    // repository sub-path (where a relative fetch can otherwise hit Vite's HTML fallback).
+    const overridesUrl=new URL('./design-overrides.json',import.meta.url);
+    const overrideResponse=await fetch(overridesUrl,{cache:'no-store'});
+    if(!overrideResponse.ok) throw new Error('Could not read design-overrides.json from '+overridesUrl.pathname+' (HTTP '+overrideResponse.status+').');
+    const overrideText=await overrideResponse.text();
+    let DESIGN_OVERRIDES;
+    try{
+      DESIGN_OVERRIDES=JSON.parse(overrideText);
+    }catch(parseError){
+      const contentType=overrideResponse.headers.get('content-type')||'unknown content type';
+      const responseStart=overrideText.slice(0,100).replace(/\\s+/g,' ').trim();
+      const fallbackHint=/^<!doctype html|^<html/i.test(responseStart)
+        ?' The server returned an HTML page instead of the JSON file. Start Vite from the ForTests folder and open the local URL printed by Vite.'
+        :' Check that the file contains valid JSON.';
+      throw new Error('design-overrides.json was not valid JSON at '+overridesUrl.pathname+' (received '+contentType+').'+fallbackHint+' Response starts with: '+responseStart);
+    }
+    if(!DESIGN_OVERRIDES||typeof DESIGN_OVERRIDES!=='object'||Array.isArray(DESIGN_OVERRIDES)){
+      throw new Error('design-overrides.json must contain a JSON object (use {} for an empty workspace).');
+    }
     const shipModule=await import('./ships/index.js?v=0.8.9-persistent-vessel-authoring');
     const {SHIP_DESIGNS,VESSEL_IDS,VESSEL_EDITOR_DEFAULTS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
       getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
