@@ -2,7 +2,7 @@ name: Standalone ForTests ship editor checks
 # Keep the v0.8.6 editor adapter module URLs aligned with the game builder.
 on:
   push:
-    branches: [main, chatgpt-v0.8.6-modular-ship-generators, chatgpt-v0.8.10-game-ship-architecture-migration]
+    branches: [main, chatgpt-v0.8.6-modular-ship-generators, chatgpt-v0.8.10-game-ship-architecture-migration, test-integrity-infrastructure]
     paths:
       - 'ForTests/**'
       - '.github/workflows/ship-redesign-candidate.yml'
@@ -14,6 +14,7 @@ concurrency:
 jobs:
   candidate:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     defaults:
       run:
         working-directory: ForTests
