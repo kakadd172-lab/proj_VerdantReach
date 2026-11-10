@@ -7,7 +7,7 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.9-persistent-vessel-authoring';
+} from '../ships/index.js?v=0.8.10-sailing-articulation';
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
