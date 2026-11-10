@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.24';
+export const SHIP_EDITOR_KIT_VERSION='0.8.25';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -212,7 +212,7 @@ function setupPartApi(root,registry,design){
   const target=sourceFrame.localToWorld(new THREE.Vector3(...point));
   let best=null;
   for(const fitting of fittings){
-   if(isUnlinked(fitting))continue;
+   if(fitting.parent===unlinked)continue;
    fitting.updateWorldMatrix(true,true);
    fitting.traverse(object=>{
     if(!object.isMesh||object.geometry?.type!=='CylinderGeometry')return;
@@ -234,22 +234,33 @@ function setupPartApi(root,registry,design){
   const fixedWorld=best&&best.distance<1?best.point:target;
   return hullPart.worldToLocal(fixedWorld.clone()).toArray();
  }
- function migrateMastRigging(){
-  // Reparent the structural groups once. Call before applying v2 saved
-  // transforms, or after applying legacy mast-local transforms.
+ function migrateStandingRigging(){
   for(const stay of pendingMastStays){
    if(stay.standing&&!isUnlinked(stay.standing)&&stay.standing.parent!==root){
     root.updateMatrixWorld(true);
     migratePartPreservingWorld(stay.standing,root);
    }
+  }
+  root.updateMatrixWorld(true);
+  return true;
+ }
+ function migrateRiggingFittings(){
+  for(const stay of pendingMastStays){
    for(const fitting of stay.fittings||[]){
-    if(!isUnlinked(fitting)&&fitting.parent!==hullPart){
+    // A chainplate nested inside an explicitly detached standing group still
+    // belongs to the hull. Only a fitting detached in its own right stays out.
+    if(fitting.parent!==unlinked&&fitting.parent!==hullPart){
      root.updateMatrixWorld(true);
      migratePartPreservingWorld(fitting,hullPart);
     }
    }
   }
   root.updateMatrixWorld(true);
+  return true;
+ }
+ function migrateMastRigging(){
+  migrateStandingRigging();
+  migrateRiggingFittings();
   return true;
  }
  function finalizeMastStays(){
@@ -427,8 +438,12 @@ function setupPartApi(root,registry,design){
  const api={
   parts:registry,
   migrateMastRigging,
+  migrateStandingRigging,
+  migrateRiggingFittings,
   finalizeMastStays,
   migratedRiggingPartNames(){const names=new Set();for(const stay of pendingMastStays){if(stay.standing)names.add(stay.standing.name);for(const fitting of stay.fittings||[])names.add(fitting.name);}return [...names];},
+  standingRiggingPartNames(){return [...new Set(pendingMastStays.map(stay=>stay.standing?.name).filter(Boolean))];},
+  riggingFittingPartNames(){return [...new Set(pendingMastStays.flatMap(stay=>(stay.fittings||[]).map(fitting=>fitting.name)))];},
   getPart(n){return registry.get(n)||null;},
   getPartTransform(n){const p=registry.get(n),b=base.get(n);if(!p||!b)return null;const pose=runtimeTarget(p)===p?(state.runtimePose[n]||{}):{};return {
    x:p.position.x-b.position.x,y:p.position.y-b.position.y,z:p.position.z-b.position.z,
@@ -618,16 +633,20 @@ export function finishShipModel(ctx,transforms={},saved={}){
   // Ordinary components still use their original parent frames. Apply those
   // first so mast/hull transforms are present when the rigging baseline is
   // converted; then apply only migrated rigging deltas in their new frames.
-  const migratedNames=new Set(api.migratedRiggingPartNames());
+  const standingNames=new Set(api.standingRiggingPartNames());
+  const fittingNames=new Set(api.riggingFittingPartNames());
   const detachedNames=new Set(state.unlinkedParts||[]);
-  const ordinaryTransforms={},riggingTransforms={};
+  const ordinaryTransforms={},standingTransforms={},fittingTransforms={};
   for(const [name,value] of Object.entries(partTransforms)){
-   if(migratedNames.has(name)&&!detachedNames.has(name))riggingTransforms[name]=value;
+   if(standingNames.has(name)&&!detachedNames.has(name))standingTransforms[name]=value;
+   else if(fittingNames.has(name)&&!detachedNames.has(name))fittingTransforms[name]=value;
    else ordinaryTransforms[name]=value;
   }
   api.applyShipState({...state,partTransforms:ordinaryTransforms});
-  api.migrateMastRigging();
-  api.applyShipState({partTransforms:riggingTransforms});
+  api.migrateStandingRigging();
+  api.applyShipState({partTransforms:standingTransforms});
+  api.migrateRiggingFittings();
+  api.applyShipState({partTransforms:fittingTransforms});
  }else{
   // Older defaults store rigging transforms in mast-local coordinates.
   if(Object.keys(partTransforms).length||Object.keys(state.hiddenParts||{}).length||(state.unlinkedParts||[]).length||Object.keys(state.sailTrim||{}).length||Object.keys(state.sailDeployment||{}).length||Object.keys(state.mastLean||{}).length||Number(state.rudderAngle))api.applyShipState(state);
