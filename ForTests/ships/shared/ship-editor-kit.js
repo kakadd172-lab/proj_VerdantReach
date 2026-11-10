@@ -128,8 +128,9 @@ function setupPartApi(root,registry,design){
   const fittings=['chainplates-'+id,'backstay-chainplates-'+id]
    .map(name=>registry.get(name)).filter(Boolean);
 
+  const excluded=new Set(standing?[standing]:[]);
   const pivot=control.pivotGroup||mast.userData.animationPivot||
-   makeNestedPivot(mast,V(0,0,0),mast.name+'-mast-step-pivot');
+   makeNestedPivot(mast,V(0,0,0),mast.name+'-mast-step-pivot',excluded);
   control.pivotGroup=pivot;
   control.windHeelMaxDeg=Number(control.windHeelMaxDeg)||2.5;
   control.windRakeMaxDeg=Number(control.windRakeMaxDeg)||1.2;
