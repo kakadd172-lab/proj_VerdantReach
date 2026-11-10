@@ -254,6 +254,9 @@ test('all 16 independent ForTests generators build separate editable models', ()
         assert.ok(canvas?.userData.sailCloth?.rows>0&&canvas.userData.sailCloth?.columns>0,id+' '+sail.name+' wind-billow grid metadata');
         const furlFrame=deployment.getObjectByName('sail-furl-frame-'+sail.name);
         assert.ok(furlFrame?.userData.sailFurlEdge,id+' '+sail.name+' furl frame follows its authored support edge');
+        assert.equal(cloth.parent,furlFrame,id+' '+sail.name+' cloth remains inside its furl frame');
+        assert.equal(ship.userData.resetPartTransform(control.clothPart),true,id+' '+sail.name+' cloth component reset');
+        assert.equal(cloth.parent,furlFrame,id+' '+sail.name+' component reset preserves the furl frame');
       }
       const furlSamples=sails.map(sail=>{
         const control=sail.userData.sailControl;
