@@ -13,7 +13,7 @@ import {
  
 function disposeAndRelease(ship) {
   if (!ship) return;
-  disposeAndRelease(ship);
+  disposeShipModel(ship);
   ship.clear();
   for (const key of Object.keys(ship.userData)) {
     if (typeof ship.userData[key] === 'function') delete ship.userData[key];
