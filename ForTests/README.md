@@ -95,21 +95,20 @@ sixteen generator modules and exposes the editor API.
 Requirements: Node.js 22 or newer, npm, Git, and a WebGL-capable browser.
 The existing project checkout is assumed to be `D:\Projects\VerdantReach`.
 
-Open PowerShell and switch to the shipyard branch:
+Open PowerShell and switch to the testing/infrastructure branch:
 
 ```powershell
 cd D:\Projects\VerdantReach
 git status --short
 git fetch origin
-git switch chatgpt-v0.8.10-game-ship-architecture-migration
-git pull --ff-only origin chatgpt-v0.8.10-game-ship-architecture-migration
+git switch test-integrity-infrastructure
+git pull --ff-only origin test-integrity-infrastructure
 ```
 
-If Git says the local branch does not exist, use this once instead of the
-`git switch` line:
+If the local branch does not exist yet, create it from the remote branch:
 
 ```powershell
-git switch --track -c chatgpt-v0.8.10-game-ship-architecture-migration origin/chatgpt-v0.8.10-game-ship-architecture-migration
+git switch --track -c test-integrity-infrastructure origin/test-integrity-infrastructure
 ```
 
 Install the shipyard dependencies (first setup, or after dependency changes):
@@ -125,6 +124,8 @@ Run the quick checks before opening the editor:
 npm run check:modules
 npm test
 npm run build
+npx playwright install chromium
+npm run smoke
 ```
 
 Start the local preview:
