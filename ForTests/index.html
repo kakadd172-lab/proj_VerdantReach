@@ -235,7 +235,13 @@
           <input id="wave-period" type="range" min="2" max="12" step=".5" value="5"/>
           <div class="range-row"><span>Time between wave crests</span><strong class="control-value" id="wave-period-readout">5.0 s</strong></div>
           <button id="sea-reset" class="btn" style="width:100%;margin-top:9px" type="button">Reset sea conditions</button>
-          <p class="note">This prepares environmental inputs only. No water waves or ship rocking are animated yet. Wave height, period and approach direction will be passed to the Sloop motion model in the next task.</p>
+          <div class="range-row" style="margin-top:15px"><span>Sloop hull response</span><strong class="control-value" id="sloop-rocking-status">Sloop only · select Sloop</strong></div>
+          <div class="row">
+            <div class="steering-readout"><span>Roll</span><strong id="sloop-roll-value">0.0°</strong></div>
+            <div class="steering-readout"><span>Pitch</span><strong id="sloop-pitch-value">0.0°</strong></div>
+            <div class="steering-readout"><span>Heave</span><strong id="sloop-heave-value">0.00 m</strong></div>
+          </div>
+          <p class="note">The Sloop now rocks about its amidships waterline. Sea direction controls roll and pitch response; wave height controls motion strength and period controls its cycle. Other vessel types remain unchanged. The waterline plane is a fixed visual reference, not a simulated ocean surface.</p>
 
           <div class="range-row" style="margin-top:14px"><span>Rudder angle</span><strong class="control-value" id="rudder-angle-value">0° · Center</strong></div>
           <input id="rudder-angle" type="range" min="-35" max="35" step="1" value="0"/>
