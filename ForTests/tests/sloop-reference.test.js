@@ -89,6 +89,7 @@ test('The transom, rudder, anchors and expanded single-mast rig assemble as sepa
   assert.ok(ship.userData.getPart('sail-single-gaff-topsail'));
   assert.ok(!ship.userData.getPart('topsail-jackyard-single'),'the gaff itself is the topsail foot; no spare jackyard is needed');
   assert.ok(ship.userData.getPart('gaff-halyards-single'));
+  assert.ok(ship.userData.getPart('mast-stays-single'));
   assert.ok(ship.userData.getPart('backstays-single'));
   assert.ok(!ship.userData.getPart('running-braces-single'),'this gaff sloop has no unattached yard braces');
   assert.ok(!ship.userData.getPart('forestay-single'),'the outer-jib luff already provides the forestay');
@@ -133,6 +134,11 @@ test('The gaff mainsail remains intact and the topsail plus two distinct headsai
   const staysailSheet=ship.userData.getPart('head-sheets-inner-staysail');
   assert.equal(jibSheet.children.length,1,'the jib gets one clean working sheet');
   assert.equal(staysailSheet.children.length,1,'the staysail gets one clean working sheet');
+  for(const name of ['cloth-sail-head-1','cloth-sail-head-2']){
+   let sailMesh=null;ship.userData.getPart(name).traverse(object=>{if(object.isMesh&&object.name==='sail-shaped-cloth')sailMesh=object;});
+   assert.ok(sailMesh,name+' canvas is present');sailMesh.geometry.computeBoundingBox();
+   assert.ok(sailMesh.geometry.boundingBox.min.x>=-1e-5,name+' should sit on the vessel centreline, not be displaced to port');
+  }
  }finally{disposeShipModel(ship);}
 });
 
