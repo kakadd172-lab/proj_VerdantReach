@@ -406,10 +406,15 @@ test('Sails reef and furl the full canvas assembly towards their tack',()=>{
  process.stdout.write('SLOOP-SAIL: model created\\n');
  try{
   const sail=ship.userData.getPart('sail-single-gaff');
+  process.stdout.write('SLOOP-SAIL: sail part retrieved\\n');
   const cloth=ship.userData.getPart('cloth-sail-single-gaff');
+  process.stdout.write('SLOOP-SAIL: cloth part retrieved\\n');
   const seams=ship.userData.getPart('panel-seams-sail-single-gaff');
+  process.stdout.write('SLOOP-SAIL: seams part retrieved\\n');
   const deployment=sail.getObjectByName(sail.userData.sailControl.deploymentPart);
+  process.stdout.write('SLOOP-SAIL: deployment found\\n');
   const tackY=sail.userData.sailControl.pivotPoint[1];
+  process.stdout.write('SLOOP-SAIL: tack read\\n');
   assert.ok(cloth&&seams&&deployment);
   assert.equal(cloth.parent,deployment);
   assert.equal(seams.parent,deployment,'panel seams and boltropes share the deployment group');
