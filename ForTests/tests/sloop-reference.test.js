@@ -417,10 +417,12 @@ test('Sails reef and furl the full canvas assembly towards their tack',()=>{
   const tackY=sail.userData.sailControl.pivotPoint[1];
   process.stdout.write('SLOOP-SAIL: tack read\n');
   assert.ok(cloth&&seams&&deployment);
-  assert.ok(cloth.parent===deployment,'canvas group must be parented directly under the sail deployment assembly');
-  assert.ok(seams.parent===deployment,'panel seams and boltropes must share the sail deployment assembly');
+  const furlFrame=deployment.children.find(child=>child.name==='sail-furl-frame-sail-single-gaff');
+  assert.ok(furlFrame,'deployment assembly should contain its luff-aligned furl frame');
+  assert.ok(cloth.parent===furlFrame,'canvas group must be parented under the luff-aligned furl frame');
+  assert.ok(seams.parent===furlFrame,'panel seams and boltropes must share the canvas furl frame');
+  assert.ok(furlFrame.parent===deployment,'furl frame must remain inside the deployment assembly');
   assert.ok(Math.abs(deployment.scale.y-1)<1e-8);
-  process.stdout.write('SLOOP-SAIL: initial pose checked\n');
   const seamLine=seams.children.find(child=>child.geometry);
   assert.ok(seamLine,'sail edge ropes exist inside the deployment group');
   assert.equal(ship.userData.setSailDeployment('single','reefed',0),true);
