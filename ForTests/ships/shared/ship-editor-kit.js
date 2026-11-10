@@ -109,8 +109,8 @@ function setupPartApi(root,registry,design){
   if(stays.length)mastStaySets.set(id,{pivot,stays});
  }
 
- const sailParts=[...registry.values()].filter(p=>p.userData.sailControl);
- for(const sail of sailParts){
+ const sailControlsForSetup=[...registry.values()].filter(p=>p.userData.sailControl);
+ for(const sail of sailControlsForSetup){
   const control=sail.userData.sailControl;
   const cloth=registry.get(control.clothPart);
   let canvas=null;
