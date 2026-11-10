@@ -97,7 +97,7 @@ assert.ok(preview.includes('VESSEL_EDITOR_DEFAULTS'),'Preview must load saved de
 for(const legacy of ['ship-model-builder.js','hull-math.js','./ship-designs.js','./ship-structures.js','./ship-hull-parameterization.js','./ship-models.js']){
  assert.ok(!preview.includes(legacy),'Preview still references obsolete module '+legacy);
 }
-for(const version of ["SHIP_DESIGN_MODULE_VERSION!=='0.8.9'","SHIP_STRUCTURE_MODULE_VERSION!=='0.8.9'","SHIP_MODEL_MODULE_VERSION!=='0.8.9'"]){
+for(const version of ["SHIP_DESIGN_MODULE_VERSION!=='0.8.9'","SHIP_STRUCTURE_MODULE_VERSION!=='0.8.9'","SHIP_MODEL_MODULE_VERSION!=='0.8.10'"]){
  assert.ok(preview.includes(version),'Preview version guard not updated: '+version);
 }
 const pkg=JSON.parse(readFileSync(join(here,'package.json'),'utf8'));
