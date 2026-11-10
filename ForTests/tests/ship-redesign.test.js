@@ -2,6 +2,7 @@ import test from 'node:test';
 import { existsSync, readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
+import { SLOOP_ROCKING_VERSION } from '../ships/vessels/sloop/animation/rocking-animation.js';
 
 import {
   SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,resetShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
@@ -629,6 +630,87 @@ test('the first two forward triangular sails keep their orientation while retain
       assert.ok(firstWindOffsets[index] * reversedOffset < 0,
         sail.name + ' directional billow must reverse with the wind');
     });
+  } finally {
+    disposeShipModel(ship);
+  }
+});
+
+
+test('Sloop rocking responds to sea direction and height, then settles smoothly', () => {
+  const ship = createShipModel('sloop');
+  try {
+    const rocking = ship.userData.sloopRocking;
+    assert.ok(rocking, 'Sloop-specific rocking state is attached');
+    assert.equal(rocking.version, SLOOP_ROCKING_VERSION);
+    assert.equal(rocking.pivot, 'design-waterline-at-amidships');
+
+    const basePosition = ship.position.clone();
+    const baseRotation = ship.rotation.clone();
+
+    // No sea input means no unintended root motion.
+    ship.userData.animateShip(.05, { enabled: false, directionDeg: 90, speedKnots: 0,
+      sea: { enabled: false, directionDeg: 90, heightMeters: 0, periodSeconds: 5 } });
+    assert.ok(ship.position.distanceTo(basePosition) < 1e-10, 'Calm sea preserves root position');
+    assert.ok(Math.abs(ship.rotation.x - baseRotation.x) < 1e-10, 'Calm sea preserves pitch');
+    assert.ok(Math.abs(ship.rotation.z - baseRotation.z) < 1e-10, 'Calm sea preserves roll');
+
+    let maximumRoll = -Infinity, minimumRoll = Infinity, maximumHeave = -Infinity, minimumHeave = Infinity;
+    for (let frame = 0; frame < 100; frame++) {
+      ship.userData.animateShip(.05, {
+        enabled: false,
+        sea: { enabled: true, directionDeg: 90, heightMeters: 1.5, periodSeconds: 5 }
+      });
+      maximumRoll = Math.max(maximumRoll, ship.rotation.z - baseRotation.z);
+      minimumRoll = Math.min(minimumRoll, ship.rotation.z - baseRotation.z);
+      maximumHeave = Math.max(maximumHeave, ship.position.y - basePosition.y);
+      minimumHeave = Math.min(minimumHeave, ship.position.y - basePosition.y);
+    }
+    assert.ok(maximumRoll > THREE.MathUtils.degToRad(1), 'Starboard beam seas produce measurable roll');
+    assert.ok(minimumRoll < THREE.MathUtils.degToRad(-1), 'Roll oscillates through both sides');
+    assert.ok(maximumHeave > .05 && minimumHeave < -.05, 'Wave response includes vertical heave');
+    assert.ok(Math.abs(rocking.pitchRadians) < 1e-8, 'Beam seas do not create head-on pitch');
+
+    let maximumHeadPitch = 0;
+    for (let frame = 0; frame < 100; frame++) {
+      ship.userData.animateShip(.05, {
+        enabled: false,
+        sea: { enabled: true, directionDeg: 0, heightMeters: 1.5, periodSeconds: 5 }
+      });
+      maximumHeadPitch = Math.max(maximumHeadPitch, Math.abs(ship.rotation.x - baseRotation.x));
+    }
+    assert.ok(maximumHeadPitch > THREE.MathUtils.degToRad(.4),
+      'Head seas produce measurable pitch');
+
+    // Disabling waves fades the motion back to the original authored transform.
+    for (let frame = 0; frame < 240; frame++) {
+      ship.userData.animateShip(.05, {
+        enabled: false,
+        sea: { enabled: false, directionDeg: 0, heightMeters: 0, periodSeconds: 5 }
+      });
+    }
+    assert.ok(ship.position.distanceTo(basePosition) < 1e-7, 'Sloop returns to its original position');
+    assert.ok(Math.abs(ship.rotation.x - baseRotation.x) < 1e-7, 'Sloop returns to its original pitch');
+    assert.ok(Math.abs(ship.rotation.z - baseRotation.z) < 1e-7, 'Sloop returns to its original roll');
+    assert.equal(rocking.enabled, false);
+  } finally {
+    disposeShipModel(ship);
+  }
+});
+
+
+test('sea rocking is isolated to the Sloop and does not alter other vessel roots', () => {
+  const ship = createShipModel('galleon');
+  try {
+    const position = ship.position.clone();
+    const rotation = ship.rotation.clone();
+    assert.equal(ship.userData.sloopRocking, undefined);
+    ship.userData.animateShip(.05, {
+      enabled: false,
+      sea: { enabled: true, directionDeg: 90, heightMeters: 3, periodSeconds: 4 }
+    });
+    assert.ok(ship.position.distanceTo(position) < 1e-10, 'Galleon root position remains unchanged');
+    assert.ok(Math.abs(ship.rotation.x - rotation.x) < 1e-10, 'Galleon pitch remains unchanged');
+    assert.ok(Math.abs(ship.rotation.z - rotation.z) < 1e-10, 'Galleon roll remains unchanged');
   } finally {
     disposeShipModel(ship);
   }
