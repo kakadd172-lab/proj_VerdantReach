@@ -20,7 +20,8 @@ export function buildCanvasSail(ctx,name,mastId,corners,fullness=.09,parent=ctx.
  const vertexAt=(u,v)=>{const gx=THREE.MathUtils.clamp(u,0,1)*columns,gy=THREE.MathUtils.clamp(v,0,1)*rows,x0=Math.floor(gx),x1=Math.min(columns,x0+1),y0=Math.floor(gy),y1=Math.min(rows,y0+1),fx=gx-x0,fy=gy-y0;
   const read=(x,y)=>new THREE.Vector3(positions[(y*stride+x)*3],positions[(y*stride+x)*3+1],positions[(y*stride+x)*3+2]),p=read(x0,y0).lerp(read(x1,y0),fx).lerp(read(x0,y1).lerp(read(x1,y1),fx),fy);
   if(axis==='x')p.x+=.004;else p.z+=.004;return p;};
- const seam=(label,fixed,alongU)=>{const line=[];for(let i=0;i<=24;i++){const t=i/24;line.push(vertexAt(alongU?t:fixed,alongU?fixed:t));}ctx.tube(seams,line,.006,materials.sailShade,'sail-stitch-'+label,28);};
+ const addTubeIfNonDegenerate=(parent,line,radius,material,label,segments)=>{let length=0;for(let i=1;i<line.length;i++)length+=line[i].distanceTo(line[i-1]);if(length>1e-4)ctx.tube(parent,line,radius,material,label,segments);};
+ const seam=(label,fixed,alongU)=>{const line=[];for(let i=0;i<=24;i++){const t=i/24;line.push(vertexAt(alongU?t:fixed,alongU?fixed:t));}addTubeIfNonDegenerate(seams,line,.006,materials.sailShade,'sail-stitch-'+label,28);};
  // Fine boltrope outlines all four edges so every sail reads as a complete,
  // bounded piece of canvas, including the triangular headsail.
  const edge=(label,fixed,alongU)=>{
@@ -29,7 +30,7 @@ export function buildCanvasSail(ctx,name,mastId,corners,fullness=.09,parent=ctx.
    const t=i/32;
    line.push(vertexAt(alongU?t:fixed,alongU?fixed:t));
   }
-  ctx.tube(seams,line,.010,materials.rope,'sail-boltrope-'+label,36);
+  addTubeIfNonDegenerate(seams,line,.010,materials.rope,'sail-boltrope-'+label,36);
  };
  edge('foot',0,false);
  edge('head',1,false);
