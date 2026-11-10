@@ -179,12 +179,12 @@ test('The Sloop rig has continuous, correctly led standing and running rigging',
   const standing=ship.userData.getPart('standing-rigging-single');
   const mast=ship.userData.getPart('mast-single');
   const hull=ship.userData.getPart('hull');
-  const chainplates=ship.userData.getPart('chainplates-single');
-  const backstayChainplates=ship.userData.getPart('backstay-chainplates-single');
+  const migratedChainplates=ship.userData.getPart('chainplates-single');
+  const migratedBackstayChainplates=ship.userData.getPart('backstay-chainplates-single');
   ship.updateMatrixWorld(true);
   assert.equal(standing.parent,ship,'standing rigging is migrated out of the mast into the ship frame');
-  assert.equal(chainplates.parent,hull,'shroud chainplates are attached to the hull frame');
-  assert.equal(backstayChainplates.parent,hull,'backstay chainplates are attached to the hull frame');
+  assert.equal(migratedChainplates.parent,hull,'shroud chainplates are attached to the hull frame');
+  assert.equal(migratedBackstayChainplates.parent,hull,'backstay chainplates are attached to the hull frame');
   // The old saved transform was authored in mast-local space. Its world pose
   // must survive migration even though its equivalent local delta changes.
   const authored=defaults['standing-rigging-single'];
@@ -198,6 +198,24 @@ test('The Sloop rig has continuous, correctly led standing and running rigging',
   const migratedTransform=ship.userData.getPartTransform('standing-rigging-single');
   assert.ok(Object.values(migratedTransform).every(Number.isFinite),'migrated transform remains finite');
   assert.deepEqual(ship.userData.getPartTransform('shrouds-single'),defaults['shrouds-single'],'nested shroud transform remains unchanged during migration');
+  const forwardStay=ship.userData.getPart('shrouds-single').getObjectByName('standing-shroud-port-forward');
+  const stayMeta=forwardStay.userData.dynamicMastStay;
+  const fixedWorld=hull.localToWorld(new THREE.Vector3(...stayMeta.fixedPointHull));
+  let nearestChainplateDistance=Infinity;
+  migratedChainplates.traverse(object=>{
+   if(!object.isMesh||!object.geometry)return;
+   object.geometry.computeBoundingBox();
+   const bounds=object.geometry.boundingBox;
+   const a=object.localToWorld(new THREE.Vector3(0,bounds.min.y,0));
+   const b=object.localToWorld(new THREE.Vector3(0,bounds.max.y,0));
+   const segment=b.clone().sub(a);
+   const t=THREE.MathUtils.clamp(fixedWorld.clone().sub(a).dot(segment)/Math.max(segment.lengthSq(),1e-12),0,1);
+   nearestChainplateDistance=Math.min(nearestChainplateDistance,fixedWorld.distanceTo(a.addScaledVector(segment,t)));
+  });
+  assert.ok(nearestChainplateDistance<.05,'standing stay foot remains physically aligned with a chainplate centreline; gap='+nearestChainplateDistance);
+  const outerJibHalyards=ship.userData.getPart('head-halyards-outer-jib');
+  assert.equal(outerJibHalyards.userData.servesSail,'outer-jib');
+  assert.equal(outerJibHalyards.userData.sailControl,undefined,'halyard metadata must not register a rope group as an editable sail');
   const beforeRelink=standing.matrixWorld.clone();
   assert.ok(ship.userData.detachPart('standing-rigging-single'));
   assert.ok(ship.userData.relinkPart('standing-rigging-single'));
