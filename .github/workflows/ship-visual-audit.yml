@@ -1,7 +1,7 @@
 name: v0.8.10 fleet visual audit
 on:
   push:
-    branches: [main, chatgpt-v0.8.10-game-ship-architecture-migration, test-integrity-infrastructure]
+    branches: [main, chatgpt-v0.8.10-game-ship-architecture-migration]
     paths:
       - 'ForTests/**'
       - '.github/workflows/ship-visual-audit.yml'
