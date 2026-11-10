@@ -42,14 +42,15 @@ export function buildMast(d,ctx,mast){
 
   // Only the two functional gaff halyards are shown, routed just off the sail plane.
   const halyardX=-.15;
-  const gaffHalyards=part('gaff-halyards-'+mast.id,group);
+  const running=part('running-rigging-'+mast.id,group);
+  const gaffHalyards=part('gaff-halyards-'+mast.id,running);
   tube(gaffHalyards,[V(halyardX,lowerHeight*.93,-.05),V(halyardX,throat,0)],
     .010,materials.rope,'gaff-throat-halyard',24);
   tube(gaffHalyards,[V(halyardX,totalHeight*.985,0),V(halyardX,peak,headRun)],
     .010,materials.rope,'gaff-peak-halyard',28);
 
   // A compact mainsheet and vang are enough for this small working sloop.
-  const boomLines=part('boom-running-rigging-'+mast.id,group);
+  const boomLines=part('boom-running-rigging-'+mast.id,running);
   const aftStation=Math.min(.96,mastT+.24);
   const aftDeckY=deckY(d,aftStation)-baseY+.14;
   tube(boomLines,[V(-.10,low*.92,clewRun),V(-.30,aftDeckY,clewRun+.42)],
