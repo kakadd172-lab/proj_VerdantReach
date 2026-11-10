@@ -25,8 +25,7 @@ export function buildStandingRigging(d,ctx,mast,mastGroup,z,baseY,totalHeight,lo
       points:points.map(point=>point.toArray()),
       fixedEndIndex:points.length-1,
       fixedPoint:points[points.length-1].toArray(),
-      radius,segments,radialSegments:7,
-      restPositions:new Float32Array(line.geometry.attributes.position.array)
+      radius,segments,radialSegments:7
     };
     return line;
   };

@@ -51,8 +51,7 @@ export function createShipContext(vessel,palette={}){
     points:curvePoints.map(point=>point.toArray()),
     fixedEndIndex:curvePoints.length-1,
     fixedPoint:curvePoints[curvePoints.length-1].toArray(),
-    radius,segments,radialSegments:7,
-    restPositions:new Float32Array(line.geometry.attributes.position.array)
+    radius,segments,radialSegments:7
    };
   }
   return line;
@@ -100,8 +99,12 @@ function setupPartApi(root,registry,design){
   pivot.userData.articulation={kind:'mast-step',mastId:id,heelLimitDeg:control.windHeelMaxDeg,rakeLimitDeg:control.windRakeMaxDeg};
   const stays=[];
   pivot.traverse(object=>{
-   const data=object.userData.dynamicMastStay;
-   if(data&&object.isMesh&&object.geometry)stays.push({mesh:object,data,lastQuaternion:pivot.quaternion.clone()});
+   const metadata=object.userData.dynamicMastStay,attribute=object.geometry?.attributes?.position;
+   if(metadata&&object.isMesh&&attribute){
+    // Keep large vertex snapshots transient; do not embed them in exported userData.
+    const data={...metadata,radialSegments:metadata.radialSegments??7,restPositions:new Float32Array(attribute.array)};
+    stays.push({mesh:object,data,lastQuaternion:pivot.quaternion.clone()});
+   }
   });
   if(stays.length)mastStaySets.set(id,{pivot,stays});
  }
