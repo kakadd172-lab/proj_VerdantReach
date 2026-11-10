@@ -171,19 +171,24 @@ function setupPartApi(root,registry,design){
   generatorBase.set(name,{position:neutral.position.clone(),rotation:neutral.rotation.clone(),scale:neutral.scale.clone()});
  }
 
+ function isUnlinked(object){
+  for(let parent=object;parent;parent=parent.parent)if(parent===unlinked)return true;
+  return false;
+ }
  function finalizeMastStays(){
   // Saved transforms have now been applied in the original authored
   // hierarchy. Only now detach standing rigging from the mast and move the
   // physical chainplates to the hull, preserving their fully edited world pose.
+  // Explicitly detached editor parts remain detached and are not reattached.
   const migratedNames=new Set();
   for(const stay of pendingMastStays){
-   if(stay.standing&&stay.standing.parent!==root){
+   if(stay.standing&&!isUnlinked(stay.standing)&&stay.standing.parent!==root){
     root.updateMatrixWorld(true);
     root.attach(stay.standing);
     migratedNames.add(stay.standing.name);
    }
    for(const fitting of stay.fittings||[]){
-    if(fitting.parent!==hullPart){
+    if(!isUnlinked(fitting)&&fitting.parent!==hullPart){
      root.updateMatrixWorld(true);
      hullPart.attach(fitting);
      migratedNames.add(fitting.name);
@@ -198,6 +203,7 @@ function setupPartApi(root,registry,design){
   mastStaySets.clear();
   for(const stay of pendingMastStays){
    const {mesh,mast,pivot,metadata,segments,radialSegments,fixedHullLocal,startPivotLocal}=stay;
+   if(isUnlinked(mesh))continue;
    const attribute=mesh.geometry?.attributes?.position;
    if(!attribute||attribute.count!==(segments+1)*(radialSegments+1))continue;
 
