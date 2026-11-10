@@ -10,6 +10,18 @@ import {
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
 } from '../ships/index.js?v=0.8.30-reset-frame-registry';
+ 
+function disposeAndRelease(ship) {
+  if (!ship) return;
+  disposeAndRelease(ship);
+  ship.clear();
+  for (const key of Object.keys(ship.userData)) {
+    if (typeof ship.userData[key] === 'function') delete ship.userData[key];
+  }
+  ship.userData.ownedGeometries = [];
+  ship.userData.ownedMaterials = [];
+}
+
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
@@ -437,7 +449,7 @@ test('all 16 independent ForTests generators build separate editable models', ()
         }
       });
     } finally {
-      disposeShipModel(ship);
+      disposeAndRelease(ship);
     }
   }
 });
@@ -460,7 +472,7 @@ test('all vessels expose mast-step, rudder-stock and helm-axle pivots with linke
       assert.ok(Math.abs(rudder.userData.steeringControl.pivotGroup.rotation.y-angle)<1e-6,id+' rudder rotation');
       assert.ok(Math.abs(wheel.userData.steeringControl.pivotGroup.rotation.z-angle*(wheel.userData.steeringControl.ratio??4.5))<1e-6,id+' wheel follows rudder ratio');
       assert.deepEqual(ship.userData.getPartTransform('rudder'),rudderPose,id+' steering stays outside saved editor transforms');
-    }finally{disposeShipModel(ship);}
+    }finally{disposeAndRelease(ship);}
   }
 });
 
@@ -477,7 +489,7 @@ test('design overrides rebuild only the selected vessel and can be reset', () =>
     try {
       assert.ok(Math.abs(ship.userData.shipDimensions.beam - (original.beam + 1.25)) < 1e-9);
     } finally {
-      disposeShipModel(ship);
+      disposeAndRelease(ship);
     }
   } finally {
     resetShipDesignOverrides('sloop');
@@ -494,7 +506,7 @@ test('structure overrides change the selected vessel frame layout and can be res
     try {
       assert.ok(ship.userData.getPart('frame-' + String(original.frameCount + 2).padStart(2, '0')));
     } finally {
-      disposeShipModel(ship);
+      disposeAndRelease(ship);
     }
   } finally {
     resetShipStructureOverrides('sloop');
@@ -529,10 +541,10 @@ test('component move, rotation, scale and live gizmo values persist in ship stat
       assert.ok(Math.abs(result.ry - 0.12) < 1e-8);
       assert.ok(Math.abs(result.sz - initialTransform.sz * 1.15) < 1e-8);
     } finally {
-      disposeShipModel(restored);
+      disposeAndRelease(restored);
     }
   } finally {
-    disposeShipModel(ship);
+    disposeAndRelease(ship);
   }
 });
 
@@ -564,7 +576,7 @@ test('reset component restores its original hierarchy, transform and visibility'
     assert.deepEqual(ship.userData.getShipState().unlinkedParts, []);
     assert.deepEqual(ship.userData.getShipState().hiddenParts, {});
   } finally {
-    disposeShipModel(ship);
+    disposeAndRelease(ship);
   }
 });
 
@@ -639,7 +651,7 @@ test('sail fullness reverses to the lee side as wind direction changes', () => {
       disposeShipModel(calmShip);
     }
   } finally {
-    disposeShipModel(ship);
+    disposeAndRelease(ship);
   }
 });
 
@@ -704,7 +716,7 @@ test('the first two forward triangular sails keep their orientation while retain
         sail.name + ' directional billow must reverse with the wind');
     });
   } finally {
-    disposeShipModel(ship);
+    disposeAndRelease(ship);
   }
 });
 
@@ -766,7 +778,7 @@ test('Sloop rocking responds to sea direction and height, then settles smoothly'
     assert.ok(Math.abs(ship.rotation.z - baseRotation.z) < 1e-7, 'Sloop returns to its original roll');
     assert.equal(rocking.enabled, false);
   } finally {
-    disposeShipModel(ship);
+    disposeAndRelease(ship);
   }
 });
 
@@ -785,6 +797,6 @@ test('sea rocking is isolated to the Sloop and does not alter other vessel roots
     assert.ok(Math.abs(ship.rotation.x - rotation.x) < 1e-10, 'Galleon pitch remains unchanged');
     assert.ok(Math.abs(ship.rotation.z - rotation.z) < 1e-10, 'Galleon roll remains unchanged');
   } finally {
-    disposeShipModel(ship);
+    disposeAndRelease(ship);
   }
 });
