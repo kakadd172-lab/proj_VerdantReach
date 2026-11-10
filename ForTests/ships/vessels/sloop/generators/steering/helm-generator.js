@@ -6,7 +6,7 @@ import { deckY, stationZ, V } from "../../architecture/hull-geometry.js";
  */
 export function buildHelm(d,ctx){
   const {part,beam,materials,V,THREE}=ctx;
-  const station=0.91;
+  const station=0.89; // Slightly forward for a more comfortable helmsman's standing position.
   const y=deckY(d,station),z=stationZ(d,station,1);
   const radius=0.34;
   const wheelHeight=0.66;

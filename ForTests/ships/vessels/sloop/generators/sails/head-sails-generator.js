@@ -14,10 +14,13 @@ export function buildHeadSails(d,ctx){
 
  // Both sails lie on the centreline. They are separated fore-and-aft by
  // their own tack/head stations, not artificially placed on opposite sides.
- const innerTackZ=stationZ(d,.055,1)-.12;
+ // Set the inner staysail a little aft of the outer jib's plane. The whole
+ // triangle moves together, so its dimensions and fullness remain unchanged.
+ const innerStaysailAftOffset=.75;
+ const innerTackZ=stationZ(d,.055,1)-.12+innerStaysailAftOffset;
  const innerTackY=deckY(d,.055)+.30;
  const innerPeakY=foreBase+(foreTop-foreBase)*.77;
- const innerPeakZ=foreZ-.55;
+ const innerPeakZ=foreZ-.55+innerStaysailAftOffset;
 
  const plans=[
   {

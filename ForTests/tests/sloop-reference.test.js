@@ -132,6 +132,18 @@ test('The gaff mainsail remains intact and the topsail plus two distinct headsai
    assert.ok(size.y>minY,name+' should not collapse into a slim strip');
    assert.ok(size.z>minZ,name+' should have a broad fore-and-aft footprint');
   }
+  const canvasFor=name=>{
+   let result=null;ship.userData.getPart(name).traverse(object=>{
+    if(object.isMesh&&object.name==='sail-shaped-cloth')result=object;
+   });
+   assert.ok(result,name+' canvas should exist');result.geometry.computeBoundingBox();return result;
+  };
+  const jibCanvas=canvasFor('cloth-sail-head-1');
+  const staysailCanvas=canvasFor('cloth-sail-head-2');
+  assert.ok(
+   staysailCanvas.geometry.boundingBox.max.z>jibCanvas.geometry.boundingBox.max.z+.15,
+   'inner staysail should sit slightly aft of the outer jib instead of sharing its fore-and-aft plane'
+  );
   const jibSheet=ship.userData.getPart('head-sheets-outer-jib');
   const staysailSheet=ship.userData.getPart('head-sheets-inner-staysail');
   assert.equal(jibSheet.children.length,1,'the jib gets one clean working sheet');
@@ -153,6 +165,7 @@ test('Aft helm is compact, clear of the aft locker and mounted at the aft quarte
   const locker=ship.userData.getPart('aft-locker');
   assert.ok(helm&&wheel&&locker);
   assert.ok(helm.userData.helmStation>locker.userData.station+0.10,'helm must sit aft of the locker, not on its lid');
+  assert.ok(helm.userData.helmStation<=0.89,'helm should be nudged slightly forward while remaining in the aft quarter');
   assert.ok(helm.userData.wheelRadius<=0.35,'wheel should be scaled for a small fishing vessel');
   assert.equal(wheel.userData.helmStation,helm.userData.helmStation);
   assert.ok(wheel.children.some(object=>object.name==='helm-wheel-hub'));
