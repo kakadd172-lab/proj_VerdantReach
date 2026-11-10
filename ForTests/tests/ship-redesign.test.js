@@ -648,7 +648,7 @@ test('sail fullness reverses to the lee side as wind direction changes', () => {
       assert.ok(Math.abs(calmPosition.getComponent(calmCenter, calmAxis) - neutral) < 1e-8,
         'A calm sail must relax to its neutral, flat reference surface');
     } finally {
-      disposeShipModel(calmShip);
+      disposeAndRelease(calmShip);
     }
   } finally {
     disposeAndRelease(ship);
