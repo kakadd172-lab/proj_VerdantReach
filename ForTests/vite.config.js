@@ -32,14 +32,15 @@ function sanitizeConfig(id,config){
  const state=config.componentState||config.partState||{};if(!isRecord(state))throw new Error('Invalid component state for '+id);
  const rawTransforms=state.partTransforms===undefined?(config.componentTransforms||{}):state.partTransforms,rawUnlinked=state.unlinkedParts===undefined?[]:state.unlinkedParts;
  if(!Array.isArray(rawUnlinked))throw new Error('unlinkedParts must be an array');
- const cs={rudderAngle:state.rudderAngle===undefined?0:state.rudderAngle,sailTrim:numberMap(state.sailTrim||{},'sailTrim',-1.1,1.1),sailDeployment:{},mastLean:numberMap(state.mastLean||{},'mastLean',-.16,.16),hiddenParts:booleanMap(state.hiddenParts||{},'hiddenParts'),unlinkedParts:rawUnlinked.map(n=>safeName(n,'unlinked component')),partTransforms:transformMap(rawTransforms||{})};
+ const frameVersion=state.transformFrameVersion===undefined?1:state.transformFrameVersion;if(![1,2].includes(frameVersion))throw new Error('Unsupported component transform frame version for '+id);
+ const cs={transformFrameVersion:frameVersion,rudderAngle:state.rudderAngle===undefined?0:state.rudderAngle,sailTrim:numberMap(state.sailTrim||{},'sailTrim',-1.1,1.1),sailDeployment:{},mastLean:numberMap(state.mastLean||{},'mastLean',-.16,.16),hiddenParts:booleanMap(state.hiddenParts||{},'hiddenParts'),unlinkedParts:rawUnlinked.map(n=>safeName(n,'unlinked component')),partTransforms:transformMap(rawTransforms||{})};
  if(cs.unlinkedParts.length>1000)throw new Error('Too many unlinked components');
  if(typeof cs.rudderAngle!=='number'||!Number.isFinite(cs.rudderAngle)||cs.rudderAngle<-.62||cs.rudderAngle>.62)throw new Error('rudderAngle is outside the allowed range');
  const deployment=state.sailDeployment||{};if(!isRecord(deployment))throw new Error('sailDeployment must be an object');
  for(const [k,v] of Object.entries(deployment)){safeName(k,'sail deployment key');if(!['full','reefed','furled'].includes(v))throw new Error('Invalid sail deployment mode for '+k);cs.sailDeployment[k]=v;}
  return {format:'verdant-reach-vessel-defaults',schemaVersion:1,vesselId:id,savedAt:new Date().toISOString(),design,structure,componentState:cs};
 }
-function emptyDefaults(id){return {format:'verdant-reach-vessel-defaults',schemaVersion:1,vesselId:id,savedAt:null,design:{},structure:{},componentState:{rudderAngle:0,sailTrim:{},sailDeployment:{},mastLean:{},hiddenParts:{},unlinkedParts:[],partTransforms:{}}};}
+function emptyDefaults(id){return {format:'verdant-reach-vessel-defaults',schemaVersion:1,vesselId:id,savedAt:null,design:{},structure:{},componentState:{transformFrameVersion:2,rudderAngle:0,sailTrim:{},sailDeployment:{},mastLean:{},hiddenParts:{},unlinkedParts:[],partTransforms:{}}};}
 async function writeDefaults(root,id,defaults){const dest=path.join(root,'ships','vessels',id,'editor-defaults.js');await fs.mkdir(path.dirname(dest),{recursive:true});const temp=dest+'.tmp';await fs.writeFile(temp,'export default Object.freeze('+JSON.stringify(defaults,null,2)+');\n','utf8');await fs.rename(temp,dest);return 'ships/vessels/'+id+'/editor-defaults.js';}
 async function readRequest(req){let body='';for await(const chunk of req){body+=chunk;if(body.length>2*1024*1024)throw new Error('Save payload exceeds 2 MB');}return JSON.parse(body||'{}');}
 function sendJson(res,status,value){res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.end(JSON.stringify(value));}
