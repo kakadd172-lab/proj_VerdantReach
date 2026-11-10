@@ -289,6 +289,26 @@ function updateSailingTelemetry(){
  });
  output.textContent=readings.length?readings.join(' · '):'No articulated mast';
 }
+function updateSloopRockingTelemetry(){
+ const status=document.querySelector('#sloop-rocking-status');
+ const roll=document.querySelector('#sloop-roll-value');
+ const pitch=document.querySelector('#sloop-pitch-value');
+ const heave=document.querySelector('#sloop-heave-value');
+ if(!status&&!roll&&!pitch&&!heave)return;
+ const motion=ship?.userData?.sloopRocking;
+ if(!motion){
+  if(status)status.textContent='Sloop only · select Sloop';
+  if(roll)roll.textContent='0.0°';
+  if(pitch)pitch.textContent='0.0°';
+  if(heave)heave.textContent='0.00 m';
+  return;
+ }
+ const toDegrees=value=>THREE.MathUtils.radToDeg(Number(value)||0);
+ if(status)status.textContent=motion.enabled?'ACTIVE · '+motion.waveHeightMeters.toFixed(1)+' m sea':motion.seaBlend>.01?'SETTLING':'IDLE';
+ if(roll)roll.textContent=toDegrees(motion.rollRadians).toFixed(1)+'°';
+ if(pitch)pitch.textContent=toDegrees(motion.pitchRadians).toFixed(1)+'°';
+ if(heave)heave.textContent=motion.heaveMeters.toFixed(2)+' m';
+}
 function setAllSails(mode,duration=.85){
  if(!ship||!activeShipId)return false;
  let applied=false;
@@ -1297,6 +1317,7 @@ function animate(){
   const delta=Math.min(animationClock.getDelta(),.05);
   if(!windSettings.paused&&ship?.userData.animateShip)ship.userData.animateShip(delta,windSettings);
   updateSailingTelemetry();
+  updateSloopRockingTelemetry();
   orbit.update();updateSelectionHelpers();renderer.render(scene,camera);
 }
 loadShip(selector.value||Object.keys(SHIP_DESIGNS)[0],reviewPartName);
