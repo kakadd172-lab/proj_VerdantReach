@@ -260,6 +260,28 @@ test('all 16 independent ForTests generators build separate editable models', ()
   }
 });
 
+test('all vessels expose mast-step, rudder-stock and helm-axle pivots with linked steering',()=>{
+  for(const id of ids){
+    const design=getShipDesign(id),ship=createShipModel(id);
+    try{
+      for(const definition of design.masts){
+        const mast=ship.userData.getPart('mast-'+definition.id);
+        assert.ok(mast?.userData.mastControl?.pivotGroup,id+' '+definition.id+' mast-step pivot');
+        assert.equal(mast.userData.mastControl.pivotGroup.parent,mast,id+' mast pivot stays inside editable component');
+      }
+      const rudder=ship.userData.getPart('rudder'),wheel=ship.userData.getPart('helm-wheel');
+      assert.ok(rudder?.userData.steeringControl?.pivotGroup,id+' rudder stock pivot');
+      assert.ok(wheel?.userData.steeringControl?.pivotGroup,id+' helm axle pivot');
+      const rudderPose=ship.userData.getPartTransform('rudder');
+      const angle=.2;
+      ship.userData.setRudderAngle(angle);
+      assert.ok(Math.abs(rudder.userData.steeringControl.pivotGroup.rotation.y-angle)<1e-6,id+' rudder rotation');
+      assert.ok(Math.abs(wheel.userData.steeringControl.pivotGroup.rotation.z-angle*(wheel.userData.steeringControl.ratio??4.5))<1e-6,id+' wheel follows rudder ratio');
+      assert.deepEqual(ship.userData.getPartTransform('rudder'),rudderPose,id+' steering stays outside saved editor transforms');
+    }finally{disposeShipModel(ship);}
+  }
+});
+
 test('design overrides rebuild only the selected vessel and can be reset', () => {
   const original = getShipDesign('sloop');
   try {

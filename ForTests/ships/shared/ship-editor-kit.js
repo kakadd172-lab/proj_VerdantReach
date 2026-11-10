@@ -56,6 +56,50 @@ export function createShipContext(vessel,palette={}){
  return {THREE,V,clamp,design,root,materials,registry,part,mesh,beam,tube,box,editorDefaults};
 }
 function setupPartApi(root,registry,design){
+ const makeNestedPivot=(component,pivot,name)=>{
+  const group=new THREE.Group();group.name=name;group.position.copy(pivot);
+  for(const child of [...component.children]){
+   component.remove(child);child.position.sub(pivot);group.add(child);
+  }
+  component.add(group);return group;
+ };
+
+ // Install pivots before editor baselines are captured. The component root
+ // remains the editable object; only its child assembly rotates at runtime.
+ const mastParts=[...registry.values()].filter(p=>p.userData.mastControl);
+ for(const mast of mastParts){
+  const control=mast.userData.mastControl;
+  const pivot=control.pivotGroup||mast.userData.animationPivot||
+   makeNestedPivot(mast,V(0,0,0),mast.name+'-mast-step-pivot');
+  control.pivotGroup=pivot;
+  control.windHeelMaxDeg=Number(control.windHeelMaxDeg)||2.5;
+  control.windRakeMaxDeg=Number(control.windRakeMaxDeg)||1.2;
+  mast.userData.animationPivot=pivot;
+  pivot.userData.articulation={kind:'mast-step',mastId:control.mastId,heelLimitDeg:control.windHeelMaxDeg,rakeLimitDeg:control.windRakeMaxDeg};
+ }
+
+ const rudder=registry.get('rudder');
+ if(rudder&&!rudder.userData.steeringControl?.pivotGroup){
+  const control=rudder.userData.steeringControl||{};
+  const pivot=makeNestedPivot(rudder,V(0,0,0),rudder.name+'-stock-pivot');
+  rudder.userData.steeringControl={...control,axis:control.axis||'y',rotationSign:control.rotationSign??1,maxAngle:control.maxAngle??.62,pivotGroup:pivot};
+ }
+ const wheel=registry.get('helm-wheel');
+ if(wheel&&!wheel.userData.steeringControl?.pivotGroup){
+  const control=wheel.userData.steeringControl||{};
+  wheel.updateWorldMatrix(true,false);
+  let axle=wheel.getObjectByName('helm-wheel-ring')||wheel.getObjectByName('helm-wheel-hub');
+  if(!axle)wheel.traverse(object=>{if(!axle&&object.isMesh&&object.geometry?.type==='TorusGeometry')axle=object;});
+  let pivotPoint;
+  if(axle)pivotPoint=wheel.worldToLocal(axle.getWorldPosition(new THREE.Vector3()));
+  else{
+   const bounds=new THREE.Box3().setFromObject(wheel);
+   pivotPoint=wheel.worldToLocal(bounds.getCenter(new THREE.Vector3()));
+  }
+  const pivot=makeNestedPivot(wheel,pivotPoint,wheel.name+'-axle-pivot');
+  wheel.userData.steeringControl={...control,axis:control.axis||'z',ratio:control.ratio??4.5,rotationSign:control.rotationSign??1,pivotGroup:pivot};
+ }
+
  const unlinked=new THREE.Group();unlinked.name='unlinked-parts';root.add(unlinked);
  const original=new Map(),base=new Map(),generatorBase=new Map(),resetBaseline=new Map(),state={rudderAngle:0,sailTrim:{},sailDeployment:{},mastLean:{},hiddenParts:{},unlinkedParts:[],partTransforms:{},runtimePose:{},windBlend:0,time:0};
  for(const [name,obj] of registry){
@@ -70,8 +114,7 @@ function setupPartApi(root,registry,design){
    cloth?.traverse(object=>{if(object.isMesh&&object.userData.sailCloth)mesh=object;});
    return [p.name,{cloth,mesh,from:1,target:1,elapsed:0,duration:0}];
   }));
- const mastParts=[...registry.values()].filter(p=>p.userData.mastControl);
-  const runtimeTarget=p=>p.userData.animationPivot||p.userData.steeringControl?.pivotGroup||p.userData.sailControl?.pivotGroup||p;
+ const runtimeTarget=p=>p.userData.animationPivot||p.userData.steeringControl?.pivotGroup||p.userData.sailControl?.pivotGroup||p;
   const setRuntimeRotation=(name,values={})=>{
    const p=registry.get(name),b=base.get(name);if(!p||!b)return false;
    const target=runtimeTarget(p);
@@ -120,8 +163,10 @@ function setupPartApi(root,registry,design){
    return true;
   },
   setRudderAngle(a){
-    const p=registry.get('rudder');if(!p)return false;state.rudderAngle=clamp(a,-.62,.62);
-    const rc=p.userData.steeringControl||{};setRuntimeRotation('rudder',{ry:state.rudderAngle*(rc.rotationSign??1)});
+    const p=registry.get('rudder');if(!p)return false;
+    const rc=p.userData.steeringControl||{},limit=Math.abs(Number(rc.maxAngle)||.62);
+    state.rudderAngle=clamp(a,-limit,limit);
+    setRuntimeRotation('rudder',{ry:state.rudderAngle*(rc.rotationSign??1)});
     const wheel=registry.get('helm-wheel');
     if(wheel){const wc=wheel.userData.steeringControl||{};setRuntimeRotation('helm-wheel',{rz:state.rudderAngle*(wc.ratio??4.5)*(wc.rotationSign??1)});}
     return true;
@@ -139,7 +184,15 @@ function setupPartApi(root,registry,design){
     const aftness=(1-Math.cos(direction))*.5,trimAngle=leeward*(.08+.82*aftness)*state.windBlend;
     for(const mast of mastParts){
      const id=mast.userData.mastControl.mastId;
-     setRuntimeRotation(mast.name,{rx:(state.mastLean[id]||0)+Math.cos(direction)*state.windBlend*.0045,rz:Math.sin(direction)*state.windBlend*.012});
+     const control=mast.userData.mastControl;
+     const maxHeel=THREE.MathUtils.degToRad(control.windHeelMaxDeg??2.5);
+     const maxRake=THREE.MathUtils.degToRad(control.windRakeMaxDeg??1.2);
+     // Wind-from starboard heels the masthead to port; bow wind adds a
+     // smaller aft rake. The mast-step motion is angle-limited and reversible.
+     setRuntimeRotation(mast.name,{
+      rx:(state.mastLean[id]||0)+Math.cos(direction)*state.windBlend*maxRake,
+      rz:Math.sin(direction)*state.windBlend*maxHeel
+     });
     }
     for(const [name,p] of registry){
      const control=p.userData.windControl;
