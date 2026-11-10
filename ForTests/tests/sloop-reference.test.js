@@ -265,6 +265,32 @@ test('The Sloop rig has continuous, correctly led standing and running rigging',
  }finally{disposeShipModel(ship);}
 });
 
+test('Sloop rigging transforms survive a save/reload across coordinate-frame versions',()=>{
+ const first=createShipModel('sloop');
+ let restored=null;
+ try{
+  const saved=first.userData.getShipState();
+  assert.equal(saved.transformFrameVersion,2,'the editor exports the migrated coordinate-frame version');
+  first.updateMatrixWorld(true);
+  const names=['mast-single','hull','standing-rigging-single','chainplates-single','backstay-chainplates-single'];
+  const expected=Object.fromEntries(names.map(name=>[name,first.userData.getPart(name).matrixWorld.clone()]));
+  restored=createShipModel('sloop',saved.partTransforms,saved);
+  restored.updateMatrixWorld(true);
+  for(const name of names){
+   const actual=restored.userData.getPart(name).matrixWorld;
+   for(let i=0;i<16;i++)assert.ok(Math.abs(actual.elements[i]-expected[name].elements[i])<1e-5,
+    name+' world transform survives save/reload at matrix element '+i);
+  }
+  const firstStay=first.userData.getPart('shrouds-single').getObjectByName('standing-shroud-port-forward');
+  const secondStay=restored.userData.getPart('shrouds-single').getObjectByName('standing-shroud-port-forward');
+  assert.deepEqual(Array.from(secondStay.geometry.attributes.position.array),Array.from(firstStay.geometry.attributes.position.array),
+   'standing stay geometry is identical after save/reload');
+ }finally{
+  disposeShipModel(first);
+  if(restored)disposeShipModel(restored);
+ }
+});
+
 test('Rudder and helm wheel rotate around their pivots and remain mechanically linked',()=>{
  const ship=createShipModel('sloop');
  try{
