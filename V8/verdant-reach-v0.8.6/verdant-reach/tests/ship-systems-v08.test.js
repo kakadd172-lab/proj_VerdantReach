@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { SHIP_DESIGNS, HISTORICAL_SHIP_KINDS, WORLD_UNITS_PER_METRE, getShipDesign } from '../src/world/ship-designs.js';
 import { WorldEditSystem } from '../src/systems/world-editing.js';
+import { createShip, disposeShipModel } from '../src/world/ships/index.js?v=0.8.10';
 
 const root = path.resolve(import.meta.dirname, '..');
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -69,7 +70,7 @@ test('stern tiers are individual curved structures and match each design tier co
   const counts = {
     'galleon-castle': 3, 'high-aftercastle': 3, 'first-rate-aftercastle': 3,
     quarterdeck: 2, 'low-quarter': 2, 'fluyt-roundhouse': 2, 'low-cabin': 1,
-    'xebec-platform': 1, 'open-boat': 0,
+    'xebec-platform': 1, 'open-boat': 0, 'transom': 0,
   };
   for (const design of Object.values(SHIP_DESIGNS)) {
     const expected = counts[design.sternwork] ?? 1;
@@ -85,14 +86,25 @@ test('Creative ship saves preserve editable hierarchy and all six component tran
     hiddenParts: { 'anchor-port': true },
     unlinkedParts: ['anchor-starboard'],
     sailDeployment: { main: 'reefed' },
+    transformFrameVersion: 2,
   } });
   assert.ok(ship);
+  assert.deepEqual(ship.shipState.sailDeployment, { main: 'reefed' });
+  assert.equal(ship.shipState.transformFrameVersion, 2);
   const duplicate = edits.duplicateEntity(ship.id, 40, 60);
   assert.deepEqual(duplicate.shipState, ship.shipState);
   duplicate.shipState.partTransforms['sail-main-junk'].x = 5;
+  duplicate.shipState.sailDeployment.main = 'full';
+  duplicate.shipState.transformFrameVersion = 1;
   assert.equal(ship.shipState.partTransforms['sail-main-junk'].x, .5);
+  assert.equal(ship.shipState.sailDeployment.main, 'reefed');
+  assert.equal(ship.shipState.transformFrameVersion, 2);
   const restored = new WorldEditSystem(edits.getSaveData());
   assert.deepEqual(restored.entities.find((item) => item.id === ship.id).shipState, ship.shipState);
+  const legacy = new WorldEditSystem({ entities: [{ id: 'legacy', kind: 'ship-junk', x: 0, z: 0, shipState: { rudderAngle: 0.1 } }] });
+  const legacyState = legacy.getSaveData().entities[0].shipState;
+  assert.deepEqual(legacyState.sailDeployment, {});
+  assert.equal(Object.hasOwn(legacyState, 'transformFrameVersion'), false);
 });
 
 test('Creative Shipyard retains local transform, mast and deployment controls', () => {
@@ -147,8 +159,17 @@ test('v0.8.6 game shell and v0.8.10 component-first ship modules use consistent 
   assert.ok(registry.includes('vessel.createModel(transforms, savedState)'));
   assert.ok(vessels.includes("./sloop/sloop.js"));
   assert.ok(registry.includes('getShipGenerator(type)'));
-  assert.ok(registry.includes('createShip(type)'));
   assert.ok(structures.includes('getHullHalfBeam'));
+  const generated = createShip('sloop', {}, { rudderAngle: 0.17, sailDeployment: { single: 'reefed' } });
+  try {
+    assert.equal(generated.userData.shipType, 'sloop');
+    assert.equal(generated.userData.shipGeneratorId, 'sloop');
+    const state = generated.userData.getShipState();
+    assert.ok(Math.abs(state.rudderAngle - 0.17) < 1e-8);
+    assert.equal(state.sailDeployment.single, 'reefed');
+  } finally {
+    disposeShipModel(generated);
+  }
 });
 
 test('older save aliases remain supported', () => {
