@@ -40,7 +40,9 @@ for(const id of ids){
  const defaultsPath=join(vesselDir,'editor-defaults.js');
  assert.ok(existsSync(defaultsPath),id+' must own an editor-defaults.js file beside its generator.');
  const defaultsSource=readFileSync(defaultsPath,'utf8');
- assert.ok(defaultsSource.includes('verdant-reach-vessel-defaults')&&defaultsSource.includes("vesselId: '"+id+"'"),id+' editor defaults file must identify its vessel.');
+ assert.ok(defaultsSource.includes('verdant-reach-vessel-defaults'),id+' editor defaults file must use the vessel-defaults format.');
+ const defaultsVesselId=defaultsSource.match(/["']?vesselId["']?\\s*:\\s*["']([^"']+)["']/)?.[1];
+ assert.equal(defaultsVesselId,id,id+' editor defaults file must identify its vessel.');
  assert.ok(source.includes("import EDITOR_DEFAULTS from './editor-defaults.js'")&&source.includes('editorDefaults: EDITOR_DEFAULTS'),id+' generator must load its own saved defaults.');
  const registryPath=converted?'./vessels/'+id+'/'+id+'.js':'./vessels/'+id+'.js';
  assert.ok(registry.includes(registryPath),id+' missing from the registry.');

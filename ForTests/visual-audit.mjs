@@ -54,6 +54,9 @@ try{
   }
   await delay(900);
   assert.ok(await page.locator('#viewport canvas').count(),id+' canvas missing');
+  const clearSelection=page.locator('#clear-selection');
+  if(await clearSelection.isEnabled())await clearSelection.click();
+  await delay(120);
   await page.locator('#viewport').screenshot({path:join(outputDir,id+'.png'),animations:'disabled'});
   const metrics=await page.evaluate(()=>({
    status:document.querySelector('#status')?.textContent||'',
@@ -68,6 +71,8 @@ try{
   await page.locator('#ship-select').selectOption(id);
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.startsWith('Loaded '));
   await page.locator('[data-camera="'+angle+'"]').click();
+  const clearSelection=page.locator('#clear-selection');
+  if(await clearSelection.isEnabled())await clearSelection.click();
   await delay(600);
   await page.locator('#viewport').screenshot({path:join(outputDir,id+'-'+angle+'.png')});
  }

@@ -346,6 +346,8 @@ function selectPart(name){
   document.querySelector('#part-name').textContent=name;
   gizmo.attach(part);setSelectionHelpers(selectedNames);
   refreshTransformFields();refreshSelectionTools();refreshPartInspector();refreshSelectionCount();
+  const readout=document.querySelector('#viewport-readout');
+  if(readout)readout.textContent='Selected component · '+name;
 }
 function populatePartList(){
   const filter=(document.querySelector('#part-search')?.value||'').trim().toLowerCase();
@@ -409,6 +411,8 @@ function clearSelection(){
   if(partSelector)partSelector.value='';
   const label=document.querySelector('#part-name');if(label)label.textContent='No component selected';
   refreshTransformFields();refreshSelectionTools();refreshPartInspector();refreshSelectionCount();
+  const readout=document.querySelector('#viewport-readout');
+  if(readout)readout.textContent=ship?'Viewport ready · '+ship.userData.partNames.length+' editable components':'Viewport starting…';
 }
 function getSelectionBounds(names=selectedNames){
   const bounds=new THREE.Box3();if(!ship)return bounds;
@@ -470,6 +474,8 @@ function selectParts(names){
   selectionPivot=new THREE.Group();selectionPivot.name='__multi-selection-pivot';
   selectionPivot.position.copy(bounds.getCenter(new THREE.Vector3()));scene.add(selectionPivot);gizmo.attach(selectionPivot);
   setSelectionHelpers(filtered);refreshTransformFields();refreshSelectionTools();refreshPartInspector();refreshSelectionCount();
+  const readout=document.querySelector('#viewport-readout');
+  if(readout)readout.textContent='Selected · '+filtered.length+' components';
   setStatus('Selected '+filtered.length+' components. Use the transform gizmo to move them together.');
 }
 function screenBoundsForPart(part,rect){
