@@ -124,12 +124,13 @@ function setupPartApi(root,registry,design){
  }
  const sailParts=[...registry.values()].filter(p=>p.userData.sailControl);
  const cloths=new Map(sailParts.map(p=>{
-   const cloth=registry.get(p.userData.sailControl.clothPart);let mesh=null;
-   cloth?.traverse(object=>{if(object.isMesh&&object.userData.sailCloth)mesh=object;});
+   const cloth=registry.get(p.userData.sailControl.clothPart);
+   const deployment=p.getObjectByName(p.userData.sailControl.deploymentPart);
+   let mesh=null;cloth?.traverse(object=>{if(object.isMesh&&object.userData.sailCloth)mesh=object;});
    return [p.name,{
-    cloth,mesh,from:1,target:1,elapsed:0,duration:0,
+    cloth,deployment,mesh,from:1,target:1,elapsed:0,duration:0,
     pivotY:p.userData.sailControl.pivotPoint?.[1]||0,
-    fromPositionY:cloth?.position.y||0,targetPositionY:cloth?.position.y||0
+    fromPositionY:deployment?.position.y||0,targetPositionY:deployment?.position.y||0
    }];
   }));
  const runtimeTarget=p=>p.userData.animationPivot||p.userData.steeringControl?.pivotGroup||p.userData.sailControl?.pivotGroup||p;
@@ -169,7 +170,10 @@ function setupPartApi(root,registry,design){
    if(target!==p)target.rotation.set(0,0,0,'XYZ');
    delete state.runtimePose[n];
    if(p.userData.mastControl)state.mastLean[p.userData.mastControl.mastId]=0;
-   if(p.userData.sailControl)state.sailTrim[p.userData.sailControl.mastId]=0;
+   if(p.userData.sailControl){
+    state.sailTrim[p.userData.sailControl.mastId]=0;
+    api.setSailDeployment(p.userData.sailControl.mastId,'full',0);
+   }
    if(n==='rudder'||n==='helm-wheel')api.setRudderAngle(0);
    if(raw)base.set(n,{position:raw.position.clone(),rotation:raw.rotation.clone(),scale:raw.scale.clone()});
    const transform=api.getPartTransform(n);
@@ -197,11 +201,11 @@ function setupPartApi(root,registry,design){
    const scale=mode==='full'?1:mode==='reefed'?.48:.001;
    state.sailDeployment[id]=mode;
    for(const p of targets){
-    const a=cloths.get(p.name);if(!a?.cloth)continue;
-    a.from=a.cloth.scale.y;a.target=scale;
-    a.fromPositionY=a.cloth.position.y;a.targetPositionY=-a.pivotY*scale;
+    const a=cloths.get(p.name);if(!a?.deployment)continue;
+    a.from=a.deployment.scale.y;a.target=scale;
+    a.fromPositionY=a.deployment.position.y;a.targetPositionY=-a.pivotY*scale;
     a.elapsed=0;a.duration=clamp(duration,0,4);
-    if(a.duration===0){a.cloth.scale.y=scale;a.cloth.position.y=a.targetPositionY;}
+    if(a.duration===0){a.deployment.scale.y=scale;a.deployment.position.y=a.targetPositionY;}
    }
    return true;
   },
@@ -274,8 +278,8 @@ function setupPartApi(root,registry,design){
       animation.elapsed=Math.min(animation.duration,animation.elapsed+delta);
       const t=animation.duration>0?animation.elapsed/animation.duration:1;
       const eased=t*t*(3-2*t);
-      animation.cloth.scale.y=THREE.MathUtils.lerp(animation.from,animation.target,eased);
-      animation.cloth.position.y=THREE.MathUtils.lerp(animation.fromPositionY,animation.targetPositionY,eased);
+      animation.deployment.scale.y=THREE.MathUtils.lerp(animation.from,animation.target,eased);
+      animation.deployment.position.y=THREE.MathUtils.lerp(animation.fromPositionY,animation.targetPositionY,eased);
      }
     }
    },

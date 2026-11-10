@@ -3,8 +3,12 @@ import { V } from "../../architecture/hull-geometry.js";
 export function buildCanvasSail(ctx,name,mastId,corners,fullness=.09,parent=ctx.root,axis='z'){
  const {part,mesh,materials,THREE}=ctx;
  const control=part(name,parent);
- control.userData.sailControl={mastId,clothPart:'cloth-'+name,windPivot:true};
- const cloth=part('cloth-'+name,control);
+ const deployment=new THREE.Group();
+ deployment.name='sail-deployment-'+name;
+ deployment.userData.sailDeploymentAssembly=true;
+ control.add(deployment);
+ control.userData.sailControl={mastId,clothPart:'cloth-'+name,deploymentPart:deployment.name,windPivot:true};
+ const cloth=part('cloth-'+name,deployment);
  const points=corners.map(point=>point?.isVector3?point.clone():V(...point));
  const triangular=points[0].distanceTo(points[3])<.001;
  const span=triangular?points[0].distanceTo(points[2]):
@@ -41,7 +45,7 @@ export function buildCanvasSail(ctx,name,mastId,corners,fullness=.09,parent=ctx.
  const clothMesh=mesh(cloth,geometry,materials.sail,'sail-shaped-cloth');
  clothMesh.userData.sailCloth={rows,columns,axis,restPositions:new Float32Array(positions)};
 
- const seams=part('panel-seams-'+name,control);
+ const seams=part('panel-seams-'+name,deployment);
  const vertexAt=(u,v)=>{
   const gx=THREE.MathUtils.clamp(u,0,1)*columns,gy=THREE.MathUtils.clamp(v,0,1)*rows;
   const x0=Math.floor(gx),x1=Math.min(columns,x0+1),y0=Math.floor(gy),y1=Math.min(rows,y0+1);

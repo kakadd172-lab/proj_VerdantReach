@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Vector3 } from 'three';
+import * as THREE from 'three';
 import { getShipDesign, createShipModel, disposeShipModel } from '../ships/index.js?v=0.8.9-persistent-vessel-authoring';
 import { deckY, keelY, hullPoint, stationZ, halfBreadth, hullShapeStation, sectionBreadth } from '../ships/vessels/sloop/architecture/hull-geometry.js';
 
@@ -297,27 +298,37 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
  }finally{disposeShipModel(ship);}
 });
 
-test('Sails reef and furl by gathering canvas towards their tack',()=>{
+test('Sails reef and furl the full canvas assembly towards their tack',()=>{
  const ship=createShipModel('sloop');
  try{
-  const sail=ship.userData.getPart('sail-single-gaff'),cloth=ship.userData.getPart('cloth-sail-single-gaff');
+  const sail=ship.userData.getPart('sail-single-gaff');
+  const cloth=ship.userData.getPart('cloth-sail-single-gaff');
+  const seams=ship.userData.getPart('panel-seams-sail-single-gaff');
+  const deployment=sail.getObjectByName(sail.userData.sailControl.deploymentPart);
   const tackY=sail.userData.sailControl.pivotPoint[1];
-  assert.ok(cloth&&Math.abs(cloth.scale.y-1)<1e-8);
+  assert.ok(cloth&&seams&&deployment);
+  assert.equal(cloth.parent,deployment);
+  assert.equal(seams.parent,deployment,'panel seams and boltropes share the deployment group');
+  assert.ok(Math.abs(deployment.scale.y-1)<1e-8);
+  const seamLine=seams.children.find(child=>child.geometry);
+  assert.ok(seamLine,'sail edge ropes exist inside the deployment group');
+  const fullBounds=new THREE.Box3().setFromObject(seamLine);
   assert.equal(ship.userData.setSailDeployment('single','reefed',0),true);
-  assert.ok(Math.abs(cloth.scale.y-.48)<1e-8);
-  assert.ok(Math.abs(cloth.position.y+tackY*.48)<1e-8,'reefing scales about the tack rather than the keel origin');
+  assert.ok(Math.abs(deployment.scale.y-.48)<1e-8);
+  assert.ok(Math.abs(deployment.position.y+tackY*.48)<1e-8,'reefing scales around the tack rather than the keel origin');
   assert.equal(ship.userData.setSailDeployment('single','furled',.5),true);
   for(let frame=0;frame<5;frame++)ship.userData.animateShip(.05,{enabled:false});
-  assert.ok(cloth.scale.y<.48&&cloth.scale.y>.001,'furling interpolates smoothly');
+  assert.ok(deployment.scale.y<.48&&deployment.scale.y>.001,'furling interpolates smoothly');
   for(let frame=0;frame<8;frame++)ship.userData.animateShip(.05,{enabled:false});
-  assert.ok(Math.abs(cloth.scale.y-.001)<1e-8);
-  assert.ok(Math.abs(cloth.position.y+tackY*.001)<1e-8);
+  assert.ok(Math.abs(deployment.scale.y-.001)<1e-8);
+  assert.ok(Math.abs(deployment.position.y+tackY*.001)<1e-8);
+  const furledBounds=new THREE.Box3().setFromObject(seamLine);
+  assert.ok(furledBounds.getSize(new Vector3()).y<fullBounds.getSize(new Vector3()).y*.01,'boltrope bounds shrink with the furled canvas');
   assert.equal(ship.userData.getShipState().sailDeployment.single,'furled');
-  ship.userData.setSailDeployment('single','full',0);
-  assert.ok(Math.abs(cloth.scale.y-1)<1e-8);
+  ship.userData.resetPartTransform('sail-single-gaff');
+  assert.ok(Math.abs(deployment.scale.y-1)<1e-8,'reset restores the full canvas assembly');
  }finally{disposeShipModel(ship);}
 });
-
 test('Aft helm is compact, clear of the aft locker and mounted at the aft quarter',()=>{
  const ship=createShipModel('sloop');
  try{
