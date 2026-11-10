@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.11';
+export const SHIP_EDITOR_KIT_VERSION='0.8.12';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -94,6 +94,13 @@ function setupPartApi(root,registry,design){
   const excluded=new Set(standing?[standing]:[]);
   const pivot=control.pivotGroup||mast.userData.animationPivot||
    makeNestedPivot(mast,V(0,0,0),mast.name+'-mast-step-pivot',excluded);
+  // Some vessel generators provide their own pivotGroup. In that case the
+  // excluded set above cannot remove the standing-rigging group from a pivot
+  // that already exists. Reparent it explicitly while preserving world pose.
+  if(standing&&standing.parent!==mast){
+   root.updateMatrixWorld(true);
+   mast.attach(standing);
+  }
   control.pivotGroup=pivot;
   control.windHeelMaxDeg=Number(control.windHeelMaxDeg)||2.5;
   control.windRakeMaxDeg=Number(control.windRakeMaxDeg)||1.2;
