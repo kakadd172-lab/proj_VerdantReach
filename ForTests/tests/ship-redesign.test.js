@@ -164,7 +164,17 @@ test('all 16 independent ForTests generators build separate editable models', ()
         const fixedFrame=ship.userData.getPart('hull')||ship;
         assert.ok(Array.isArray(metadata.fixedPointHull),id+' '+mastDefinition.id+' stay records a hull-local fitting');
         const fixedBefore=fixedFrame.localToWorld(new Vector3Type(...metadata.fixedPointHull));
+        assert.equal(metadata.coordinateSpace,'mast-group',id+' '+mastDefinition.id+' standing stays use their mast component frame');
+        assert.ok(Array.isArray(metadata.mastHeadPivotLocal),id+' '+mastDefinition.id+' stay records its moving masthead attachment');
         const attribute=sample.geometry.attributes.position,radial=metadata.radialSegments??7,stride=radial+1;
+        const initialStartCenter=new Vector3Type();
+        for(let i=0;i<=radial;i++){
+          const offset=i;
+          initialStartCenter.add(new Vector3Type(attribute.getX(offset),attribute.getY(offset),attribute.getZ(offset)));
+        }
+        initialStartCenter.multiplyScalar(1/(radial+1));
+        const expectedHead=mast.userData.animationPivot.localToWorld(new Vector3Type(...metadata.mastHeadPivotLocal));
+        assert.ok(sample.localToWorld(initialStartCenter.clone()).distanceTo(expectedHead)<.02,id+' '+mastDefinition.id+' stay starts at its moving masthead fitting');
         const initialEndCenter=new Vector3Type();
         for(let i=0;i<=radial;i++){
           const offset=metadata.segments*stride+i;
@@ -199,6 +209,14 @@ test('all 16 independent ForTests generators build separate editable models', ()
         ship.updateMatrixWorld(true);
         const actualFixed=sample.localToWorld(endCenter);
         assert.ok(actualFixed.distanceTo(fixedBefore)<.02,id+' '+mastDefinition.id+' stay remains attached to its fixed hull fitting');
+        const startAfter=new Vector3Type();
+        for(let i=0;i<=radial;i++){
+          const offset=i;
+          startAfter.add(new Vector3Type(attribute.getX(offset),attribute.getY(offset),attribute.getZ(offset)));
+        }
+        startAfter.multiplyScalar(1/(radial+1));
+        const expectedHeadAfter=mast.userData.animationPivot.localToWorld(new Vector3Type(...metadata.mastHeadPivotLocal));
+        assert.ok(sample.localToWorld(startAfter).distanceTo(expectedHeadAfter)<.02,id+' '+mastDefinition.id+' stay remains attached to its moving masthead after wind');
       }
       if (id !== 'pinnace' && id !== 'sloop') {
         const cabin = ship.userData.getPart('stern-tier-1');
