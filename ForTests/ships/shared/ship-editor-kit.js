@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.13';
+export const SHIP_EDITOR_KIT_VERSION='0.8.14';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -125,11 +125,43 @@ function setupPartApi(root,registry,design){
    // Read the actual masthead-end ring from the generated tube. The source
    // point metadata is not guaranteed to share the tube's local frame after
    // vessel-specific component assembly or hierarchy changes.
-   const startCenter=new THREE.Vector3();
-   for(let radial=0;radial<=radialSegments;radial++){
-    startCenter.add(new THREE.Vector3().fromBufferAttribute(attribute,radial));
+   const ringCenter=(ring)=>{
+    const center=new THREE.Vector3(),offset=ring*stride;
+    for(let radial=0;radial<=radialSegments;radial++){
+     center.add(new THREE.Vector3().fromBufferAttribute(attribute,offset+radial));
+    }
+    return center.multiplyScalar(1/stride);
+   };
+   const startCenter=ringCenter(0);
+   const endCenter=ringCenter(segments);
+   // A stay's last tube ring must agree with its declared hull fitting. Some
+   // generators author their curve points in a component frame while the tube
+   // itself is nested below one or more groups. Convert the declared anchor
+   // through its documented frame, then gently correct any endpoint mismatch
+   // along the tube before capturing the immutable rest geometry.
+   const fixedPoint=metadata.fixedPoint||metadata.points?.[metadata.fixedEndIndex??metadata.points.length-1];
+   const fixedFrame=metadata.coordinateSpace==='mast-group'?mast:object.parent;
+   if(Array.isArray(fixedPoint)&&fixedFrame){
+    const fixedWorld=fixedFrame.localToWorld(new THREE.Vector3(...fixedPoint));
+    const fixedLocal=object.worldToLocal(fixedWorld.clone());
+    const endpointCorrection=fixedLocal.sub(endCenter);
+    if(endpointCorrection.lengthSq()>1e-14){
+     const positions=attribute.array;
+     for(let ring=0;ring<=segments;ring++){
+      const influence=ring/segments,offset=ring*stride*3;
+      for(let radial=0;radial<=radialSegments;radial++){
+       const index=offset+radial*3;
+       positions[index]+=endpointCorrection.x*influence;
+       positions[index+1]+=endpointCorrection.y*influence;
+       positions[index+2]+=endpointCorrection.z*influence;
+      }
+     }
+     attribute.needsUpdate=true;
+     object.geometry.computeVertexNormals();
+     object.geometry.computeBoundingBox();
+     object.geometry.computeBoundingSphere();
+    }
    }
-   startCenter.multiplyScalar(1/stride);
    const startWorld=object.localToWorld(startCenter.clone());
    const data={
     ...metadata,segments,radialSegments,
