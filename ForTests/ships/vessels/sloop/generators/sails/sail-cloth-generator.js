@@ -43,7 +43,7 @@ export function buildCanvasSail(ctx,name,mastId,corners,fullness=.09,parent=ctx.
  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
  geometry.setIndex(indices);geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.computeBoundingSphere();
  const clothMesh=mesh(cloth,geometry,materials.sail,'sail-shaped-cloth');
- clothMesh.userData.sailCloth={rows,columns,axis,restPositions:new Float32Array(positions)};
+ clothMesh.userData.sailCloth={rows,columns,axis};
 
  const seams=part('panel-seams-'+name,deployment);
  const vertexAt=(u,v)=>{

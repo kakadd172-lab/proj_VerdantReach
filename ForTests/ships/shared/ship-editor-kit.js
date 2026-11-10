@@ -109,6 +109,60 @@ function setupPartApi(root,registry,design){
   if(stays.length)mastStaySets.set(id,{pivot,stays});
  }
 
+ const sailParts=[...registry.values()].filter(p=>p.userData.sailControl);
+ for(const sail of sailParts){
+  const control=sail.userData.sailControl;
+  const cloth=registry.get(control.clothPart);
+  let canvas=null;
+  cloth?.traverse(object=>{
+   if(object.isMesh&&object.name==='sail-shaped-cloth')canvas=object;
+  });
+  if(!canvas?.geometry?.attributes?.position)continue;
+  const position=canvas.geometry.attributes.position;
+  const indices=canvas.geometry.index?.array;
+  const stride=indices?.length>1?indices[1]:0;
+  const inferredColumns=stride>1?stride-1:0;
+  const inferredRows=inferredColumns&&position.count%stride===0?position.count/stride-1:0;
+  const bounds=canvas.geometry.boundingBox||canvas.geometry.computeBoundingBox();
+  const size=bounds?.getSize(new THREE.Vector3())||new THREE.Vector3(1,1,1);
+  const authored=canvas.userData.sailCloth||{};
+  const rows=authored.rows||inferredRows,columns=authored.columns||inferredColumns;
+  // In this coordinate system fore-and-aft sails have their long span on Z
+  // and therefore billow across X; square sails span X and billow across Z.
+  const axis=authored.axis||(size.x>size.z?'z':'x');
+  canvas.userData.sailCloth={rows,columns,axis};
+
+  let pivot=control.pivotGroup||sail.userData.animationPivot;
+  let deployment=control.deploymentPart?sail.getObjectByName(control.deploymentPart):null;
+  if(!deployment){
+   deployment=new THREE.Group();
+   deployment.name='sail-deployment-'+sail.name;
+   deployment.userData.sailDeploymentAssembly=true;
+   if(pivot){
+    for(const child of [...pivot.children]){
+     pivot.remove(child);deployment.add(child);
+    }
+    pivot.add(deployment);
+    control.deploymentAnchorY=0;
+    control.pivotPoint ||= [0,0,0];
+   }else{
+    for(const child of [...sail.children]){
+     sail.remove(child);deployment.add(child);
+    }
+    sail.add(deployment);
+    const tack=new THREE.Vector3(position.getX(0),position.getY(0),position.getZ(0));
+    pivot=makeNestedPivot(sail,tack,sail.name+'-tack-animation-pivot');
+    control.pivotPoint=tack.toArray();
+    control.deploymentAnchorY=tack.y;
+   }
+   control.deploymentPart=deployment.name;
+  }
+  control.pivotGroup=pivot||sail;
+  control.windPivot=true;
+  sail.userData.animationPivot=pivot||sail;
+  sail.userData.windControl={kind:'sail'};
+ }
+
  const rudder=registry.get('rudder');
  if(rudder&&!rudder.userData.steeringControl?.pivotGroup){
   const control=rudder.userData.steeringControl||{};
@@ -143,10 +197,17 @@ function setupPartApi(root,registry,design){
  const cloths=new Map(sailParts.map(p=>{
    const cloth=registry.get(p.userData.sailControl.clothPart);
    const deployment=p.getObjectByName(p.userData.sailControl.deploymentPart);
-   let mesh=null;cloth?.traverse(object=>{if(object.isMesh&&object.userData.sailCloth)mesh=object;});
+   let mesh=null,sailCloth=null;
+   cloth?.traverse(object=>{
+    if(object.isMesh&&object.userData.sailCloth){
+     mesh=object;
+     sailCloth={...object.userData.sailCloth,restPositions:new Float32Array(object.geometry.attributes.position.array)};
+    }
+   });
+   const anchorY=p.userData.sailControl.deploymentAnchorY??p.userData.sailControl.pivotPoint?.[1]??0;
    return [p.name,{
-    cloth,deployment,mesh,from:1,target:1,elapsed:0,duration:0,
-    pivotY:p.userData.sailControl.pivotPoint?.[1]||0,
+    cloth,deployment,mesh,sailCloth,from:1,target:1,elapsed:0,duration:0,
+    pivotY:anchorY,
     fromPositionY:deployment?.position.y||0,targetPositionY:deployment?.position.y||0
    }];
   }));
@@ -287,7 +348,7 @@ function setupPartApi(root,registry,design){
      setRuntimeRotation(p.name,{ry:(state.sailTrim[id]||0)+trimAngle*scale+gust});
      const animation=cloths.get(p.name);
      if(animation?.mesh){
-      const data=animation.mesh.userData.sailCloth,attribute=animation.mesh.geometry.attributes.position;
+      const data=animation.sailCloth,attribute=animation.mesh.geometry.attributes.position;
       if(data&&attribute){
        const luff=(1+Math.cos(direction))*.5,amplitude=state.windBlend*(.018+.026*luff);
        const array=attribute.array,rest=data.restPositions,stride=data.columns+1;

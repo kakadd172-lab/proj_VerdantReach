@@ -177,6 +177,28 @@ test('all 16 independent ForTests generators build separate editable models', ()
         });
         assert.ok(foldedDeckhouse > 0, 'schooner deckhouse should have a folded-back side silhouette');
       }
+      const sails=ship.userData.partNames.map(name=>ship.userData.getPart(name)).filter(part=>part?.userData.sailControl);
+      assert.ok(sails.length>0,id+' should expose independently editable sails');
+      for(const sail of sails){
+        const control=sail.userData.sailControl;
+        const pivot=control.pivotGroup||sail.userData.animationPivot;
+        const deployment=sail.getObjectByName(control.deploymentPart);
+        const cloth=ship.userData.getPart(control.clothPart);
+        assert.ok(pivot&&deployment&&cloth,id+' '+sail.name+' tack pivot and deployment group');
+        assert.equal(deployment.parent,pivot,id+' '+sail.name+' deployment group is under its tack pivot');
+        let canvas=null;cloth.traverse(object=>{if(object.isMesh&&object.name==='sail-shaped-cloth')canvas=object;});
+        assert.ok(canvas?.userData.sailCloth?.rows>0&&canvas.userData.sailCloth?.columns>0,id+' '+sail.name+' wind-billow grid metadata');
+      }
+      const sample=sails[0],sampleControl=sample.userData.sailControl;
+      const sampleDeployment=sample.getObjectByName(sampleControl.deploymentPart);
+      const sampleCloth=ship.userData.getPart(sampleControl.clothPart);
+      let sampleCanvas=null;sampleCloth.traverse(object=>{if(object.isMesh&&object.name==='sail-shaped-cloth')sampleCanvas=object;});
+      const canvasBefore=new Float32Array(sampleCanvas.geometry.attributes.position.array);
+      assert.equal(ship.userData.setSailDeployment(sampleControl.mastId,'furled',0),true);
+      assert.ok(Math.abs(sampleDeployment.scale.y-.001)<1e-8,id+' sail furl command');
+      assert.equal(ship.userData.setSailDeployment(sampleControl.mastId,'full',0),true);
+      ship.userData.animateShip(.05,{enabled:true,directionDeg:210,speedKnots:24});
+      assert.ok(sampleCanvas.geometry.attributes.position.array.some((value,index)=>Math.abs(value-canvasBefore[index])>1e-6),id+' sail cloth responds to wind');
       if (getShipDesign(id).headsails > 0) {
         assert.ok(ship.userData.partNames.some((name) => name.startsWith('head-stays-')), id + ' should generate correctly anchored headsails');
       }

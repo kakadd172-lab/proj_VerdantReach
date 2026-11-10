@@ -258,6 +258,7 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
   const mainsail=ship.userData.getPart('sail-single-gaff'),jib=ship.userData.getPart('sail-head-1');
   let clothMesh=null;mainsail.traverse(object=>{if(object.isMesh&&object.userData.sailCloth)clothMesh=object;});
   assert.ok(mast&&boom&&mainsail&&jib&&clothMesh);
+  const clothRestPositions=new Float32Array(clothMesh.geometry.attributes.position.array);
   assert.ok(boom.userData.pivotPoint);
   assert.ok(mainsail.userData.sailControl.windPivot);
   const mastPivot=mast.userData.mastControl.pivotGroup;
@@ -293,9 +294,9 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
   assert.ok(ship.userData.resetPartTransform('boom-single'));
   assert.ok(Math.abs(boomPivot.rotation.x)+Math.abs(boomPivot.rotation.y)+Math.abs(boomPivot.rotation.z)<1e-8,'component reset clears wind-driven boom pivot rotation');
   assert.deepEqual(ship.userData.getPartTransform('boom-single'),before,'component reset restores the original component transform');
-  const data=clothMesh.userData.sailCloth,attribute=clothMesh.geometry.attributes.position;
+  const attribute=clothMesh.geometry.attributes.position;
   let displaced=false;
-  for(let i=0;i<attribute.array.length;i++)if(Math.abs(attribute.array[i]-data.restPositions[i])>1e-5){displaced=true;break;}
+  for(let i=0;i<attribute.array.length;i++)if(Math.abs(attribute.array[i]-clothRestPositions[i])>1e-5){displaced=true;break;}
   assert.ok(displaced);
  }finally{disposeShipModel(ship);}
 });
