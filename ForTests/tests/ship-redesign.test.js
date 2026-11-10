@@ -125,6 +125,23 @@ test('all 16 independent ForTests generators build separate editable models', ()
   }
 });
 
+test('the Sloop has an expanded single-mast gaff sail plan with independent controls', () => {
+  const ship = getVesselModule('sloop').createModel();
+  try {
+    for (const name of [
+      'hull', 'deck', 'mast-single', 'gaff-spar-single', 'boom-single',
+      'sail-single-gaff', 'topsail-jackyard-single', 'sail-single-topsail',
+      'gaff-running-rigging-single', 'sail-head-1', 'sail-head-2',
+      'head-stays-1', 'head-stays-2', 'head-sail-running-1',
+      'head-sail-running-2', 'backstays-single',
+    ]) assert.ok(ship.userData.getPart(name), 'Sloop component ' + name);
+    assert.equal(getShipDesign('sloop').masts.length, 1, 'The Sloop remains single-masted');
+    assert.equal(getShipDesign('sloop').headsails, 2, 'The Sloop has an outer jib and inner staysail');
+  } finally {
+    disposeShipModel(ship);
+  }
+});
+
 test('design overrides rebuild only the selected vessel and can be reset', () => {
   const original = getShipDesign('sloop');
   try {
