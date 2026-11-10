@@ -255,59 +255,74 @@ test('all 16 independent ForTests generators build separate editable models', ()
         const furlFrame=deployment.getObjectByName('sail-furl-frame-'+sail.name);
         assert.ok(furlFrame?.userData.sailFurlEdge,id+' '+sail.name+' furl frame follows its authored support edge');
       }
+      const furlSamples=sails.map(sail=>{
+        const control=sail.userData.sailControl;
+        const deployment=sail.getObjectByName(control.deploymentPart);
+        const cloth=ship.userData.getPart(control.clothPart);
+        let canvas=null;cloth.traverse(object=>{if(object.isMesh&&object.name==='sail-shaped-cloth')canvas=object;});
+        const grid=canvas.userData.sailCloth,stride=grid.columns+1;
+        const pointAt=index=>{
+          const point=new THREE.Vector3().fromBufferAttribute(canvas.geometry.attributes.position,index);
+          return canvas.localToWorld(point);
+        };
+        const distanceToSupport=(point,start,end)=>{
+          const axis=end.clone().sub(start).normalize();
+          const offset=point.clone().sub(start);
+          return offset.addScaledVector(axis,-offset.dot(axis)).length();
+        };
+        ship.updateMatrixWorld(true);
+        const supportStart=pointAt(0);
+        const supportEnd=pointAt(grid.rows*stride);
+        const farStart=pointAt(grid.columns);
+        const farEnd=pointAt(grid.rows*stride+grid.columns);
+        const farStartDistance=distanceToSupport(farStart,supportStart,supportEnd);
+        const farEndDistance=distanceToSupport(farEnd,supportStart,supportEnd);
+        assert.ok(farStartDistance>1e-4&&farEndDistance>1e-4,id+' '+sail.name+' has measurable canvas width');
+        return {
+          sail,mastId:control.mastId,pointAt,distanceToSupport,grid,stride,
+          supportStart,supportEnd,farStart,farEnd,farStartDistance,farEndDistance
+        };
+      });
+      for(const mastId of new Set(furlSamples.map(sample=>sample.mastId))){
+        const mastSamples=furlSamples.filter(sample=>sample.mastId===mastId);
+        assert.equal(ship.userData.setSailDeployment(mastId,'reefed',0),true,id+' mast '+mastId+' reef command');
+        ship.updateMatrixWorld(true);
+        for(const sample of mastSamples){
+          const supportStart=sample.pointAt(0);
+          const supportEnd=sample.pointAt(sample.grid.rows*sample.stride);
+          const farStartDistance=sample.distanceToSupport(sample.pointAt(sample.grid.columns),supportStart,supportEnd);
+          const farEndDistance=sample.distanceToSupport(sample.pointAt(sample.grid.rows*sample.stride+sample.grid.columns),supportStart,supportEnd);
+          assert.ok(supportStart.distanceTo(sample.supportStart)<1e-4
+            &&supportEnd.distanceTo(sample.supportEnd)<1e-4,id+' '+sample.sail.name+' reefing preserves its angled luff');
+          assert.ok(Math.abs(farStartDistance/sample.farStartDistance-.48)<.015
+            &&Math.abs(farEndDistance/sample.farEndDistance-.48)<.015,id+' '+sample.sail.name+' reefing contracts perpendicular to its luff');
+        }
+        assert.equal(ship.userData.setSailDeployment(mastId,'furled',0),true,id+' mast '+mastId+' furl command');
+        ship.updateMatrixWorld(true);
+        for(const sample of mastSamples){
+          const supportStart=sample.pointAt(0);
+          const supportEnd=sample.pointAt(sample.grid.rows*sample.stride);
+          const farStartDistance=sample.distanceToSupport(sample.pointAt(sample.grid.columns),supportStart,supportEnd);
+          const farEndDistance=sample.distanceToSupport(sample.pointAt(sample.grid.rows*sample.stride+sample.grid.columns),supportStart,supportEnd);
+          assert.ok(supportStart.distanceTo(sample.supportStart)<1e-4
+            &&supportEnd.distanceTo(sample.supportEnd)<1e-4,id+' '+sample.sail.name+' furling keeps both luff endpoints fixed');
+          assert.ok(Math.abs(farStartDistance/sample.farStartDistance-.001)<.002
+            &&Math.abs(farEndDistance/sample.farEndDistance-.001)<.002,id+' '+sample.sail.name+' furling gathers onto its angled luff');
+        }
+        assert.equal(ship.userData.setSailDeployment(mastId,'full',0),true,id+' mast '+mastId+' full-sail command');
+        ship.updateMatrixWorld(true);
+        for(const sample of mastSamples){
+          assert.ok(sample.pointAt(0).distanceTo(sample.supportStart)<1e-4
+            &&sample.pointAt(sample.grid.rows*sample.stride).distanceTo(sample.supportEnd)<1e-4
+            &&sample.pointAt(sample.grid.columns).distanceTo(sample.farStart)<1e-4
+            &&sample.pointAt(sample.grid.rows*sample.stride+sample.grid.columns).distanceTo(sample.farEnd)<1e-4,
+            id+' '+sample.sail.name+' full deployment restores its original geometry and angle');
+        }
+      }
       const sample=sails[0],sampleControl=sample.userData.sailControl;
-      const sampleDeployment=sample.getObjectByName(sampleControl.deploymentPart);
       const sampleCloth=ship.userData.getPart(sampleControl.clothPart);
       let sampleCanvas=null;sampleCloth.traverse(object=>{if(object.isMesh&&object.name==='sail-shaped-cloth')sampleCanvas=object;});
       const canvasBefore=new Float32Array(sampleCanvas.geometry.attributes.position.array);
-      const grid=sampleCanvas.userData.sailCloth,stride=grid.columns+1;
-      const pointAt=index=>{
-        const point=new THREE.Vector3().fromBufferAttribute(sampleCanvas.geometry.attributes.position,index);
-        return sampleCanvas.localToWorld(point);
-      };
-      const distanceToSupport=(point,start,end)=>{
-        const axis=end.clone().sub(start).normalize();
-        const offset=point.clone().sub(start);
-        return offset.addScaledVector(axis,-offset.dot(axis)).length();
-      };
-      ship.updateMatrixWorld(true);
-      const fullSupportStart=pointAt(0);
-      const fullSupportEnd=pointAt(grid.rows*stride);
-      const fullFarStart=pointAt(grid.columns);
-      const fullFarEnd=pointAt(grid.rows*stride+grid.columns);
-      const fullFarStartDistance=distanceToSupport(fullFarStart,fullSupportStart,fullSupportEnd);
-      const fullFarEndDistance=distanceToSupport(fullFarEnd,fullSupportStart,fullSupportEnd);
-      assert.ok(fullFarStartDistance>1e-4&&fullFarEndDistance>1e-4,id+' sail has measurable width away from its support edge');
-      assert.equal(ship.userData.setSailDeployment(sampleControl.mastId,'reefed',0),true);
-      ship.updateMatrixWorld(true);
-      const reefedSupportStart=pointAt(0);
-      const reefedSupportEnd=pointAt(grid.rows*stride);
-      const reefedFarStartDistance=distanceToSupport(pointAt(grid.columns),reefedSupportStart,reefedSupportEnd);
-      const reefedFarEndDistance=distanceToSupport(pointAt(grid.rows*stride+grid.columns),reefedSupportStart,reefedSupportEnd);
-      assert.ok(reefedSupportStart.distanceTo(fullSupportStart)<1e-4
-        &&reefedSupportEnd.distanceTo(fullSupportEnd)<1e-4,id+' reefing preserves the complete angled support edge');
-      assert.ok(Math.abs(reefedFarStartDistance/fullFarStartDistance-.48)<.015
-        &&Math.abs(reefedFarEndDistance/fullFarEndDistance-.48)<.015,id+' reefing contracts perpendicular to the real support edge');
-      assert.equal(ship.userData.setSailDeployment(sampleControl.mastId,'furled',0),true);
-      ship.updateMatrixWorld(true);
-      const furledSupportStart=pointAt(0);
-      const furledSupportEnd=pointAt(grid.rows*stride);
-      const furledFarStartDistance=distanceToSupport(pointAt(grid.columns),furledSupportStart,furledSupportEnd);
-      const furledFarEndDistance=distanceToSupport(pointAt(grid.rows*stride+grid.columns),furledSupportStart,furledSupportEnd);
-      assert.ok(furledSupportStart.distanceTo(fullSupportStart)<1e-4
-        &&furledSupportEnd.distanceTo(fullSupportEnd)<1e-4,id+' furling keeps both ends of the angled support edge fixed');
-      assert.ok(Math.abs(furledFarStartDistance/fullFarStartDistance-.001)<.002
-        &&Math.abs(furledFarEndDistance/fullFarEndDistance-.001)<.002,id+' furling gathers the canvas onto its actual support edge');
-      assert.equal(ship.userData.setSailDeployment(sampleControl.mastId,'full',0),true);
-      ship.updateMatrixWorld(true);
-      const restoredSupportStart=pointAt(0);
-      const restoredSupportEnd=pointAt(grid.rows*stride);
-      const restoredFarStart=pointAt(grid.columns);
-      const restoredFarEnd=pointAt(grid.rows*stride+grid.columns);
-      assert.ok(restoredSupportStart.distanceTo(fullSupportStart)<1e-4
-        &&restoredSupportEnd.distanceTo(fullSupportEnd)<1e-4
-        &&restoredFarStart.distanceTo(fullFarStart)<1e-4
-        &&restoredFarEnd.distanceTo(fullFarEnd)<1e-4,id+' full deployment restores the original sail geometry and angle');
       ship.userData.animateShip(.05,{enabled:true,directionDeg:210,speedKnots:24});
       assert.ok(sampleCanvas.geometry.attributes.position.array.some((value,index)=>Math.abs(value-canvasBefore[index])>1e-6),id+' sail cloth responds to wind');
       if (getShipDesign(id).headsails > 0) {
