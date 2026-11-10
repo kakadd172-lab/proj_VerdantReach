@@ -204,6 +204,38 @@
             <button id="sailing-reset" class="btn" type="button">Reset test</button>
           </div>
           <p class="note">Wind rotates each mast around its mast-step pivot with a limited heel and fore-aft rake. Use the sail controls to set, reef or furl canvas; cloth gathers towards its tack. Gust mode varies pressure; pause freezes motion. Reset affects only this test bench, not saved ship edits.</p>
+
+          <div class="range-row" style="margin-top:17px"><span>Sea-state test environment</span><strong class="control-value">PREVIEW ONLY</strong></div>
+          <div class="row"><button id="sea-toggle" class="btn" type="button" aria-pressed="false">Waves off</button>
+            <div class="steering-readout"><span>Sea condition</span><strong id="sea-state-value">OFF</strong></div></div>
+          <div class="wind-status"><div class="wind-compass" aria-hidden="true"><span id="wave-arrow" class="wind-compass-arrow">↑</span></div>
+            <div class="wind-status-copy"><strong id="wave-direction-value">90° · Starboard beam</strong><span>Wave travel direction relative to hull</span></div></div>
+          <label>Sea-state presets</label>
+          <div class="wind-presets" role="group" aria-label="Sea-state presets">
+            <button class="btn active" type="button" data-sea-preset="flat" aria-pressed="true">Flat</button>
+            <button class="btn" type="button" data-sea-preset="light" aria-pressed="false">Light</button>
+            <button class="btn" type="button" data-sea-preset="moderate" aria-pressed="false">Moderate</button>
+            <button class="btn" type="button" data-sea-preset="rough" aria-pressed="false">Rough</button>
+          </div>
+          <label>Wave approach presets</label>
+          <div class="wind-presets" role="group" aria-label="Wave approach direction presets">
+            <button class="btn" type="button" data-wave-direction="0">Head</button>
+            <button class="btn active" type="button" data-wave-direction="90">Starboard</button>
+            <button class="btn" type="button" data-wave-direction="180">Following</button>
+            <button class="btn" type="button" data-wave-direction="270">Port</button>
+          </div>
+          <label for="wave-direction">Fine wave direction · relative to the ship</label>
+          <input id="wave-direction" type="range" min="0" max="359" step="1" value="90"/>
+          <div class="range-row"><span>0° Head · 90° Starboard · 180° Following · 270° Port</span><strong class="control-value" id="wave-direction-readout">90°</strong></div>
+          <label for="wave-height" style="margin-top:11px">Wave height · metres</label>
+          <input id="wave-height" type="range" min="0" max="4" step=".1" value="0"/>
+          <div class="range-row"><span>Flat to high test sea</span><strong class="control-value" id="wave-height-readout">0.0 m</strong></div>
+          <label for="wave-period" style="margin-top:11px">Wave period · seconds</label>
+          <input id="wave-period" type="range" min="2" max="12" step=".5" value="5"/>
+          <div class="range-row"><span>Time between wave crests</span><strong class="control-value" id="wave-period-readout">5.0 s</strong></div>
+          <button id="sea-reset" class="btn" style="width:100%;margin-top:9px" type="button">Reset sea conditions</button>
+          <p class="note">This prepares environmental inputs only. No water waves or ship rocking are animated yet. Wave height, period and approach direction will be passed to the Sloop motion model in the next task.</p>
+
           <div class="range-row" style="margin-top:14px"><span>Rudder angle</span><strong class="control-value" id="rudder-angle-value">0° · Center</strong></div>
           <input id="rudder-angle" type="range" min="-35" max="35" step="1" value="0"/>
           <div class="steering-readouts"><div class="steering-readout"><span>Helm wheel rotation</span><strong id="helm-wheel-angle">0°</strong></div><button id="rudder-center" class="btn" type="button">Centre rudder</button></div>
