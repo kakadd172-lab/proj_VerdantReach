@@ -568,3 +568,68 @@ test('sail fullness reverses to the lee side as wind direction changes', () => {
     disposeShipModel(ship);
   }
 });
+
+
+test('the first two forward triangular sails keep their orientation while retaining directional billow', () => {
+  const ship = createShipModel('sloop');
+  try {
+    const forwardSails = ['sail-head-1', 'sail-head-2'].map(name => {
+      const part = ship.userData.getPart(name);
+      assert.ok(part, name + ' forward triangular sail');
+      const pivot = part.userData.sailControl?.pivotGroup;
+      assert.ok(pivot, name + ' animation pivot');
+      const clothPart = ship.userData.getPart(part.userData.sailControl.clothPart);
+      let canvas = null;
+      clothPart?.traverse(object => {
+        if (object.isMesh && object.name === 'sail-shaped-cloth') canvas = object;
+      });
+      assert.ok(canvas?.geometry?.attributes?.position, name + ' cloth mesh');
+      const metadata = canvas.userData.sailCloth;
+      const position = canvas.geometry.attributes.position;
+      const stride = metadata.columns + 1;
+      const axis = metadata.axis === 'x' ? 0 : 2;
+      const center = Math.floor(metadata.rows / 2) * stride + Math.floor(metadata.columns / 2);
+      const flat = THREE.MathUtils.lerp(
+        THREE.MathUtils.lerp(position.getComponent(0, axis), position.getComponent(metadata.columns, axis), .5),
+        THREE.MathUtils.lerp(position.getComponent(metadata.rows * stride, axis),
+          position.getComponent(metadata.rows * stride + metadata.columns, axis), .5), .5
+      );
+      return { name, pivot, canvas, axis, center, flat };
+    });
+    const foreMainsail = ship.userData.partNames
+      .map(name => ship.userData.getPart(name))
+      .find(part => part?.userData.sailControl?.sailType === 'gaff-mainsail');
+    assert.ok(foreMainsail, 'Foremast gaff mainsail');
+    const mastPivot = foreMainsail.userData.sailControl.pivotGroup;
+    assert.ok(mastPivot, 'Foremast mainsail animation pivot');
+
+    const initialHeadRotations = forwardSails.map(sail => sail.pivot.rotation.y);
+    const initialMastRotation = mastPivot.rotation.y;
+    ship.userData.animateShip(.05, { enabled: true, directionDeg: 90, speedKnots: 30 });
+
+    forwardSails.forEach((sail, index) => {
+      assert.ok(Math.abs(sail.pivot.rotation.y - initialHeadRotations[index]) < 1e-8,
+        sail.name + ' must not rotate with wind');
+    });
+    assert.ok(Math.abs(mastPivot.rotation.y - initialMastRotation) > 1e-5,
+      'Mast-mounted gaff sail must retain its wind-driven rotation');
+
+    const firstWindOffsets = forwardSails.map(sail =>
+      sail.canvas.geometry.attributes.position.getComponent(sail.center, sail.axis) - sail.flat
+    );
+    assert.ok(firstWindOffsets.every(offset => Math.abs(offset) > 1e-5),
+      'Both forward triangular sails must retain wind-driven cloth fullness');
+
+    ship.userData.animateShip(.05, { enabled: true, directionDeg: 270, speedKnots: 30 });
+    forwardSails.forEach((sail, index) => {
+      assert.ok(Math.abs(sail.pivot.rotation.y - initialHeadRotations[index]) < 1e-8,
+        sail.name + ' must remain fixed when the wind reverses');
+      const reversedOffset =
+        sail.canvas.geometry.attributes.position.getComponent(sail.center, sail.axis) - sail.flat;
+      assert.ok(firstWindOffsets[index] * reversedOffset < 0,
+        sail.name + ' directional billow must reverse with the wind');
+    });
+  } finally {
+    disposeShipModel(ship);
+  }
+});
