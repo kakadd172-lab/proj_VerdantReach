@@ -7,14 +7,14 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.26-staged-rigging-migration';
+} from '../ships/index.js?v=0.8.27-stable-reset-baselines';
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
 test('the editor uses 16 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.9');
-  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.26');
+  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.27');
   assert.equal(ids.length, 16);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
