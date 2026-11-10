@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.12';
+export const SHIP_EDITOR_KIT_VERSION='0.8.13';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -111,19 +111,26 @@ function setupPartApi(root,registry,design){
   root.traverse(object=>{
    const metadata=object.userData.dynamicMastStay,attribute=object.geometry?.attributes?.position;
    if(!metadata||metadata.mastId!==id||!object.isMesh||!attribute||!object.parent)return;
-   const parent=object.parent;
-   const pivotPoints=metadata.points.map(point=>{
-    const world=parent.localToWorld(new THREE.Vector3(...point));
-    return pivot.worldToLocal(world.clone()).toArray();
-   });
-   const fixedWorld=parent.localToWorld(new THREE.Vector3(...metadata.fixedPoint));
-   const fixedRootPoint=root.worldToLocal(fixedWorld.clone()).toArray();
+   const radialSegments=metadata.radialSegments??7;
+   const segments=metadata.segments;
+   const stride=radialSegments+1;
+   if(!Number.isInteger(segments)||segments<1||attribute.count!==(segments+1)*stride)return;
+   // Read the actual masthead-end ring from the generated tube. The source
+   // point metadata is not guaranteed to share the tube's local frame after
+   // vessel-specific component assembly or hierarchy changes.
+   const startCenter=new THREE.Vector3();
+   for(let radial=0;radial<=radialSegments;radial++){
+    startCenter.add(new THREE.Vector3().fromBufferAttribute(attribute,radial));
+   }
+   startCenter.multiplyScalar(1/stride);
+   const startWorld=object.localToWorld(startCenter.clone());
    const data={
-    ...metadata,pivotPoints,fixedRootPoint,
-    radialSegments:metadata.radialSegments??7,
+    ...metadata,segments,radialSegments,
+    startPivotLocal:pivot.worldToLocal(startWorld.clone()).toArray(),
+    startMastLocal:mast.worldToLocal(startWorld.clone()).toArray(),
     restPositions:new Float32Array(attribute.array)
    };
-   stays.push({mesh:object,parent,data,lastQuaternion:pivot.quaternion.clone()});
+   stays.push({mesh:object,mast,pivot,data,lastQuaternion:pivot.quaternion.clone()});
   });
   if(stays.length)mastStaySets.set(id,{pivot,stays});
  }
@@ -331,52 +338,37 @@ function setupPartApi(root,registry,design){
     root.updateMatrixWorld(true);
     for(const {pivot,stays} of mastStaySets.values()){
      const rotation=pivot.quaternion;
-     for(const {mesh,parent,data,lastQuaternion} of stays){
+     for(const {mesh,mast,data,lastQuaternion} of stays){
       if(1-Math.abs(lastQuaternion.dot(rotation))<1e-9)continue;
-      const worldPoints=data.pivotPoints.map(point=>pivot.localToWorld(new THREE.Vector3(...point)));
-      worldPoints[data.fixedEndIndex]=root.localToWorld(new THREE.Vector3(...data.fixedRootPoint));
-      // TubeGeometry vertices are expressed in the tube mesh's local space.
-      // Convert through the mesh itself rather than assuming its transform is identity.
-      const localPoints=worldPoints.map(point=>mesh.worldToLocal(point.clone()));
-      const curve=new THREE.CatmullRomCurve3(localPoints);
-      const frames=curve.computeFrenetFrames(data.segments,false);
       const attribute=mesh.geometry.attributes.position;
-      const radialSegments=data.radialSegments??7,stride=radialSegments+1;
-      if(attribute&&attribute.count===(data.segments+1)*stride){
-       for(let ring=0;ring<=data.segments;ring++){
-        const center=curve.getPointAt(ring/data.segments);
-        for(let radial=0;radial<=radialSegments;radial++){
-         const angle=radial/radialSegments*Math.PI*2;
-         const normal=frames.normals[ring].clone().multiplyScalar(Math.cos(angle))
-          .add(frames.binormals[ring].clone().multiplyScalar(Math.sin(angle)));
-         const vertex=center.clone().addScaledVector(normal,data.radius);
-         attribute.setXYZ(ring*stride+radial,vertex.x,vertex.y,vertex.z);
-        }
+      const stride=data.radialSegments+1;
+      if(!attribute||attribute.count!==(data.segments+1)*stride)continue;
+      // Deform the existing tube in place. Only the masthead end follows the
+      // pivot; displacement fades linearly to zero at the fixed hull fitting.
+      // This avoids rebuilding Catmull-Rom curves/Frenet frames every frame,
+      // prevents allocation spikes, and leaves the last ring bit-for-bit at
+      // its original hull-side position.
+      const movingWorld=pivot.localToWorld(new THREE.Vector3(...data.startPivotLocal));
+      const restWorld=mast.localToWorld(new THREE.Vector3(...data.startMastLocal));
+      const movingLocal=mesh.worldToLocal(movingWorld.clone());
+      const restLocal=mesh.worldToLocal(restWorld.clone());
+      const dx=movingLocal.x-restLocal.x;
+      const dy=movingLocal.y-restLocal.y;
+      const dz=movingLocal.z-restLocal.z;
+      const positions=attribute.array,rest=data.restPositions;
+      for(let ring=0;ring<=data.segments;ring++){
+       const influence=1-ring/data.segments;
+       const offset=ring*stride*3;
+       for(let radial=0;radial<=data.radialSegments;radial++){
+        const index=offset+radial*3;
+        positions[index]=rest[index]+dx*influence;
+        positions[index+1]=rest[index+1]+dy*influence;
+        positions[index+2]=rest[index+2]+dz*influence;
        }
-       // Keep the final tube ring exactly centred on the original hull fitting.
-       // This removes numerical drift from arc-length sampling and Frenet frames.
-       const fixedWorld=root.localToWorld(new THREE.Vector3(...data.fixedRootPoint));
-       const fixedMesh=mesh.worldToLocal(fixedWorld.clone());
-       const endCenter=new THREE.Vector3();
-       const endOffset=data.segments*stride;
-       for(let radial=0;radial<=radialSegments;radial++){
-        endCenter.add(new THREE.Vector3().fromBufferAttribute(attribute,endOffset+radial));
-       }
-       endCenter.multiplyScalar(1/(radialSegments+1));
-       const endpointCorrection=fixedMesh.sub(endCenter);
-       if(endpointCorrection.lengthSq()>0){
-        for(let vertex=0;vertex<attribute.count;vertex++){
-         attribute.setXYZ(vertex,
-          attribute.getX(vertex)+endpointCorrection.x,
-          attribute.getY(vertex)+endpointCorrection.y,
-          attribute.getZ(vertex)+endpointCorrection.z);
-        }
-       }
-       attribute.needsUpdate=true;
-       mesh.geometry.computeVertexNormals();
-       mesh.geometry.computeBoundingBox();
-       mesh.geometry.computeBoundingSphere();
       }
+      attribute.needsUpdate=true;
+      mesh.geometry.computeBoundingBox();
+      mesh.geometry.computeBoundingSphere();
       lastQuaternion.copy(rotation);
      }
     }
