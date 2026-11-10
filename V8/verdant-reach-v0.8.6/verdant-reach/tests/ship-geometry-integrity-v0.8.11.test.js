@@ -69,7 +69,7 @@ test('all 16 runtime ships generate finite geometry and real registered stern co
       assert.ok(sternMeshes > 0, vesselId + ': sternworks must contain actual geometry');
 
       const design = getShipDesign(vesselId);
-      const tierNames = names.filter((name) => /^stern-tier-\\d+$/.test(name));
+      const tierNames = names.filter((name) => /^stern-tier-\d+$/.test(name));
       assert.equal(tierNames.length, design.sternTiers.length,
         vesselId + ': generated tier count must match the vessel definition');
       for (const name of tierNames) {
