@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.9';
+export const SHIP_EDITOR_KIT_VERSION='0.8.10';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -328,7 +328,9 @@ function setupPartApi(root,registry,design){
       if(1-Math.abs(lastQuaternion.dot(rotation))<1e-9)continue;
       const worldPoints=data.pivotPoints.map(point=>pivot.localToWorld(new THREE.Vector3(...point)));
       worldPoints[data.fixedEndIndex]=root.localToWorld(new THREE.Vector3(...data.fixedRootPoint));
-      const localPoints=worldPoints.map(point=>parent.worldToLocal(point.clone()));
+      // TubeGeometry vertices are expressed in the tube mesh's local space.
+      // Convert through the mesh itself rather than assuming its transform is identity.
+      const localPoints=worldPoints.map(point=>mesh.worldToLocal(point.clone()));
       const curve=new THREE.CatmullRomCurve3(localPoints);
       const frames=curve.computeFrenetFrames(data.segments,false);
       const attribute=mesh.geometry.attributes.position;
@@ -342,6 +344,25 @@ function setupPartApi(root,registry,design){
           .add(frames.binormals[ring].clone().multiplyScalar(Math.sin(angle)));
          const vertex=center.clone().addScaledVector(normal,data.radius);
          attribute.setXYZ(ring*stride+radial,vertex.x,vertex.y,vertex.z);
+        }
+       }
+       // Keep the final tube ring exactly centred on the original hull fitting.
+       // This removes numerical drift from arc-length sampling and Frenet frames.
+       const fixedWorld=root.localToWorld(new THREE.Vector3(...data.fixedRootPoint));
+       const fixedMesh=mesh.worldToLocal(fixedWorld.clone());
+       const endCenter=new THREE.Vector3();
+       const endOffset=data.segments*stride;
+       for(let radial=0;radial<=radialSegments;radial++){
+        endCenter.add(new THREE.Vector3().fromBufferAttribute(attribute,endOffset+radial));
+       }
+       endCenter.multiplyScalar(1/(radialSegments+1));
+       const endpointCorrection=fixedMesh.sub(endCenter);
+       if(endpointCorrection.lengthSq()>0){
+        for(let vertex=0;vertex<attribute.count;vertex++){
+         attribute.setXYZ(vertex,
+          attribute.getX(vertex)+endpointCorrection.x,
+          attribute.getY(vertex)+endpointCorrection.y,
+          attribute.getZ(vertex)+endpointCorrection.z);
         }
        }
        attribute.needsUpdate=true;
