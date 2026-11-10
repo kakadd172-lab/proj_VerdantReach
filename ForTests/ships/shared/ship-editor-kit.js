@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.14';
+export const SHIP_EDITOR_KIT_VERSION='0.8.15';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -87,93 +87,131 @@ function setupPartApi(root,registry,design){
  // from the mast pivot below. Rotating the whole rigging group and then trying
  // to counter-rotate its tube vertices causes endpoint drift.
  const mastParts=[...registry.values()].filter(p=>p.userData.mastControl);
- const mastStaySets=new Map();
+ const mastStaySets=new Map(),pendingMastStays=[];
+ const hullPart=registry.get('hull')||root;
+
+ // Capture each stay's authored endpoints in their original source frame
+ // before applying saved editor transforms. The hull fitting is stored in
+ // hull-local coordinates; the head is stored in the mast pivot's local frame.
  for(const mast of mastParts){
   const control=mast.userData.mastControl,id=control.mastId;
-  const standing=mast.getObjectByName('standing-rigging-'+id);
-  const excluded=new Set(standing?[standing]:[]);
-  const pivot=control.pivotGroup||mast.userData.animationPivot||
-   makeNestedPivot(mast,V(0,0,0),mast.name+'-mast-step-pivot',excluded);
-  // Some vessel generators provide their own pivotGroup. In that case the
-  // excluded set above cannot remove the standing-rigging group from a pivot
-  // that already exists. Reparent it explicitly while preserving world pose.
-  if(standing&&standing.parent!==mast){
+  root.updateMatrixWorld(true);
+  const pending=[];
+  root.traverse(object=>{
+   const metadata=object.userData.dynamicMastStay,attribute=object.geometry?.attributes?.position;
+   if(!metadata||metadata.mastId!==id||!object.isMesh||!attribute||!object.parent)return;
+   const radialSegments=metadata.radialSegments??7,segments=metadata.segments;
+   const stride=radialSegments+1;
+   if(!Number.isInteger(segments)||segments<1||attribute.count!==(segments+1)*stride)return;
+   const sourceFrame=metadata.coordinateSpace==='mast-group'?mast:object.parent;
+   const fixedPoint=metadata.fixedPoint||
+    (Array.isArray(metadata.points)?metadata.points[metadata.fixedEndIndex??metadata.points.length-1]:null);
+   const mastHeadPoint=Array.isArray(metadata.points)?metadata.points[0]:null;
+   if(!Array.isArray(fixedPoint)||!Array.isArray(mastHeadPoint)||!sourceFrame)return;
+   const fixedWorld=sourceFrame.localToWorld(new THREE.Vector3(...fixedPoint));
+   const mastHeadWorld=sourceFrame.localToWorld(new THREE.Vector3(...mastHeadPoint));
+   pending.push({
+    mesh:object,mast,metadata,segments,radialSegments,
+    fixedHullLocal:hullPart.worldToLocal(fixedWorld.clone()).toArray(),
+    mastHeadWorld
+   });
+  });
+
+  // Sloop used to nest its standing rig under the mast. That made the
+  // "fixed" stays inherit mast editor transforms even though their feet are
+  // deck fittings. Put the standing assembly in the ship frame, matching
+  // the other vessel generators, while keeping its authored world pose.
+  const standing=registry.get('standing-rigging-'+id)||mast.getObjectByName('standing-rigging-'+id);
+  if(standing&&standing.parent!==root){
    root.updateMatrixWorld(true);
-   mast.attach(standing);
+   root.attach(standing);
   }
-  // Chainplates are hull-mounted fittings, not part of the flexible rope
-  // assembly. Keep them as direct children of the mast component (whose
-  // transform is the hull frame) so they never inherit mast-step rotation.
+
+  // Chainplates are physical hull fittings. They follow the hull component,
+  // never the editable mast or the movable standing-rigging assembly.
   for(const name of ['chainplates-'+id,'backstay-chainplates-'+id]){
-   const fitting=standing?.getObjectByName(name);
-   if(fitting&&fitting.parent!==mast)mast.attach(fitting);
+   const fitting=registry.get(name);
+   if(fitting&&fitting.parent!==hullPart){
+    root.updateMatrixWorld(true);
+    hullPart.attach(fitting);
+   }
   }
+
+  const pivot=control.pivotGroup||mast.userData.animationPivot||
+   makeNestedPivot(mast,V(0,0,0),mast.name+'-mast-step-pivot');
   control.pivotGroup=pivot;
   control.windHeelMaxDeg=Number(control.windHeelMaxDeg)||2.5;
   control.windRakeMaxDeg=Number(control.windRakeMaxDeg)||1.2;
   mast.userData.animationPivot=pivot;
   pivot.userData.articulation={kind:'mast-step',mastId:id,heelLimitDeg:control.windHeelMaxDeg,rakeLimitDeg:control.windRakeMaxDeg};
-  const stays=[];
+
   root.updateMatrixWorld(true);
-  root.traverse(object=>{
-   const metadata=object.userData.dynamicMastStay,attribute=object.geometry?.attributes?.position;
-   if(!metadata||metadata.mastId!==id||!object.isMesh||!attribute||!object.parent)return;
-   const radialSegments=metadata.radialSegments??7;
-   const segments=metadata.segments;
-   const stride=radialSegments+1;
-   if(!Number.isInteger(segments)||segments<1||attribute.count!==(segments+1)*stride)return;
-   // Read the actual masthead-end ring from the generated tube. The source
-   // point metadata is not guaranteed to share the tube's local frame after
-   // vessel-specific component assembly or hierarchy changes.
-   const ringCenter=(ring)=>{
-    const center=new THREE.Vector3(),offset=ring*stride;
-    for(let radial=0;radial<=radialSegments;radial++){
-     center.add(new THREE.Vector3().fromBufferAttribute(attribute,offset+radial));
-    }
-    return center.multiplyScalar(1/stride);
-   };
-   const startCenter=ringCenter(0);
-   const endCenter=ringCenter(segments);
-   // A stay's last tube ring must agree with its declared hull fitting. Some
-   // generators author their curve points in a component frame while the tube
-   // itself is nested below one or more groups. Convert the declared anchor
-   // through its documented frame, then gently correct any endpoint mismatch
-   // along the tube before capturing the immutable rest geometry.
-   const fixedPoint=metadata.fixedPoint||metadata.points?.[metadata.fixedEndIndex??metadata.points.length-1];
-   const fixedFrame=metadata.coordinateSpace==='mast-group'?mast:object.parent;
-   if(Array.isArray(fixedPoint)&&fixedFrame){
-    const fixedWorld=fixedFrame.localToWorld(new THREE.Vector3(...fixedPoint));
-    const fixedLocal=object.worldToLocal(fixedWorld.clone());
-    const endpointCorrection=fixedLocal.sub(endCenter);
-    if(endpointCorrection.lengthSq()>1e-14){
-     const positions=attribute.array;
-     for(let ring=0;ring<=segments;ring++){
-      const influence=ring/segments,offset=ring*stride*3;
-      for(let radial=0;radial<=radialSegments;radial++){
-       const index=offset+radial*3;
-       positions[index]+=endpointCorrection.x*influence;
-       positions[index+1]+=endpointCorrection.y*influence;
-       positions[index+2]+=endpointCorrection.z*influence;
-      }
-     }
-     attribute.needsUpdate=true;
-     object.geometry.computeVertexNormals();
-     object.geometry.computeBoundingBox();
-     object.geometry.computeBoundingSphere();
-    }
-   }
-   const startWorld=object.localToWorld(startCenter.clone());
-   const data={
-    ...metadata,segments,radialSegments,
-    startPivotLocal:pivot.worldToLocal(startWorld.clone()).toArray(),
-    startMastLocal:mast.worldToLocal(startWorld.clone()).toArray(),
-    restPositions:new Float32Array(attribute.array)
-   };
-   stays.push({mesh:object,mast,pivot,data,lastQuaternion:pivot.quaternion.clone()});
-  });
-  if(stays.length)mastStaySets.set(id,{pivot,stays});
+  for(const stay of pending){
+   stay.pivot=pivot;
+   stay.startPivotLocal=pivot.worldToLocal(stay.mastHeadWorld.clone()).toArray();
+   pendingMastStays.push(stay);
+  }
  }
 
+ function ringCenterFromArray(array,ring,segments,radialSegments){
+  const stride=radialSegments+1,offset=ring*stride*3,center=new THREE.Vector3();
+  for(let radial=0;radial<=radialSegments;radial++){
+   const index=offset+radial*3;
+   center.add(new THREE.Vector3(array[index],array[index+1],array[index+2]));
+  }
+  return center.multiplyScalar(1/stride);
+ }
+ function finalizeMastStays(){
+  root.updateMatrixWorld(true);
+  mastStaySets.clear();
+  for(const stay of pendingMastStays){
+   const {mesh,mast,pivot,metadata,segments,radialSegments,fixedHullLocal,startPivotLocal}=stay;
+   const attribute=mesh.geometry?.attributes?.position;
+   if(!attribute||attribute.count!==(segments+1)*(radialSegments+1))continue;
+
+   const mastHeadWorld=pivot.localToWorld(new THREE.Vector3(...startPivotLocal));
+   const fixedWorld=hullPart.localToWorld(new THREE.Vector3(...fixedHullLocal));
+   const mastHeadLocal=mesh.worldToLocal(mastHeadWorld.clone());
+   const fixedLocal=mesh.worldToLocal(fixedWorld.clone());
+   const original=new Float32Array(attribute.array);
+   const startCenter=ringCenterFromArray(original,0,segments,radialSegments);
+   const endCenter=ringCenterFromArray(original,segments,segments,radialSegments);
+   const startCorrection=mastHeadLocal.sub(startCenter);
+   const endCorrection=fixedLocal.sub(endCenter);
+   const positions=attribute.array,stride=radialSegments+1;
+   for(let ring=0;ring<=segments;ring++){
+    const t=ring/segments,from=1-t,offset=ring*stride*3;
+    for(let radial=0;radial<=radialSegments;radial++){
+     const index=offset+radial*3;
+     positions[index]=original[index]+startCorrection.x*from+endCorrection.x*t;
+     positions[index+1]=original[index+1]+startCorrection.y*from+endCorrection.y*t;
+     positions[index+2]=original[index+2]+startCorrection.z*from+endCorrection.z*t;
+    }
+   }
+   attribute.needsUpdate=true;
+   mesh.geometry.computeVertexNormals();
+   mesh.geometry.computeBoundingBox();
+   mesh.geometry.computeBoundingSphere();
+
+   metadata.anchorFrame='hull';
+   metadata.fixedPointHull=fixedHullLocal.slice();
+   metadata.mastHeadPivotLocal=startPivotLocal.slice();
+   const data={
+    ...metadata,segments,radialSegments,
+    fixedHullLocal:fixedHullLocal.slice(),
+    startPivotLocal:startPivotLocal.slice(),
+    restPositions:new Float32Array(attribute.array),
+    baseStartLocal:ringCenterFromArray(attribute.array,0,segments,radialSegments),
+    baseFixedLocal:ringCenterFromArray(attribute.array,segments,segments,radialSegments),
+    lastMastHeadLocal:mastHeadLocal.clone(),
+    lastFixedLocal:fixedLocal.clone()
+   };
+   const set=mastStaySets.get(metadata.mastId)||{pivot,stays:[]};
+   set.stays.push({mesh,mast,pivot,data});
+   mastStaySets.set(metadata.mastId,set);
+  }
+  return true;
+ }
  const sailControlsForSetup=[...registry.values()].filter(p=>p.userData.sailControl);
  for(const sail of sailControlsForSetup){
   const control=sail.userData.sailControl;
@@ -289,6 +327,7 @@ function setupPartApi(root,registry,design){
   };
  const api={
   parts:registry,
+  finalizeMastStays,
   getPart(n){return registry.get(n)||null;},
   getPartTransform(n){const p=registry.get(n),b=base.get(n);if(!p||!b)return null;const pose=runtimeTarget(p)===p?(state.runtimePose[n]||{}):{};return {
    x:p.position.x-b.position.x,y:p.position.y-b.position.y,z:p.position.z-b.position.z,
@@ -372,44 +411,40 @@ function setupPartApi(root,registry,design){
       rz:Math.sin(direction)*state.windBlend*maxHeel
      });
     }
-    // Keep the deck ends of selected stays fixed while their masthead ends
-    // follow the pivot. Rebuild only when the mast quaternion has changed.
+    // Enforce both physical endpoints in their owning frames. The masthead
+    // follows the mast pivot; the foot follows the hull fitting. Re-evaluate
+    // local targets so saved/live component transforms cannot drag a stay away
+    // from either attachment. Always deform from the immutable rest array.
     root.updateMatrixWorld(true);
     for(const {pivot,stays} of mastStaySets.values()){
-     const rotation=pivot.quaternion;
-     for(const {mesh,mast,data,lastQuaternion} of stays){
-      if(1-Math.abs(lastQuaternion.dot(rotation))<1e-9)continue;
+     for(const {mesh,mast,data} of stays){
       const attribute=mesh.geometry.attributes.position;
       const stride=data.radialSegments+1;
       if(!attribute||attribute.count!==(data.segments+1)*stride)continue;
-      // Deform the existing tube in place. Only the masthead end follows the
-      // pivot; displacement fades linearly to zero at the fixed hull fitting.
-      // This avoids rebuilding Catmull-Rom curves/Frenet frames every frame,
-      // prevents allocation spikes, and leaves the last ring bit-for-bit at
-      // its original hull-side position.
-      const movingWorld=pivot.localToWorld(new THREE.Vector3(...data.startPivotLocal));
-      const restWorld=mast.localToWorld(new THREE.Vector3(...data.startMastLocal));
-      const movingLocal=mesh.worldToLocal(movingWorld.clone());
-      const restLocal=mesh.worldToLocal(restWorld.clone());
-      const dx=movingLocal.x-restLocal.x;
-      const dy=movingLocal.y-restLocal.y;
-      const dz=movingLocal.z-restLocal.z;
+      const mastHeadWorld=pivot.localToWorld(new THREE.Vector3(...data.startPivotLocal));
+      const fixedWorld=hullPart.localToWorld(new THREE.Vector3(...data.fixedHullLocal));
+      const mastHeadLocal=mesh.worldToLocal(mastHeadWorld.clone());
+      const fixedLocal=mesh.worldToLocal(fixedWorld.clone());
+      if(mastHeadLocal.distanceToSquared(data.lastMastHeadLocal)<1e-12&&
+         fixedLocal.distanceToSquared(data.lastFixedLocal)<1e-12)continue;
+      const startCorrection=mastHeadLocal.sub(data.baseStartLocal);
+      const endCorrection=fixedLocal.sub(data.baseFixedLocal);
       const positions=attribute.array,rest=data.restPositions;
       for(let ring=0;ring<=data.segments;ring++){
-       const influence=1-ring/data.segments;
-       const offset=ring*stride*3;
+       const t=ring/data.segments,from=1-t,offset=ring*stride*3;
        for(let radial=0;radial<=data.radialSegments;radial++){
         const index=offset+radial*3;
-        positions[index]=rest[index]+dx*influence;
-        positions[index+1]=rest[index+1]+dy*influence;
-        positions[index+2]=rest[index+2]+dz*influence;
+        positions[index]=rest[index]+startCorrection.x*from+endCorrection.x*t;
+        positions[index+1]=rest[index+1]+startCorrection.y*from+endCorrection.y*t;
+        positions[index+2]=rest[index+2]+startCorrection.z*from+endCorrection.z*t;
        }
       }
       attribute.needsUpdate=true;
       mesh.geometry.computeVertexNormals();
       mesh.geometry.computeBoundingBox();
       mesh.geometry.computeBoundingSphere();
-      lastQuaternion.copy(rotation);
+      data.lastMastHeadLocal.copy(mastHeadLocal.add(data.baseStartLocal));
+      data.lastFixedLocal.copy(fixedLocal.add(data.baseFixedLocal));
      }
     }
     for(const [name,p] of registry){
@@ -474,6 +509,7 @@ export function finishShipModel(ctx,transforms={},saved={}){
  const partTransforms={...baseTransforms,...(transforms||{})};
  state.partTransforms=partTransforms;
  if(Object.keys(partTransforms).length||Object.keys(state.hiddenParts||{}).length||(state.unlinkedParts||[]).length||Object.keys(state.sailTrim||{}).length||Object.keys(state.sailDeployment||{}).length||Object.keys(state.mastLean||{}).length||Number(state.rudderAngle))api.applyShipState(state);
+ api.finalizeMastStays();
  api.captureResetBaseline();
  return root;
 }
