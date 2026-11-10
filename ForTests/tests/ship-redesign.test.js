@@ -258,9 +258,26 @@ test('all 16 independent ForTests generators build separate editable models', ()
       const sampleCloth=ship.userData.getPart(sampleControl.clothPart);
       let sampleCanvas=null;sampleCloth.traverse(object=>{if(object.isMesh&&object.name==='sail-shaped-cloth')sampleCanvas=object;});
       const canvasBefore=new Float32Array(sampleCanvas.geometry.attributes.position.array);
+      ship.updateMatrixWorld(true);
+      const fullBounds=new THREE.Box3().setFromObject(sampleCanvas);
+      const fullTop=fullBounds.max.y,fullBottom=fullBounds.min.y;
+      assert.equal(ship.userData.setSailDeployment(sampleControl.mastId,'reefed',0),true);
+      ship.updateMatrixWorld(true);
+      const reefedBounds=new THREE.Box3().setFromObject(sampleCanvas);
+      assert.ok(Math.abs(sampleDeployment.scale.y-.48)<1e-8,id+' sail reef command');
+      assert.ok(Math.abs(reefedBounds.max.y-fullTop)<1e-4,id+' reefing keeps the sail head at its original height');
+      assert.ok(reefedBounds.min.y>fullBottom+1e-4,id+' reefing gathers the sail upward');
       assert.equal(ship.userData.setSailDeployment(sampleControl.mastId,'furled',0),true);
+      ship.updateMatrixWorld(true);
+      const furledBounds=new THREE.Box3().setFromObject(sampleCanvas);
       assert.ok(Math.abs(sampleDeployment.scale.y-.001)<1e-8,id+' sail furl command');
+      assert.ok(Math.abs(furledBounds.max.y-fullTop)<1e-4,id+' furling keeps the sail head at its original height');
+      assert.ok(furledBounds.min.y>reefedBounds.min.y,id+' furling gathers the sail farther upward');
       assert.equal(ship.userData.setSailDeployment(sampleControl.mastId,'full',0),true);
+      ship.updateMatrixWorld(true);
+      const restoredBounds=new THREE.Box3().setFromObject(sampleCanvas);
+      assert.ok(Math.abs(restoredBounds.max.y-fullTop)<1e-4&&Math.abs(restoredBounds.min.y-fullBottom)<1e-4,
+        id+' full deployment restores the original sail position and span');
       ship.userData.animateShip(.05,{enabled:true,directionDeg:210,speedKnots:24});
       assert.ok(sampleCanvas.geometry.attributes.position.array.some((value,index)=>Math.abs(value-canvasBefore[index])>1e-6),id+' sail cloth responds to wind');
       if (getShipDesign(id).headsails > 0) {
