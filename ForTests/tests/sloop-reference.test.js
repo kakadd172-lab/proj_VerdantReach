@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Vector3 } from 'three';
 import * as THREE from 'three';
-import { getShipDesign, getVesselModule, createShipModel, disposeShipModel } from '../ships/index.js?v=0.8.9-persistent-vessel-authoring';
+import { getShipDesign, getVesselModule, createShipModel, disposeShipModel } from '../ships/index.js?v=0.8.18-parent-frame-transform-conversion';
 import { deckY, keelY, hullPoint, stationZ, halfBreadth, hullShapeStation, sectionBreadth } from '../ships/vessels/sloop/architecture/hull-geometry.js';
 
 test('Loguivy homardier keeps the dimensions and rig described by the 1866 sheet',()=>{
