@@ -101,6 +101,13 @@ function setupPartApi(root,registry,design){
    root.updateMatrixWorld(true);
    mast.attach(standing);
   }
+  // Chainplates are hull-mounted fittings, not part of the flexible rope
+  // assembly. Keep them as direct children of the mast component (whose
+  // transform is the hull frame) so they never inherit mast-step rotation.
+  for(const name of ['chainplates-'+id,'backstay-chainplates-'+id]){
+   const fitting=standing?.getObjectByName(name);
+   if(fitting&&fitting.parent!==mast)mast.attach(fitting);
+  }
   control.pivotGroup=pivot;
   control.windHeelMaxDeg=Number(control.windHeelMaxDeg)||2.5;
   control.windRakeMaxDeg=Number(control.windRakeMaxDeg)||1.2;
