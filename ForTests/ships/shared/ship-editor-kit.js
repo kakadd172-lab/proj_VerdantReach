@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.21';
+export const SHIP_EDITOR_KIT_VERSION='0.8.22';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -428,6 +428,7 @@ function setupPartApi(root,registry,design){
   parts:registry,
   migrateMastRigging,
   finalizeMastStays,
+  migratedRiggingPartNames(){const names=new Set();for(const stay of pendingMastStays){if(stay.standing)names.add(stay.standing.name);for(const fitting of stay.fittings||[])names.add(fitting.name);}return [...names];},
   getPart(n){return registry.get(n)||null;},
   getPartTransform(n){const p=registry.get(n),b=base.get(n);if(!p||!b)return null;const pose=runtimeTarget(p)===p?(state.runtimePose[n]||{}):{};return {
    x:p.position.x-b.position.x,y:p.position.y-b.position.y,z:p.position.z-b.position.z,
@@ -610,11 +611,19 @@ export function finishShipModel(ctx,transforms={},saved={}){
  state.partTransforms=partTransforms;
  const newTransformFrame=Number(state.transformFrameVersion)>=2;
  if(newTransformFrame){
-  // Apply unlink/visibility/sailing state, migrate, then apply transforms in
-  // their versioned post-migration coordinate frames.
-  api.applyShipState({...state,partTransforms:{}});
+  // Ordinary components still use their original parent frames. Apply those
+  // first so mast/hull transforms are present when the rigging baseline is
+  // converted; then apply only migrated rigging deltas in their new frames.
+  const migratedNames=new Set(api.migratedRiggingPartNames());
+  const detachedNames=new Set(state.unlinkedParts||[]);
+  const ordinaryTransforms={},riggingTransforms={};
+  for(const [name,value] of Object.entries(partTransforms)){
+   if(migratedNames.has(name)&&!detachedNames.has(name))riggingTransforms[name]=value;
+   else ordinaryTransforms[name]=value;
+  }
+  api.applyShipState({...state,partTransforms:ordinaryTransforms});
   api.migrateMastRigging();
-  api.applyShipState(state);
+  api.applyShipState({partTransforms:riggingTransforms});
  }else{
   // Older defaults store rigging transforms in mast-local coordinates.
   if(Object.keys(partTransforms).length||Object.keys(state.hiddenParts||{}).length||(state.unlinkedParts||[]).length||Object.keys(state.sailTrim||{}).length||Object.keys(state.sailDeployment||{}).length||Object.keys(state.mastLean||{}).length||Number(state.rudderAngle))api.applyShipState(state);
