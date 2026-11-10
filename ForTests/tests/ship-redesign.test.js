@@ -492,3 +492,74 @@ test('reset component restores its original hierarchy, transform and visibility'
     disposeShipModel(ship);
   }
 });
+
+
+test('sail fullness reverses to the lee side as wind direction changes', () => {
+  const ship = createShipModel('sloop');
+  try {
+    const sail = ship.userData.partNames
+      .map(name => ship.userData.getPart(name))
+      .find(part => part?.userData.sailControl?.sailType === 'gaff-mainsail');
+    assert.ok(sail, 'Sloop gaff mainsail control');
+    const cloth = ship.userData.getPart(sail.userData.sailControl.clothPart);
+    let canvas = null;
+    cloth?.traverse(object => {
+      if (object.isMesh && object.name === 'sail-shaped-cloth') canvas = object;
+    });
+    assert.ok(canvas?.geometry?.attributes?.position, 'Mainsail canvas mesh');
+    const metadata = canvas.userData.sailCloth;
+    const position = canvas.geometry.attributes.position;
+    const columns = metadata.columns, rows = metadata.rows, stride = columns + 1;
+    const axis = metadata.axis === 'x' ? 0 : 2;
+    const center = Math.floor(rows / 2) * stride + Math.floor(columns / 2);
+    const getAxis = () => position.getComponent(center, axis);
+    const flat = () => {
+      const rest = position;
+      const c0 = rest.getComponent(0, axis);
+      const c1 = rest.getComponent(columns, axis);
+      const c2 = rest.getComponent(rows * stride, axis);
+      const c3 = rest.getComponent(rows * stride + columns, axis);
+      const u = .5, v = .5;
+      return THREE.MathUtils.lerp(
+        THREE.MathUtils.lerp(c0, c1, u),
+        THREE.MathUtils.lerp(c2, c3, u), v
+      );
+    };
+    const neutral = flat();
+
+    ship.userData.animateShip(.05, { enabled: true, directionDeg: 90, speedKnots: 30 });
+    const starboardWind = getAxis() - neutral;
+    assert.ok(starboardWind < -1e-5,
+      'Wind from starboard must push the mainsail fullness toward port');
+
+    ship.userData.animateShip(.05, { enabled: true, directionDeg: 270, speedKnots: 30 });
+    const portWind = getAxis() - neutral;
+    assert.ok(portWind > 1e-5,
+      'Wind from port must reverse the mainsail fullness toward starboard');
+
+    const calmShip = createShipModel('sloop');
+    try {
+      const calmSail = calmShip.userData.partNames
+        .map(name => calmShip.userData.getPart(name))
+        .find(part => part?.userData.sailControl?.sailType === 'gaff-mainsail');
+      const calmCloth = calmShip.userData.getPart(calmSail.userData.sailControl.clothPart);
+      let calmCanvas = null;
+      calmCloth.traverse(object => {
+        if (object.isMesh && object.name === 'sail-shaped-cloth') calmCanvas = object;
+      });
+      const calmPosition = calmCanvas.geometry.attributes.position;
+      const calmMetadata = calmCanvas.userData.sailCloth;
+      const calmStride = calmMetadata.columns + 1;
+      const calmCenter = Math.floor(calmMetadata.rows / 2) * calmStride + Math.floor(calmMetadata.columns / 2);
+      const calmAxis = calmMetadata.axis === 'x' ? 0 : 2;
+      const before = calmPosition.getComponent(calmCenter, calmAxis);
+      calmShip.userData.animateShip(.05, { enabled: false, directionDeg: 90, speedKnots: 0 });
+      assert.ok(Math.abs(calmPosition.getComponent(calmCenter, calmAxis) - before) < 1e-8,
+        'A calm sail must return to its neutral, flat reference surface');
+    } finally {
+      disposeShipModel(calmShip);
+    }
+  } finally {
+    disposeShipModel(ship);
+  }
+});
