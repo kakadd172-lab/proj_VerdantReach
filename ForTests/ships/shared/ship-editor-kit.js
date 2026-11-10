@@ -448,6 +448,10 @@ function setupPartApi(root,registry,design){
      }
     }
    });
+   const anchorY=p.userData.sailControl.deploymentAnchorY??p.userData.sailControl.pivotPoint?.[1]??0;
+   if(mesh?.geometry&&!mesh.geometry.boundingBox)mesh.geometry.computeBoundingBox();
+   const geometryBounds=mesh?.geometry?.boundingBox;
+   const furlAnchorY=geometryBounds?.max?.y??anchorY;
    // Derive the actual tack-to-head attachment line from the first mesh
    // column. For headsails this follows the forestay/luff; for mast sails it
    // follows the mast-side edge. That line is the invariant furling anchor.
