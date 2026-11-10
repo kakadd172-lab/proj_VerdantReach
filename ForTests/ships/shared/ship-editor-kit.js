@@ -641,7 +641,11 @@ function setupPartApi(root,registry,design){
      const id=p.userData.sailControl.mastId,type=p.userData.sailControl.sailType||'';
      const scale=/jib|staysail|headsail/i.test(type)?.78:/topsail/i.test(type)?.86:1;
      const gust=Math.sin(state.time*1.7+p.name.length*.71)*.018*state.windBlend;
-     setRuntimeRotation(p.name,{ry:(state.sailTrim[id]||0)+trimAngle*scale+gust});
+     // The first two forward triangular headsails do not yaw with wind.
+     // Their directional cloth pressure remains active in the deformation pass below.
+     const isForwardTriangle=/^sail-head-[12]$/.test(p.name);
+     const windDrivenRotation=isForwardTriangle?0:trimAngle*scale+gust;
+     setRuntimeRotation(p.name,{ry:(state.sailTrim[id]||0)+windDrivenRotation});
     }
     root.updateMatrixWorld(true);
     const rootWorldQuaternion=root.getWorldQuaternion(new THREE.Quaternion());
