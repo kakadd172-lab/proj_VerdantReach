@@ -92,12 +92,12 @@ assert.equal(hullFingerprints.size,16,'Each vessel must implement a distinct hul
 assert.equal(sailFingerprints.size,16,'Each vessel must implement its own sail surface profile.');
 
 const preview=readFileSync(join(here,'preview.js'),'utf8');
-assert.ok(preview.includes("./ships/index.js?v=0.8.12-stays-outside-mast-pivot"),'Preview must load the persistent authoring registry.');
+assert.ok(preview.includes("./ships/index.js?v=0.8.13-in-place-stay-deformation"),'Preview must load the persistent authoring registry.');
 assert.ok(preview.includes('VESSEL_EDITOR_DEFAULTS'),'Preview must load saved defaults for all vessels.');
 for(const legacy of ['ship-model-builder.js','hull-math.js','./ship-designs.js','./ship-structures.js','./ship-hull-parameterization.js','./ship-models.js']){
  assert.ok(!preview.includes(legacy),'Preview still references obsolete module '+legacy);
 }
-for(const version of ["SHIP_DESIGN_MODULE_VERSION!=='0.8.9'","SHIP_STRUCTURE_MODULE_VERSION!=='0.8.9'","SHIP_MODEL_MODULE_VERSION!=='0.8.12'"]){
+for(const version of ["SHIP_DESIGN_MODULE_VERSION!=='0.8.9'","SHIP_STRUCTURE_MODULE_VERSION!=='0.8.9'","SHIP_MODEL_MODULE_VERSION!=='0.8.13'"]){
  assert.ok(preview.includes(version),'Preview version guard not updated: '+version);
 }
 const pkg=JSON.parse(readFileSync(join(here,'package.json'),'utf8'));
