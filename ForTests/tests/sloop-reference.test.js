@@ -87,9 +87,12 @@ test('The transom, rudder, anchors and expanded single-mast rig assemble as sepa
   assert.ok(ship.userData.getPart('mast-single'));
   assert.ok(ship.userData.getPart('sail-single-gaff'));
   assert.ok(ship.userData.getPart('sail-single-gaff-topsail'));
-  assert.ok(ship.userData.getPart('topsail-jackyard-single'));
+  assert.ok(!ship.userData.getPart('topsail-jackyard-single'),'the gaff itself is the topsail foot; no spare jackyard is needed');
   assert.ok(ship.userData.getPart('gaff-halyards-single'));
   assert.ok(ship.userData.getPart('backstays-single'));
+  assert.ok(!ship.userData.getPart('running-braces-single'),'this gaff sloop has no unattached yard braces');
+  assert.ok(!ship.userData.getPart('forestay-single'),'the outer-jib luff already provides the forestay');
+  assert.equal(ship.userData.getPart('ratlines-single').children.length,18,'ratlines form two short ladders, one on each side');
   assert.ok(ship.userData.getPart('cloth-sail-head-1'));
   assert.ok(ship.userData.getPart('cloth-sail-head-2'));
  }finally{disposeShipModel(ship);}
@@ -116,7 +119,20 @@ test('The gaff mainsail remains intact and the topsail plus two distinct headsai
   assert.ok(topsailMesh,'gaff topsail should have separate curved canvas');
   topsailMesh.geometry.computeBoundingBox();
   const topsailSize=topsailMesh.geometry.boundingBox.getSize(new Vector3());
-  assert.ok(topsailSize.y>1.0&&topsailSize.z>1.0,'topsail should have visible area');
+  assert.ok(topsailSize.y>3.5&&topsailSize.z>3.0,'topsail should be a broad triangle from the gaff throat to the masthead and gaff peak');
+  assert.ok(!ship.userData.getPart('topsail-jackyard-single'),'the topsail has no floating diagonal jackyard');
+  for(const [name,minY,minZ] of [['cloth-sail-head-1',7.5,11.0],['cloth-sail-head-2',4.5,7.5]]){
+   const headSail=ship.userData.getPart(name);assert.ok(headSail,name+' should have a distinct editable sail');
+   let mesh=null;headSail.traverse(object=>{if(object.isMesh&&object.name==='sail-shaped-cloth')mesh=object;});
+   assert.ok(mesh,name+' should contain real canvas geometry');mesh.geometry.computeBoundingBox();
+   const bounds=mesh.geometry.boundingBox,size=bounds.getSize(new Vector3());
+   assert.ok(size.y>minY,name+' should not collapse into a slim strip');
+   assert.ok(size.z>minZ,name+' should have a broad fore-and-aft footprint');
+  }
+  const jibSheet=ship.userData.getPart('head-sheets-outer-jib');
+  const staysailSheet=ship.userData.getPart('head-sheets-inner-staysail');
+  assert.equal(jibSheet.children.length,1,'the jib gets one clean working sheet');
+  assert.equal(staysailSheet.children.length,1,'the staysail gets one clean working sheet');
  }finally{disposeShipModel(ship);}
 });
 

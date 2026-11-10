@@ -23,7 +23,7 @@ export const SLOOP_ARCHITECTURE = Object.freeze({
   "deck-equipment":{generator:"./generators/deck-equipment/fittings-generator.js",mount:"fore-and-aft-working-lockers"},
   "anchors":{generator:"./generators/anchors/anchor-generator.js",mount:"forward-hawse-and-bow-cheeks"},
   "masts":{generator:"./generators/masts/mast-frame-generator.js",mount:"single-mast-at-58-percent-from-bow"},
-  "head-sails":{generator:"./generators/sails/head-sails-generator.js",mount:"outer-jib-and-inner-staysail-on-long-bowsprit"},
+  "head-sails":{generator:"./generators/sails/head-sails-generator.js",mount:"fuller-outer-jib-and-inner-staysail-on-separate-stays"},
   "standing-rigging":{generator:"./generators/rigging/standing-rigging-generator.js",mount:"single-mast-standing-rigging"}
  }),
  mastInstances:Object.freeze([
