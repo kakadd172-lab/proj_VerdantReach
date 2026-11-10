@@ -479,6 +479,11 @@ function setupPartApi(root,registry,design){
      for(const child of [...deployment.children]){
       deployment.remove(child);
       furlFrame.add(child);
+      // The editor's reset/relink baseline was captured before this internal
+      // wrapper existed. Keep registered child parts parented to the frame in
+      // that baseline so reset/detach/relink never bypasses the furl transform.
+      const saved=original.get(child.name);
+      if(saved&&registry.get(child.name)===child)saved.parent=furlFrame;
      }
      deployment.add(furlFrame);
     }
