@@ -118,11 +118,15 @@ try{
  await page.locator('[data-wind-direction="90"]').click();
  await page.locator('#wind-toggle').click();
  assert.equal(await page.locator('#wind-toggle').getAttribute('aria-pressed'),'true');
- await page.waitForTimeout(1100);
- assert.match(await page.locator('#mast-response-value').textContent(),/Port/,'wind from starboard should heel the mast to port');
+ await page.waitForTimeout(1800);
+ const starboardWindReadout=await page.locator('#mast-response-value').textContent();
+ const starboardHeel=starboardWindReadout.match(/([0-9.]+)°\s+port/i);
+ assert.ok(starboardHeel&&Number(starboardHeel[1])>0.1,'wind from starboard should produce measurable port heel: '+starboardWindReadout);
  await page.locator('[data-wind-direction="270"]').click();
- await page.waitForTimeout(1100);
- assert.match(await page.locator('#mast-response-value').textContent(),/Starboard/,'wind from port should heel the mast to starboard');
+ await page.waitForTimeout(1800);
+ const portWindReadout=await page.locator('#mast-response-value').textContent();
+ const portHeel=portWindReadout.match(/([0-9.]+)°\s+starboard/i);
+ assert.ok(portHeel&&Number(portHeel[1])>0.1,'wind from port should produce measurable starboard heel: '+portWindReadout);
  await page.locator('#simulation-toggle').click();
  assert.equal(await page.locator('#simulation-toggle').getAttribute('aria-pressed'),'true');
  await page.locator('#simulation-toggle').click();
@@ -134,7 +138,7 @@ try{
  assert.equal(await page.locator('#simulation-toggle').getAttribute('aria-pressed'),'false');
  assert.match(await page.locator('#rudder-angle-value').textContent(),/Center/);
  await page.waitForTimeout(1200);
- assert.match(await page.locator('#mast-response-value').textContent(),/Neutral/,'mast should return to neutral after wind is disabled');
+ assert.match(await page.locator('#mast-response-value').textContent(),/neutral/i,'mast should return to neutral after wind is disabled');
 
  assert.deepEqual(errors,[],'Browser page errors: '+errors.join(' | '));
  const fs=await import('node:fs/promises');
