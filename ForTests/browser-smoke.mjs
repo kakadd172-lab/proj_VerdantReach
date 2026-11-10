@@ -72,8 +72,10 @@ try{
   assert.equal(await page.locator('#wave-period').inputValue(),'6');
   await page.locator('[data-wave-direction="270"]').click();
   assert.ok((await page.locator('#wave-direction-value').innerText()).startsWith('270°'));
-  await page.locator('#wave-height').fill('0.8');
-  await page.locator('#wave-height').dispatchEvent('input');
+  await page.locator('#wave-height').evaluate(element=>{
+    element.value='0.8';
+    element.dispatchEvent(new Event('input',{bubbles:true}));
+  });
   assert.equal(await page.locator('#wave-height-readout').innerText(),'0.8 m');
   await page.locator('#sea-toggle').click();
   assert.equal(await page.locator('#sea-toggle').getAttribute('aria-pressed'),'true');
