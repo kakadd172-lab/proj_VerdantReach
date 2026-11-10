@@ -160,13 +160,14 @@ test('v0.8.6 game shell and v0.8.10 component-first ship modules use consistent 
   assert.ok(vessels.includes("./sloop/sloop.js"));
   assert.ok(registry.includes('getShipGenerator(type)'));
   assert.ok(structures.includes('getHullHalfBeam'));
-  const generated = createShip('sloop', {}, { rudderAngle: 0.17, sailDeployment: { single: 'reefed' } });
+  const generated = createShip('sloop', {}, { rudderAngle: 0.17, sailDeployment: { single: 'reefed' }, transformFrameVersion: 2 });
   try {
     assert.equal(generated.userData.shipType, 'sloop');
     assert.equal(generated.userData.shipGeneratorId, 'sloop');
     const state = generated.userData.getShipState();
     assert.ok(Math.abs(state.rudderAngle - 0.17) < 1e-8);
     assert.equal(state.sailDeployment.single, 'reefed');
+    assert.equal(state.transformFrameVersion, 2);
   } finally {
     disposeShipModel(generated);
   }
