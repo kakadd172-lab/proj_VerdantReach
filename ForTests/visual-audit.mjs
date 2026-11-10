@@ -99,6 +99,27 @@ try{
  await page.locator('#clear-selection').click();
  await page.locator('#box-select-toggle').click();
 
+ // Exercise wind presets, gusts, pause/resume, rudder and test reset.
+ await page.locator('[data-wind-direction="0"]').click();
+ assert.match(await page.locator('#wind-direction-value').textContent(),/^0° · Bow/);
+ await page.locator('[data-wind-direction="270"]').click();
+ assert.match(await page.locator('#wind-direction-value').textContent(),/^270° · Port/);
+ await page.locator('#wind-speed').evaluate(el=>{el.value='21';el.dispatchEvent(new Event('input',{bubbles:true}));});
+ await page.locator('#gust-toggle').click();
+ assert.equal(await page.locator('#gust-toggle').getAttribute('aria-pressed'),'true');
+ await page.locator('#wind-toggle').click();
+ assert.equal(await page.locator('#wind-toggle').getAttribute('aria-pressed'),'true');
+ await page.locator('#simulation-toggle').click();
+ assert.equal(await page.locator('#simulation-toggle').getAttribute('aria-pressed'),'true');
+ await page.locator('#simulation-toggle').click();
+ await page.locator('#rudder-angle').evaluate(el=>{el.value='18';el.dispatchEvent(new Event('input',{bubbles:true}));});
+ assert.match(await page.locator('#rudder-angle-value').textContent(),/Starboard/);
+ await page.locator('#sailing-reset').click();
+ assert.equal(await page.locator('#wind-toggle').getAttribute('aria-pressed'),'false');
+ assert.equal(await page.locator('#gust-toggle').getAttribute('aria-pressed'),'false');
+ assert.equal(await page.locator('#simulation-toggle').getAttribute('aria-pressed'),'false');
+ assert.match(await page.locator('#rudder-angle-value').textContent(),/Center/);
+
  assert.deepEqual(errors,[],'Browser page errors: '+errors.join(' | '));
  const fs=await import('node:fs/promises');
  await fs.writeFile(join(outputDir,'report.json'),JSON.stringify({vessels:report,errors,selectedVessels,cameraViews,marqueeSelection},null,2));

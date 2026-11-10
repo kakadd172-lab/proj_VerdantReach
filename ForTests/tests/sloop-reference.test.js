@@ -275,7 +275,9 @@ test('Aft helm is compact, clear of the aft locker and mounted at the aft quarte
   assert.ok(helm.userData.helmStation<=0.89,'helm should be nudged slightly forward while remaining in the aft quarter');
   assert.ok(helm.userData.wheelRadius<=0.35,'wheel should be scaled for a small fishing vessel');
   assert.equal(wheel.userData.helmStation,helm.userData.helmStation);
-  assert.ok(wheel.children.some(object=>object.name==='helm-wheel-hub'));
-  assert.ok(wheel.children.filter(object=>object.name.startsWith('helm-spoke-')).length===8);
+  const axlePivot=wheel.userData.steeringControl?.pivotGroup;
+  assert.ok(axlePivot,'the wheel has a nested axle pivot');
+  assert.ok(axlePivot.children.some(object=>object.name==='helm-wheel-hub'));
+  assert.equal(axlePivot.children.filter(object=>object.name.startsWith('helm-spoke-')).length,8);
  }finally{disposeShipModel(ship);}
 });

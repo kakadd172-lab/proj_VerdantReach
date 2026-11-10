@@ -21,6 +21,9 @@ const requiredIds=[
   'compare-select','compare-summary','measure-toggle','clear-measurement','measurement-value',
   'section-toggle','section-slider','section-value','import-design','import-file',
   'capture-preview','viewport-fullscreen','viewport-readout','box-select-toggle','clear-selection','selection-count',
+  'wind-toggle','wind-state','wind-direction','wind-direction-value','wind-direction-readout','wind-arrow',
+  'wind-speed','wind-speed-value','wind-speed-readout','gust-toggle','simulation-toggle','sailing-reset',
+  'rudder-angle','rudder-angle-value','helm-wheel-angle','rudder-center',
 ];
 
 test('shipyard page exposes every editor control and information target',()=>{
@@ -35,6 +38,12 @@ test('all new analysis and import controls are wired to runtime handlers',()=>{
     'function toggleSection()',
     'function toggleMeasure()',
     'function addMeasurementPoint(point)',
+    'function refreshSailingControls()',
+    "document.querySelector('#wind-toggle')?.addEventListener('click'",
+    "document.querySelector('#gust-toggle')?.addEventListener('click'",
+    "document.querySelector('#simulation-toggle')?.addEventListener('click'",
+    "document.querySelector('#sailing-reset')?.addEventListener('click'",
+    "ship.userData.animateShip(delta,windSettings)",
     "addEventListener('change',updateComparison)",
     "addEventListener('input',updateSectionPlane)",
     "addEventListener('change',async event=>",

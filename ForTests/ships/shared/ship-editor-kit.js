@@ -110,7 +110,8 @@ function setupPartApi(root,registry,design){
   setSailDeployment(id,mode='full',duration=.85){const targets=sailParts.filter(p=>p.userData.sailControl.mastId===id);if(!targets.length||!['full','reefed','furled'].includes(mode))return false;const scale=mode==='full'?1:mode==='reefed'?.48:.001;state.sailDeployment[id]=mode;for(const p of targets){const a=cloths.get(p.name);if(!a?.cloth)continue;a.from=a.cloth.scale.y;a.target=scale;a.elapsed=0;a.duration=clamp(duration,0,4);if(a.duration===0)a.cloth.scale.y=scale;}return true;},
   animateShip(dt=.016,weather={}){
     const delta=clamp(dt,0,.05);state.time+=delta;
-    const targetWind=weather.enabled===true?clamp((weather.speedKnots??0)/30,0,1):0;
+    const gustEnvelope=weather.gusts===true?(0.72+0.28*(0.5+0.5*Math.sin(state.time*1.25))):1;
+    const targetWind=weather.enabled===true?clamp((weather.speedKnots??0)/30,0,1)*gustEnvelope:0;
     state.windBlend+=(targetWind-state.windBlend)*(1-Math.exp(-delta*2.8));
     const direction=((Number(weather.directionDeg??90)%360)+360)%360*Math.PI/180;
     const transverse=Math.sin(direction),leeward=transverse>1e-4?-1:transverse< -1e-4?1:1;

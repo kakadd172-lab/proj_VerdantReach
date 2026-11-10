@@ -149,7 +149,7 @@ let measureEnabled=false;
 let measurementPoints=[];
 let measurementLine=null;
 let sectionEnabled=false;
-const windSettings={enabled:false,directionDeg:90,speedKnots:12};
+const windSettings={enabled:false,directionDeg:90,speedKnots:12,gusts:false,paused:false};
 function windDirectionName(degrees){
  const angle=((Math.round(degrees)%360)+360)%360;
  if(angle<45||angle>=315)return 'Bow';
@@ -159,6 +159,7 @@ function windDirectionName(degrees){
 }
 function refreshSailingControls(){
  const toggle=document.querySelector('#wind-toggle'),windState=document.querySelector('#wind-state');
+ const gustToggle=document.querySelector('#gust-toggle'),simulationToggle=document.querySelector('#simulation-toggle');
  const direction=document.querySelector('#wind-direction'),speed=document.querySelector('#wind-speed');
  const arrow=document.querySelector('#wind-arrow'),directionValue=document.querySelector('#wind-direction-value');
  const directionReadout=document.querySelector('#wind-direction-readout'),speedValue=document.querySelector('#wind-speed-value'),speedReadout=document.querySelector('#wind-speed-readout');
@@ -171,6 +172,12 @@ function refreshSailingControls(){
  if(directionReadout)directionReadout.textContent=windSettings.directionDeg+'°';
  if(speedValue)speedValue.textContent=windSettings.speedKnots+' knots · '+(windSettings.enabled?'Wind active':'Wind disabled');
  if(speedReadout)speedReadout.textContent=windSettings.speedKnots+' kn';
+ if(gustToggle){gustToggle.textContent=windSettings.gusts?'Gusts on':'Gusts off';gustToggle.classList.toggle('active',windSettings.gusts);gustToggle.setAttribute('aria-pressed',String(windSettings.gusts));}
+ if(simulationToggle){simulationToggle.textContent=windSettings.paused?'Resume motion':'Pause motion';simulationToggle.classList.toggle('active',windSettings.paused);simulationToggle.setAttribute('aria-pressed',String(windSettings.paused));}
+ for(const preset of document.querySelectorAll('[data-wind-direction]')){
+  const active=Number(preset.dataset.windDirection)===windSettings.directionDeg;
+  preset.classList.toggle('active',active);preset.setAttribute('aria-pressed',String(active));
+ }
  const rudder=document.querySelector('#rudder-angle'),rudderValue=document.querySelector('#rudder-angle-value');
  const centre=document.querySelector('#rudder-center'),wheelReadout=document.querySelector('#helm-wheel-angle');
  const rudderPart=ship?.userData.getPart('rudder'),wheelPart=ship?.userData.getPart('helm-wheel');
@@ -995,6 +1002,17 @@ document.querySelector('#compare-select')?.addEventListener('change',updateCompa
 document.querySelector('#wind-toggle')?.addEventListener('click',()=>{windSettings.enabled=!windSettings.enabled;refreshSailingControls();});
 document.querySelector('#wind-direction')?.addEventListener('input',event=>{windSettings.directionDeg=Number(event.target.value)||0;refreshSailingControls();});
 document.querySelector('#wind-speed')?.addEventListener('input',event=>{windSettings.speedKnots=Number(event.target.value)||0;refreshSailingControls();});
+document.querySelectorAll('[data-wind-direction]').forEach(button=>button.addEventListener('click',()=>{
+  windSettings.directionDeg=Number(button.dataset.windDirection)||0;refreshSailingControls();
+}));
+document.querySelector('#gust-toggle')?.addEventListener('click',()=>{windSettings.gusts=!windSettings.gusts;refreshSailingControls();});
+document.querySelector('#simulation-toggle')?.addEventListener('click',()=>{windSettings.paused=!windSettings.paused;refreshSailingControls();});
+document.querySelector('#sailing-reset')?.addEventListener('click',()=>{
+  windSettings.enabled=false;windSettings.directionDeg=90;windSettings.speedKnots=12;
+  windSettings.gusts=false;windSettings.paused=false;
+  if(ship)ship.userData.setRudderAngle(0);
+  refreshSailingControls();
+});
 document.querySelector('#rudder-angle')?.addEventListener('input',event=>{if(ship){ship.userData.setRudderAngle(THREE.MathUtils.degToRad(Number(event.target.value)||0));refreshSailingControls();}});
 document.querySelector('#rudder-center')?.addEventListener('click',()=>{if(ship){const field=document.querySelector('#rudder-angle');if(field)field.value='0';ship.userData.setRudderAngle(0);refreshSailingControls();}});
 document.querySelector('#measure-toggle')?.addEventListener('click',toggleMeasure);
@@ -1137,7 +1155,7 @@ const animationClock=new THREE.Clock();
 function animate(){
   requestAnimationFrame(animate);
   const delta=Math.min(animationClock.getDelta(),.05);
-  if(ship?.userData.animateShip)ship.userData.animateShip(delta,windSettings);
+  if(!windSettings.paused&&ship?.userData.animateShip)ship.userData.animateShip(delta,windSettings);
   orbit.update();updateSelectionHelpers();renderer.render(scene,camera);
 }
 loadShip(selector.value||Object.keys(SHIP_DESIGNS)[0],reviewPartName);
