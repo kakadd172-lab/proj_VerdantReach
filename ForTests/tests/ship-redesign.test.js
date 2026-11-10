@@ -276,14 +276,20 @@ test('all 16 independent ForTests generators build separate editable models', ()
         ship.updateMatrixWorld(true);
         const supportStart=pointAt(0);
         const supportEnd=pointAt(grid.rows*stride);
-        const farStart=pointAt(grid.columns);
-        const farEnd=pointAt(grid.rows*stride+grid.columns);
-        const farStartDistance=distanceToSupport(farStart,supportStart,supportEnd);
-        const farEndDistance=distanceToSupport(farEnd,supportStart,supportEnd);
-        assert.ok(farStartDistance>1e-4&&farEndDistance>1e-4,id+' '+sail.name+' has measurable canvas width');
+        // A triangular jib's bottom outside corner is the tack itself, so
+        // that one vertex correctly lies on the luff and has zero width.
+        // Sample the middle and head ends of the opposite edge instead.
+        const sampleIndices=[Math.ceil(grid.rows*.5)*stride+grid.columns,
+          grid.rows*stride+grid.columns];
+        const canvasSamples=sampleIndices.map(index=>{
+          const point=pointAt(index);
+          const distance=distanceToSupport(point,supportStart,supportEnd);
+          assert.ok(distance>1e-4,id+' '+sail.name+' has measurable canvas width away from its support edge');
+          return {index,point,distance};
+        });
         return {
           sail,mastId:control.mastId,pointAt,distanceToSupport,grid,stride,
-          supportStart,supportEnd,farStart,farEnd,farStartDistance,farEndDistance
+          supportStart,supportEnd,canvasSamples
         };
       });
       for(const mastId of new Set(furlSamples.map(sample=>sample.mastId))){
@@ -293,32 +299,34 @@ test('all 16 independent ForTests generators build separate editable models', ()
         for(const sample of mastSamples){
           const supportStart=sample.pointAt(0);
           const supportEnd=sample.pointAt(sample.grid.rows*sample.stride);
-          const farStartDistance=sample.distanceToSupport(sample.pointAt(sample.grid.columns),supportStart,supportEnd);
-          const farEndDistance=sample.distanceToSupport(sample.pointAt(sample.grid.rows*sample.stride+sample.grid.columns),supportStart,supportEnd);
           assert.ok(supportStart.distanceTo(sample.supportStart)<1e-4
             &&supportEnd.distanceTo(sample.supportEnd)<1e-4,id+' '+sample.sail.name+' reefing preserves its angled luff');
-          assert.ok(Math.abs(farStartDistance/sample.farStartDistance-.48)<.015
-            &&Math.abs(farEndDistance/sample.farEndDistance-.48)<.015,id+' '+sample.sail.name+' reefing contracts perpendicular to its luff');
+          for(const canvasSample of sample.canvasSamples){
+            const distance=sample.distanceToSupport(sample.pointAt(canvasSample.index),supportStart,supportEnd);
+            assert.ok(Math.abs(distance/canvasSample.distance-.48)<.015,
+              id+' '+sample.sail.name+' reefing contracts perpendicular to its luff');
+          }
         }
         assert.equal(ship.userData.setSailDeployment(mastId,'furled',0),true,id+' mast '+mastId+' furl command');
         ship.updateMatrixWorld(true);
         for(const sample of mastSamples){
           const supportStart=sample.pointAt(0);
           const supportEnd=sample.pointAt(sample.grid.rows*sample.stride);
-          const farStartDistance=sample.distanceToSupport(sample.pointAt(sample.grid.columns),supportStart,supportEnd);
-          const farEndDistance=sample.distanceToSupport(sample.pointAt(sample.grid.rows*sample.stride+sample.grid.columns),supportStart,supportEnd);
           assert.ok(supportStart.distanceTo(sample.supportStart)<1e-4
             &&supportEnd.distanceTo(sample.supportEnd)<1e-4,id+' '+sample.sail.name+' furling keeps both luff endpoints fixed');
-          assert.ok(Math.abs(farStartDistance/sample.farStartDistance-.001)<.002
-            &&Math.abs(farEndDistance/sample.farEndDistance-.001)<.002,id+' '+sample.sail.name+' furling gathers onto its angled luff');
+          for(const canvasSample of sample.canvasSamples){
+            const distance=sample.distanceToSupport(sample.pointAt(canvasSample.index),supportStart,supportEnd);
+            assert.ok(Math.abs(distance/canvasSample.distance-.001)<.002,
+              id+' '+sample.sail.name+' furling gathers onto its angled luff');
+          }
         }
         assert.equal(ship.userData.setSailDeployment(mastId,'full',0),true,id+' mast '+mastId+' full-sail command');
         ship.updateMatrixWorld(true);
         for(const sample of mastSamples){
           assert.ok(sample.pointAt(0).distanceTo(sample.supportStart)<1e-4
             &&sample.pointAt(sample.grid.rows*sample.stride).distanceTo(sample.supportEnd)<1e-4
-            &&sample.pointAt(sample.grid.columns).distanceTo(sample.farStart)<1e-4
-            &&sample.pointAt(sample.grid.rows*sample.stride+sample.grid.columns).distanceTo(sample.farEnd)<1e-4,
+            &&sample.canvasSamples.every(canvasSample=>
+              sample.pointAt(canvasSample.index).distanceTo(canvasSample.point)<1e-4),
             id+' '+sample.sail.name+' full deployment restores its original geometry and angle');
         }
       }
