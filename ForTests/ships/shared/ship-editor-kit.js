@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.27';
+export const SHIP_EDITOR_KIT_VERSION='0.8.28';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -458,7 +458,7 @@ function setupPartApi(root,registry,design){
    p.position.copy(b.position).add(V(a.x,a.y,a.z));state.partTransforms[n]=a;const pose=runtimeTarget(p)===p?(state.runtimePose[n]||{}):{};p.rotation.set(b.rotation.x+a.rx+(pose.rx||0),b.rotation.y+a.ry+(pose.ry||0),b.rotation.z+a.rz+(pose.rz||0),'XYZ');p.scale.set(b.scale.x*a.sx,b.scale.y*a.sy,b.scale.z*a.sz);return true;},
   captureResetBaseline(){for(const [name,obj] of registry){const neutral=base.get(name)||generatorBase.get(name),authored=original.get(name);if(!neutral)continue;resetBaseline.set(name,{parent:obj.parent,position:neutral.position.clone(),quaternion:new THREE.Quaternion().setFromEuler(neutral.rotation),rotation:neutral.rotation.clone(),scale:neutral.scale.clone(),visible:authored?.visible??obj.visible});}return true;},
   resetPartTransform(n){
-   const p=registry.get(n),saved=resetBaseline.get(n)||original.get(n),raw=generatorBase.get(n);
+   const p=registry.get(n),saved=resetBaseline.get(n)||original.get(n);
    if(!p||!saved)return false;
    if(p.parent!==saved.parent){p.parent?.remove(p);saved.parent.add(p);}
    p.position.copy(saved.position);p.quaternion.copy(saved.quaternion);p.rotation.copy(saved.rotation);p.scale.copy(saved.scale);p.visible=saved.visible;p.updateMatrix();
@@ -473,7 +473,7 @@ function setupPartApi(root,registry,design){
     api.setSailDeployment(p.userData.sailControl.mastId,'full',0);
    }
    if(n==='rudder'||n==='helm-wheel')api.setRudderAngle(0);
-   if(raw)base.set(n,{position:raw.position.clone(),rotation:raw.rotation.clone(),scale:raw.scale.clone()});
+   base.set(n,{position:saved.position.clone(),rotation:saved.rotation.clone(),scale:saved.scale.clone()});
    const transform=api.getPartTransform(n);
    if(transform&&Object.values(transform).some((x,i)=>i<6?Math.abs(x)>1e-8:Math.abs(x-1)>1e-8))state.partTransforms[n]=transform;
    else delete state.partTransforms[n];
