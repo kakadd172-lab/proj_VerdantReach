@@ -1,5 +1,4 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
-
 export const SLOOP_GENERATOR_REVISION = 'loguivy-sloop-15.30x2.55-r1';
 export const SloopDefinition = defineVesselSpec({
   editorModulePath: 'src/world/ships/vessels/sloop/sloop.js',

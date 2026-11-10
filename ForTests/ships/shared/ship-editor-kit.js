@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.7';
+export const SHIP_EDITOR_KIT_VERSION='0.8.30';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -23,7 +23,7 @@ function createMaterials(palette={}){
 }
 export function createShipContext(vessel,palette={}){
  if(!vessel?.design||!vessel?.structure)throw new TypeError('A resolved vessel definition is required.');
- const design={...vessel.design,structure:vessel.structure},root=new THREE.Group();
+ const design={...vessel.design,structure:vessel.structure},root=new THREE.Group(),editorDefaults=vessel.editorDefaults??{};
  root.name='Verdant Reach · '+design.label;
  const materials=createMaterials(palette),registry=new Map();
  function part(name,parent=root){
@@ -41,7 +41,26 @@ export function createShipContext(vessel,palette={}){
  }
  function tube(parent,points,radius,material=materials.rope,name='line',segments=36){
   if(!Array.isArray(points)||points.length<2)return null;
-  return mesh(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>p?.isVector3?p:V(...p))),segments,radius,7,false),material,name);
+  const curvePoints=points.map(point=>point?.isVector3?point.clone():V(...point));
+  const line=mesh(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(curvePoints),segments,radius,7,false),material,name);
+  // Mast-supporting tubes are authored in the standing-rigging group's
+  // stable hull frame. Record their centerline so the mast-step system can
+  // move masthead ends while keeping deck/bow/stern fittings stationary.
+  const mastStayGroup=(parent.name||'').match(/^(?:shrouds|mast-stays|backstays)-(.+)$/);
+  if(mastStayGroup){
+   let mastFrame=parent;
+   while(mastFrame&&!mastFrame.userData?.mastControl)mastFrame=mastFrame.parent;
+   const coordinateSpace=mastFrame?.userData?.mastControl?.mastId===mastStayGroup[1]?'mast-group':'parent';
+   line.userData.dynamicMastStay={
+    mastId:mastStayGroup[1],
+    coordinateSpace,
+    points:curvePoints.map(point=>point.toArray()),
+    fixedEndIndex:curvePoints.length-1,
+    fixedPoint:curvePoints[curvePoints.length-1].toArray(),
+    radius,segments,radialSegments:7
+   };
+  }
+  return line;
  }
  function box(parent,w,h,depth,material=materials.trim,name='box'){
   return mesh(parent,new THREE.BoxGeometry(w,h,depth),material,name);
@@ -53,40 +72,690 @@ export function createShipContext(vessel,palette={}){
  root.userData.shipDimensionsUnits={length:design.hullLengthUnits,beam:design.beamUnits,draft:design.draftUnits};
  root.userData.deckHeightUnits=design.deckHeightUnits;root.userData.deckHeight=design.deckHeightUnits;
  root.userData.vehicle={mode:'boat',vesselType:design.id,deckHeight:design.deckHeightUnits,label:'Board '+design.label};
- return {THREE,V,clamp,design,root,materials,registry,part,mesh,beam,tube,box};
+ return {THREE,V,clamp,design,root,materials,registry,part,mesh,beam,tube,box,editorDefaults};
 }
 function setupPartApi(root,registry,design){
+ const makeNestedPivot=(component,pivot,name,excluded=new Set())=>{
+  const group=new THREE.Group();group.name=name;group.position.copy(pivot);
+  for(const child of [...component.children]){
+   if(excluded.has(child))continue;
+   component.remove(child);child.position.sub(pivot);group.add(child);
+  }
+  component.add(group);return group;
+ };
+
+ // Install pivots before editor baselines are captured. The component root
+ // remains the editable object; only the mast/spar/sail assembly rotates.
+ // Standing rigging is deliberately excluded from that pivot: its hull-side
+ // fittings must remain in the hull frame while its masthead ends are updated
+ // from the mast pivot below. Rotating the whole rigging group and then trying
+ // to counter-rotate its tube vertices causes endpoint drift.
+ const mastParts=[...registry.values()].filter(p=>p.userData.mastControl);
+ const mastStaySets=new Map(),pendingMastStays=[],migratedTransformFrames=new Map();
+ const hullPart=registry.get('hull')||root;
+
+ // Capture each stay's authored endpoints in their original source frame
+ // before applying saved editor transforms. The hull fitting is stored in
+ // hull-local coordinates; the head is stored in the mast pivot's local frame.
+ for(const mast of mastParts){
+  const control=mast.userData.mastControl,id=control.mastId;
+  root.updateMatrixWorld(true);
+  const pending=[];
+  root.traverse(object=>{
+   const metadata=object.userData.dynamicMastStay,attribute=object.geometry?.attributes?.position;
+   if(!metadata||metadata.mastId!==id||!object.isMesh||!attribute||!object.parent)return;
+   const radialSegments=metadata.radialSegments??7,segments=metadata.segments;
+   const stride=radialSegments+1;
+   if(!Number.isInteger(segments)||segments<1||attribute.count!==(segments+1)*stride)return;
+   const sourceFrame=metadata.coordinateSpace==='mast-group'?mast:object.parent;
+   const fixedPoint=metadata.fixedPoint||
+    (Array.isArray(metadata.points)?metadata.points[metadata.fixedEndIndex??metadata.points.length-1]:null);
+   if(!Array.isArray(fixedPoint)||!sourceFrame)return;
+   const fixedWorld=sourceFrame.localToWorld(new THREE.Vector3(...fixedPoint));
+   // Use the actual generated tube ring for the moving end. Across the fleet,
+   // some generators author tube points in the mast frame and others in the
+   // ship frame; metadata.points[0] alone cannot safely identify that frame.
+   const startCenter=ringCenterFromArray(attribute.array,0,segments,radialSegments);
+   const mastHeadWorld=object.localToWorld(startCenter.clone());
+   pending.push({
+    mesh:object,mast,metadata,segments,radialSegments,
+    fixedHullLocal:hullPart.worldToLocal(fixedWorld.clone()).toArray(),
+    mastHeadWorld
+   });
+  });
+
+  // Keep the original hierarchy intact while saved component transforms
+  // are applied. These rigging transforms were authored relative to this
+  // hierarchy; reparenting before loading them would apply legacy offsets and
+  // scales in a different coordinate frame and compound them.
+  const standing=registry.get('standing-rigging-'+id)||mast.getObjectByName('standing-rigging-'+id);
+  const fittings=['chainplates-'+id,'backstay-chainplates-'+id]
+   .map(name=>registry.get(name)).filter(Boolean);
+  const excluded=new Set(standing?[standing]:[]);
+  const pivot=control.pivotGroup||mast.userData.animationPivot||
+   makeNestedPivot(mast,V(0,0,0),mast.name+'-mast-step-pivot',excluded);
+  control.pivotGroup=pivot;
+  control.windHeelMaxDeg=Number(control.windHeelMaxDeg)||2.5;
+  control.windRakeMaxDeg=Number(control.windRakeMaxDeg)||1.2;
+  mast.userData.animationPivot=pivot;
+  pivot.userData.articulation={kind:'mast-step',mastId:id,heelLimitDeg:control.windHeelMaxDeg,rakeLimitDeg:control.windRakeMaxDeg};
+
+  root.updateMatrixWorld(true);
+  for(const stay of pending){
+   stay.pivot=pivot;
+   stay.startPivotLocal=pivot.worldToLocal(stay.mastHeadWorld.clone()).toArray();
+   stay.standing=standing;
+   stay.fittings=fittings;
+   pendingMastStays.push(stay);
+  }
+ }
+
+ function ringCenterFromArray(array,ring,segments,radialSegments){
+  const stride=radialSegments+1,offset=ring*stride*3,center=new THREE.Vector3();
+  for(let radial=0;radial<=radialSegments;radial++){
+   const index=offset+radial*3;
+   center.add(new THREE.Vector3(array[index],array[index+1],array[index+2]));
+  }
+  return center.multiplyScalar(1/stride);
+ }
+ function migratePartPreservingWorld(object,newParent){
+  if(!object||!newParent||object.parent===newParent)return;
+  root.updateMatrixWorld(true);
+  const oldParent=object.parent,oldBase=base.get(object.name);
+  if(!oldParent||!oldBase)return;
+  // Re-express the original generator baseline through the old parent's
+  // current world matrix. This converts saved parent transforms correctly,
+  // including rotations and non-uniform scale.
+  const baseQuaternion=new THREE.Quaternion().setFromEuler(oldBase.rotation);
+  const baselineLocal=new THREE.Matrix4().compose(oldBase.position,baseQuaternion,oldBase.scale);
+  const oldParentWorld=oldParent.matrixWorld.clone();
+  const newParentWorld=newParent.matrixWorld.clone();
+  const baselineWorld=oldParentWorld.clone().multiply(baselineLocal);
+  const hadSavedTransform=Object.prototype.hasOwnProperty.call(state.partTransforms,object.name);
+  newParent.attach(object);
+  root.updateMatrixWorld(true);
+  const baselineInNewParent=newParent.matrixWorld.clone().invert().multiply(baselineWorld);
+  const basePosition=new THREE.Vector3(),baseQuaternionNew=new THREE.Quaternion(),baseScale=new THREE.Vector3();
+  baselineInNewParent.decompose(basePosition,baseQuaternionNew,baseScale);
+  const baseRotation=new THREE.Euler().setFromQuaternion(baseQuaternionNew,'XYZ');
+  const neutral={position:basePosition,rotation:baseRotation,scale:baseScale};
+  base.set(object.name,neutral);
+  generatorBase.set(object.name,{
+   position:basePosition.clone(),rotation:baseRotation.clone(),scale:baseScale.clone()
+  });
+  migratedTransformFrames.set(object.name,{
+   oldParentWorld,newParentWorld:newParent.matrixWorld.clone(),
+   oldBase:{position:oldBase.position.clone(),rotation:oldBase.rotation.clone(),scale:oldBase.scale.clone()},
+   newBase:{position:basePosition.clone(),rotation:baseRotation.clone(),scale:baseScale.clone()}
+  });
+  if(hadSavedTransform){
+   // Store the equivalent delta in the new parent frame so get/set/save/reset
+   // continue to describe the same world-space edit after migration.
+   state.partTransforms[object.name]={
+    x:object.position.x-basePosition.x,
+    y:object.position.y-basePosition.y,
+    z:object.position.z-basePosition.z,
+    rx:object.rotation.x-baseRotation.x,
+    ry:object.rotation.y-baseRotation.y,
+    rz:object.rotation.z-baseRotation.z,
+    sx:object.scale.x/(baseScale.x||1),
+    sy:object.scale.y/(baseScale.y||1),
+    sz:object.scale.z/(baseScale.z||1)
+   };
+  }
+ }
+ function isUnlinked(object){
+  for(let parent=object;parent;parent=parent.parent)if(parent===unlinked)return true;
+  return false;
+ }
+ function resolveFixedFitting(stay){
+  const {metadata,mast,standing,fittings=[]}=stay;
+  const point=metadata.fixedPoint||
+   (Array.isArray(metadata.points)?metadata.points[metadata.fixedEndIndex??metadata.points.length-1]:null);
+  if(!Array.isArray(point))return null;
+  // The points are authored in the standing group frame. Applying its saved
+  // transform first lets us find the actual chainplate position after edits.
+  const sourceFrame=metadata.coordinateSpace==='mast-group'?(standing||mast):(stay.mesh.parent||mast);
+  const target=sourceFrame.localToWorld(new THREE.Vector3(...point));
+  let best=null;
+  for(const fitting of fittings){
+   if(fitting.parent===unlinked)continue;
+   fitting.updateWorldMatrix(true,true);
+   fitting.traverse(object=>{
+    if(!object.isMesh||object.geometry?.type!=='CylinderGeometry')return;
+    const geometry=object.geometry;
+    geometry.computeBoundingBox();
+    const bounds=geometry.boundingBox;
+    if(!bounds)return;
+    const a=object.localToWorld(new THREE.Vector3(0,bounds.min.y,0));
+    const b=object.localToWorld(new THREE.Vector3(0,bounds.max.y,0));
+    const segment=b.clone().sub(a),lengthSq=segment.lengthSq();
+    if(lengthSq<1e-12)return;
+    const t=THREE.MathUtils.clamp(target.clone().sub(a).dot(segment)/lengthSq,0,1);
+    const nearest=a.addScaledVector(segment,t);
+    const distance=nearest.distanceTo(target);
+    if(!best||distance<best.distance)best={point:nearest,distance};
+   });
+  }
+  // If a vessel uses a non-cylinder fitting, retain its declared endpoint.
+  const fixedWorld=best&&best.distance<1?best.point:target;
+  return hullPart.worldToLocal(fixedWorld.clone()).toArray();
+ }
+ function migrateStandingRigging(){
+  for(const stay of pendingMastStays){
+   if(stay.standing&&!isUnlinked(stay.standing)&&stay.standing.parent!==root){
+    root.updateMatrixWorld(true);
+    migratePartPreservingWorld(stay.standing,root);
+   }
+  }
+  root.updateMatrixWorld(true);
+  return true;
+ }
+ function migrateRiggingFittings(){
+  for(const stay of pendingMastStays){
+   for(const fitting of stay.fittings||[]){
+    // A chainplate nested inside an explicitly detached standing group still
+    // belongs to the hull. Only a fitting detached in its own right stays out.
+    if(fitting.parent!==unlinked&&fitting.parent!==hullPart){
+     root.updateMatrixWorld(true);
+     migratePartPreservingWorld(fitting,hullPart);
+    }
+   }
+  }
+  root.updateMatrixWorld(true);
+  return true;
+ }
+ function migrateMastRigging(){
+  migrateStandingRigging();
+  migrateRiggingFittings();
+  return true;
+ }
+ function finalizeMastStays(){
+  // Resolve the hull anchor after saved transforms, against the actual
+  // chainplate geometry. This runs after migration and state application.
+  root.updateMatrixWorld(true);
+  for(const stay of pendingMastStays){
+   const resolved=resolveFixedFitting(stay);
+   if(resolved)stay.fixedHullLocal=resolved;
+  }
+  root.updateMatrixWorld(true);
+  mastStaySets.clear();
+  for(const stay of pendingMastStays){
+   const {mesh,mast,pivot,metadata,segments,radialSegments,fixedHullLocal,startPivotLocal}=stay;
+   if(isUnlinked(mesh))continue;
+   const attribute=mesh.geometry?.attributes?.position;
+   if(!attribute||attribute.count!==(segments+1)*(radialSegments+1))continue;
+
+   const mastHeadWorld=pivot.localToWorld(new THREE.Vector3(...startPivotLocal));
+   const fixedWorld=hullPart.localToWorld(new THREE.Vector3(...fixedHullLocal));
+   const mastHeadLocal=mesh.worldToLocal(mastHeadWorld.clone());
+   const fixedLocal=mesh.worldToLocal(fixedWorld.clone());
+   const original=new Float32Array(attribute.array);
+   const startCenter=ringCenterFromArray(original,0,segments,radialSegments);
+   const endCenter=ringCenterFromArray(original,segments,segments,radialSegments);
+   const startCorrection=mastHeadLocal.sub(startCenter);
+   const endCorrection=fixedLocal.sub(endCenter);
+   const positions=attribute.array,stride=radialSegments+1;
+   for(let ring=0;ring<=segments;ring++){
+    const t=ring/segments,from=1-t,offset=ring*stride*3;
+    for(let radial=0;radial<=radialSegments;radial++){
+     const index=offset+radial*3;
+     positions[index]=original[index]+startCorrection.x*from+endCorrection.x*t;
+     positions[index+1]=original[index+1]+startCorrection.y*from+endCorrection.y*t;
+     positions[index+2]=original[index+2]+startCorrection.z*from+endCorrection.z*t;
+    }
+   }
+   attribute.needsUpdate=true;
+   mesh.geometry.computeVertexNormals();
+   mesh.geometry.computeBoundingBox();
+   mesh.geometry.computeBoundingSphere();
+
+   metadata.anchorFrame='hull';
+   metadata.fixedPointHull=fixedHullLocal.slice();
+   metadata.mastHeadPivotLocal=startPivotLocal.slice();
+   const data={
+    ...metadata,segments,radialSegments,
+    fixedHullLocal:fixedHullLocal.slice(),
+    startPivotLocal:startPivotLocal.slice(),
+    restPositions:new Float32Array(attribute.array),
+    baseStartLocal:ringCenterFromArray(attribute.array,0,segments,radialSegments),
+    baseFixedLocal:ringCenterFromArray(attribute.array,segments,segments,radialSegments),
+    lastMastHeadLocal:mastHeadLocal.clone(),
+    lastFixedLocal:fixedLocal.clone()
+   };
+   const set=mastStaySets.get(metadata.mastId)||{pivot,stays:[]};
+   set.stays.push({mesh,mast,pivot,data});
+   mastStaySets.set(metadata.mastId,set);
+  }
+  return true;
+ }
+ const sailControlsForSetup=[...registry.values()].filter(p=>p.userData.sailControl);
+ for(const sail of sailControlsForSetup){
+  const control=sail.userData.sailControl;
+  const cloth=registry.get(control.clothPart);
+  let canvas=null;
+  cloth?.traverse(object=>{
+   if(object.isMesh&&object.name==='sail-shaped-cloth')canvas=object;
+  });
+  if(!canvas?.geometry?.attributes?.position)continue;
+  const position=canvas.geometry.attributes.position;
+  const indices=canvas.geometry.index?.array;
+  const stride=indices?.length>1?indices[1]:0;
+  const inferredColumns=stride>1?stride-1:0;
+  const inferredRows=inferredColumns&&position.count%stride===0?position.count/stride-1:0;
+  const bounds=canvas.geometry.boundingBox||canvas.geometry.computeBoundingBox();
+  const size=bounds?.getSize(new THREE.Vector3())||new THREE.Vector3(1,1,1);
+  const authored=canvas.userData.sailCloth||{};
+  const rows=authored.rows||inferredRows,columns=authored.columns||inferredColumns;
+  // In this coordinate system fore-and-aft sails have their long span on Z
+  // and therefore billow across X; square sails span X and billow across Z.
+  const axis=authored.axis||(size.x>size.z?'z':'x');
+  canvas.userData.sailCloth={rows,columns,axis};
+
+  let pivot=control.pivotGroup||sail.userData.animationPivot;
+  let deployment=control.deploymentPart?sail.getObjectByName(control.deploymentPart):null;
+  if(!deployment){
+   deployment=new THREE.Group();
+   deployment.name='sail-deployment-'+sail.name;
+   deployment.userData.sailDeploymentAssembly=true;
+   if(pivot){
+    for(const child of [...pivot.children]){
+     pivot.remove(child);deployment.add(child);
+    }
+    pivot.add(deployment);
+    control.deploymentAnchorY=0;
+    control.pivotPoint ||= [0,0,0];
+   }else{
+    for(const child of [...sail.children]){
+     sail.remove(child);deployment.add(child);
+    }
+    sail.add(deployment);
+    const tack=new THREE.Vector3(position.getX(0),position.getY(0),position.getZ(0));
+    pivot=makeNestedPivot(sail,tack,sail.name+'-tack-animation-pivot');
+    control.pivotPoint=tack.toArray();
+    control.deploymentAnchorY=tack.y;
+   }
+   control.deploymentPart=deployment.name;
+  }
+  control.pivotGroup=pivot||sail;
+  control.windPivot=true;
+  sail.userData.animationPivot=pivot||sail;
+  sail.userData.windControl={kind:'sail'};
+ }
+
+ const rudder=registry.get('rudder');
+ if(rudder&&!rudder.userData.steeringControl?.pivotGroup){
+  const control=rudder.userData.steeringControl||{};
+  const pivot=makeNestedPivot(rudder,V(0,0,0),rudder.name+'-stock-pivot');
+  rudder.userData.steeringControl={...control,axis:control.axis||'y',rotationSign:control.rotationSign??1,maxAngle:control.maxAngle??.62,pivotGroup:pivot};
+ }
+ const wheel=registry.get('helm-wheel');
+ if(wheel&&!wheel.userData.steeringControl?.pivotGroup){
+  const control=wheel.userData.steeringControl||{};
+  wheel.updateWorldMatrix(true,false);
+  let axle=wheel.getObjectByName('helm-wheel-ring')||wheel.getObjectByName('helm-wheel-hub');
+  if(!axle)wheel.traverse(object=>{if(!axle&&object.isMesh&&object.geometry?.type==='TorusGeometry')axle=object;});
+  let pivotPoint;
+  if(axle)pivotPoint=wheel.worldToLocal(axle.getWorldPosition(new THREE.Vector3()));
+  else{
+   const bounds=new THREE.Box3().setFromObject(wheel);
+   pivotPoint=wheel.worldToLocal(bounds.getCenter(new THREE.Vector3()));
+  }
+  const pivot=makeNestedPivot(wheel,pivotPoint,wheel.name+'-axle-pivot');
+  wheel.userData.steeringControl={...control,axis:control.axis||'z',ratio:control.ratio??4.5,rotationSign:control.rotationSign??1,pivotGroup:pivot};
+ }
+
  const unlinked=new THREE.Group();unlinked.name='unlinked-parts';root.add(unlinked);
- const original=new Map(),base=new Map(),state={rudderAngle:0,sailTrim:{},sailDeployment:{},mastLean:{},hiddenParts:{},unlinkedParts:[],partTransforms:{},time:0};
+ const original=new Map(),base=new Map(),generatorBase=new Map(),resetBaseline=new Map(),detachedBase=new Map(),state={rudderAngle:0,sailTrim:{},sailDeployment:{},mastLean:{},hiddenParts:{},unlinkedParts:[],partTransforms:{},runtimePose:{},windBlend:0,time:0};
  for(const [name,obj] of registry){
-  original.set(name,{parent:obj.parent,position:obj.position.clone(),quaternion:obj.quaternion.clone(),rotation:obj.rotation.clone(),scale:obj.scale.clone()});
-  base.set(name,{position:obj.position.clone(),rotation:obj.rotation.clone(),scale:obj.scale.clone()});
+  original.set(name,{parent:obj.parent,position:obj.position.clone(),quaternion:obj.quaternion.clone(),rotation:obj.rotation.clone(),scale:obj.scale.clone(),visible:obj.visible});
+  const initial={position:obj.position.clone(),rotation:obj.rotation.clone(),scale:obj.scale.clone()};
+  base.set(name,initial);
+  generatorBase.set(name,{position:initial.position.clone(),rotation:initial.rotation.clone(),scale:initial.scale.clone()});
  }
  const sailParts=[...registry.values()].filter(p=>p.userData.sailControl);
- const cloths=new Map(sailParts.map(p=>[p.name,{cloth:registry.get(p.userData.sailControl.clothPart),from:1,target:1,elapsed:0,duration:0}]));
- const mastParts=[...registry.values()].filter(p=>p.userData.mastControl);
+ const cloths=new Map(sailParts.map(p=>{
+   const cloth=registry.get(p.userData.sailControl.clothPart);
+   const deployment=p.getObjectByName(p.userData.sailControl.deploymentPart);
+   let mesh=null,sailCloth=null,gridRows=0,gridColumns=0,gridStride=0;
+   cloth?.traverse(object=>{
+    if(object.isMesh&&object.userData.sailCloth){
+     mesh=object;
+     const metadata=object.userData.sailCloth;
+     const position=object.geometry.attributes.position;
+     const restPositions=new Float32Array(position.array);
+     const rows=metadata.rows,columns=metadata.columns,stride=columns+1;
+     gridRows=rows;gridColumns=columns;gridStride=stride;
+     const axisIndex=metadata.axis==='x'?0:2;
+     const baseAxis=new Float32Array(position.count),camberOffsets=new Float32Array(position.count);
+     if(rows>0&&columns>0&&position.count===(rows+1)*stride){
+      const p00=restPositions[axisIndex];
+      const p10=restPositions[columns*3+axisIndex];
+      const p01=restPositions[(rows*stride)*3+axisIndex];
+      const p11=restPositions[(rows*stride+columns)*3+axisIndex];
+      for(let row=0;row<=rows;row++){
+       const v=row/rows;
+       for(let col=0;col<=columns;col++){
+        const u=col/columns,index=row*stride+col;
+        const lower=THREE.MathUtils.lerp(p00,p10,u);
+        const upper=THREE.MathUtils.lerp(p01,p11,u);
+        const flat=THREE.MathUtils.lerp(lower,upper,v);
+        baseAxis[index]=flat;
+        camberOffsets[index]=restPositions[index*3+axisIndex]-flat;
+       }
+      }
+      sailCloth={...metadata,restPositions,axisIndex,baseAxis,camberOffsets};
+     }
+    }
+   });
+   const anchorY=p.userData.sailControl.deploymentAnchorY??p.userData.sailControl.pivotPoint?.[1]??0;
+   if(mesh?.geometry&&!mesh.geometry.boundingBox)mesh.geometry.computeBoundingBox();
+   const geometryBounds=mesh?.geometry?.boundingBox;
+   const furlAnchorY=geometryBounds?.max?.y??anchorY;
+   // Derive the actual tack-to-head attachment line from the first mesh
+   // column. For headsails this follows the forestay/luff; for mast sails it
+   // follows the mast-side edge. That line is the invariant furling anchor.
+   let furlFrame=null,furlAnchor=null,furlAxis=null;
+   if(mesh?.geometry?.attributes?.position&&deployment&&gridRows>0&&gridColumns>0){
+    root.updateMatrixWorld(true);
+    const attribute=mesh.geometry.attributes.position;
+    const pointInDeployment=index=>{
+     const point=new THREE.Vector3().fromBufferAttribute(attribute,index);
+     return deployment.worldToLocal(mesh.localToWorld(point));
+    };
+    const supportStart=pointInDeployment(0);
+    const supportEnd=pointInDeployment(gridRows*gridStride);
+    const supportAxis=supportEnd.clone().sub(supportStart);
+    if(supportAxis.lengthSq()>1e-10){
+     furlAnchor=supportStart.clone();
+     furlAxis=supportAxis.normalize();
+     furlFrame=new THREE.Group();
+     furlFrame.name='sail-furl-frame-'+p.name;
+     furlFrame.matrixAutoUpdate=false;
+     furlFrame.userData.sailFurlEdge={start:supportStart.toArray(),end:supportEnd.toArray()};
+     // Identity at full sail: child coordinates remain unchanged when moved
+     // beneath the new frame. The frame later contracts perpendicular to the
+     // authored support line, preserving its full length, position and angle.
+     for(const child of [...deployment.children]){
+      deployment.remove(child);
+      furlFrame.add(child);
+      // The editor's reset/relink baseline was captured before this internal
+      // wrapper existed. Keep registered child parts parented to the frame in
+      // that baseline so reset/detach/relink never bypasses the furl transform.
+      const saved=original.get(child.name);
+      if(saved&&registry.get(child.name)===child)saved.parent=furlFrame;
+     }
+     deployment.add(furlFrame);
+    }
+   }
+   return [p.name,{
+    cloth,deployment,mesh,sailCloth,from:1,target:1,currentScale:1,elapsed:0,duration:0,
+    pivotY:anchorY,furlAnchorY,
+    fromPositionY:deployment?.position.y||0,targetPositionY:deployment?.position.y||0,
+    furlFrame,furlAnchor,furlAxis
+   }];
+  }));
+ const applySailFurlScale=(animation,scale)=>{
+  if(!animation?.furlFrame||!animation.furlAnchor||!animation.furlAxis)return;
+  const axis=animation.furlAxis,anchor=animation.furlAnchor,k=1-scale;
+  // S = scale*I + (1-scale)*(axis*axis^T). This contracts every direction
+  // perpendicular to the real luff while leaving every point on that angled
+  // line exactly fixed. No world-horizontal/world-vertical assumption exists.
+  const m00=scale+k*axis.x*axis.x,m01=k*axis.x*axis.y,m02=k*axis.x*axis.z;
+  const m10=k*axis.y*axis.x,m11=scale+k*axis.y*axis.y,m12=k*axis.y*axis.z;
+  const m20=k*axis.z*axis.x,m21=k*axis.z*axis.y,m22=scale+k*axis.z*axis.z;
+  const tx=anchor.x-(m00*anchor.x+m01*anchor.y+m02*anchor.z);
+  const ty=anchor.y-(m10*anchor.x+m11*anchor.y+m12*anchor.z);
+  const tz=anchor.z-(m20*anchor.x+m21*anchor.y+m22*anchor.z);
+  animation.furlFrame.matrix.set(
+   m00,m01,m02,tx,
+   m10,m11,m12,ty,
+   m20,m21,m22,tz,
+   0,0,0,1
+  );
+  animation.furlFrame.matrixWorldNeedsUpdate=true;
+ };
+ const runtimeTarget=p=>p.userData.animationPivot||p.userData.steeringControl?.pivotGroup||p;
+  const setRuntimeRotation=(name,values={})=>{
+   const p=registry.get(name),b=base.get(name);if(!p||!b)return false;
+   const target=runtimeTarget(p);
+   const pose={...(state.runtimePose[name]||{}),...values};state.runtimePose[name]=pose;
+   if(target===p){
+    const authored=state.partTransforms[name]||{};
+    p.rotation.set(b.rotation.x+(authored.rx||0)+(pose.rx||0),b.rotation.y+(authored.ry||0)+(pose.ry||0),b.rotation.z+(authored.rz||0)+(pose.rz||0),'XYZ');
+   }else target.rotation.set(pose.rx||0,pose.ry||0,pose.rz||0,'XYZ');
+   return true;
+  };
  const api={
   parts:registry,
+  migrateMastRigging,
+  migrateStandingRigging,
+  migrateRiggingFittings,
+  finalizeMastStays,
+  migratedRiggingPartNames(){const names=new Set();for(const stay of pendingMastStays){if(stay.standing)names.add(stay.standing.name);for(const fitting of stay.fittings||[])names.add(fitting.name);}return [...names];},
+  standingRiggingPartNames(){return [...new Set(pendingMastStays.map(stay=>stay.standing?.name).filter(Boolean))];},
+  riggingFittingPartNames(){return [...new Set(pendingMastStays.flatMap(stay=>(stay.fittings||[]).map(fitting=>fitting.name)))];},
   getPart(n){return registry.get(n)||null;},
-  getPartTransform(n){const p=registry.get(n),b=base.get(n);if(!p||!b)return null;return {
+  getPartTransform(n){const p=registry.get(n),b=base.get(n);if(!p||!b)return null;const pose=runtimeTarget(p)===p?(state.runtimePose[n]||{}):{};return {
    x:p.position.x-b.position.x,y:p.position.y-b.position.y,z:p.position.z-b.position.z,
-   rx:p.rotation.x-b.rotation.x,ry:p.rotation.y-b.rotation.y,rz:p.rotation.z-b.rotation.z,
+   rx:p.rotation.x-b.rotation.x-(pose.rx||0),ry:p.rotation.y-b.rotation.y-(pose.ry||0),rz:p.rotation.z-b.rotation.z-(pose.rz||0),
    sx:p.scale.x/(b.scale.x||1),sy:p.scale.y/(b.scale.y||1),sz:p.scale.z/(b.scale.z||1)};},
-  detachPart(n){const p=registry.get(n);if(!p||p.parent===unlinked)return false;root.updateMatrixWorld(true);const world=p.matrixWorld.clone();unlinked.updateMatrixWorld(true);p.parent?.remove(p);unlinked.add(p);unlinked.updateMatrixWorld(true);
+  detachPart(n){const p=registry.get(n);if(!p||p.parent===unlinked)return false;root.updateMatrixWorld(true);const world=p.matrixWorld.clone(),savedBase=base.get(n);if(savedBase)detachedBase.set(n,{position:savedBase.position.clone(),rotation:savedBase.rotation.clone(),scale:savedBase.scale.clone()});unlinked.updateMatrixWorld(true);p.parent?.remove(p);unlinked.add(p);unlinked.updateMatrixWorld(true);
    unlinked.matrixWorld.clone().invert().multiply(world).decompose(p.position,p.quaternion,p.scale);base.set(n,{position:p.position.clone(),rotation:p.rotation.clone(),scale:p.scale.clone()});state.unlinkedParts=[...new Set([...state.unlinkedParts,n])];return true;},
-  relinkPart(n){const p=registry.get(n),o=original.get(n);if(!p||!o||p.parent!==unlinked)return false;unlinked.updateMatrixWorld(true);const world=p.matrixWorld.clone();o.parent.updateMatrixWorld(true);o.parent.add(p);
-   o.parent.matrixWorld.clone().invert().multiply(world).decompose(p.position,p.quaternion,p.scale);base.set(n,{position:p.position.clone(),rotation:p.rotation.clone(),scale:p.scale.clone()});state.unlinkedParts=state.unlinkedParts.filter(x=>x!==n);return true;},
+  relinkPart(n){const p=registry.get(n),o=resetBaseline.get(n)||original.get(n);if(!p||!o||p.parent!==unlinked)return false;unlinked.updateMatrixWorld(true);const world=p.matrixWorld.clone();o.parent.updateMatrixWorld(true);o.parent.add(p);
+   o.parent.matrixWorld.clone().invert().multiply(world).decompose(p.position,p.quaternion,p.scale);const restoredBase=detachedBase.get(n);if(restoredBase){base.set(n,restoredBase);detachedBase.delete(n);}else base.set(n,{position:p.position.clone(),rotation:p.rotation.clone(),scale:p.scale.clone()});state.unlinkedParts=state.unlinkedParts.filter(x=>x!==n);return true;},
   setPartVisible(n,v){const p=registry.get(n);if(!p)return false;p.visible=!!v;state.hiddenParts[n]=!p.visible;return true;},
-  setPartTransform(n,t={}){const p=registry.get(n),b=base.get(n);if(!p||!b)return false;const a={x:clamp(t.x,-24,24),y:clamp(t.y,-24,24),z:clamp(t.z,-24,24),rx:clamp(t.rx,-Math.PI,Math.PI),ry:clamp(t.ry,-Math.PI,Math.PI),rz:clamp(t.rz,-Math.PI,Math.PI),sx:clamp(t.sx??1,.05,20),sy:clamp(t.sy??1,.05,20),sz:clamp(t.sz??1,.05,20)};
-   p.position.copy(b.position).add(V(a.x,a.y,a.z));p.rotation.set(b.rotation.x+a.rx,b.rotation.y+a.ry,b.rotation.z+a.rz,'XYZ');p.scale.set(b.scale.x*a.sx,b.scale.y*a.sy,b.scale.z*a.sz);state.partTransforms[n]=a;return true;},
-  resetPartTransform(n){const p=registry.get(n),o=original.get(n);if(!p||!o)return false;if(p.parent!==o.parent){p.parent?.remove(p);o.parent.add(p);}p.position.copy(o.position);p.quaternion.copy(o.quaternion);p.rotation.copy(o.rotation);p.scale.copy(o.scale);p.visible=true;p.updateMatrix();base.set(n,{position:o.position.clone(),rotation:o.rotation.clone(),scale:o.scale.clone()});delete state.partTransforms[n];delete state.hiddenParts[n];state.unlinkedParts=state.unlinkedParts.filter(x=>x!==n);return true;},
-  setRudderAngle(a){const p=registry.get('rudder');if(!p)return false;state.rudderAngle=clamp(a,-.62,.62);p.rotation.y=state.rudderAngle+(state.partTransforms.rudder?.ry||0);return true;},
-  setSailTrim(id,a){const targets=sailParts.filter(p=>p.userData.sailControl.mastId===id);if(!targets.length)return false;state.sailTrim[id]=clamp(a,-1.1,1.1);for(const p of targets)p.rotation.y=state.sailTrim[id]+(state.partTransforms[p.name]?.ry||0);return true;},
-  setMastLean(id,a){const p=mastParts.find(x=>x.userData.mastControl.mastId===id);if(!p)return false;state.mastLean[id]=clamp(a,-.16,.16);const b=base.get(p.name);p.rotation.x=(b?.rotation.x||0)+state.mastLean[id]+(state.partTransforms[p.name]?.rx||0);return true;},
-  setSailDeployment(id,mode='full',duration=.85){const targets=sailParts.filter(p=>p.userData.sailControl.mastId===id);if(!targets.length||!['full','reefed','furled'].includes(mode))return false;const scale=mode==='full'?1:mode==='reefed'?.48:.001;state.sailDeployment[id]=mode;for(const p of targets){const a=cloths.get(p.name);if(!a?.cloth)continue;a.from=a.cloth.scale.y;a.target=scale;a.elapsed=0;a.duration=clamp(duration,0,4);if(a.duration===0)a.cloth.scale.y=scale;}return true;},
-  animateShip(dt=.016,weather={}){state.time+=clamp(dt,0,.1);const wind=clamp(weather.windStrength??.25,0,1),angle=Number(weather.windAngle)||0;for(const p of sailParts){const id=p.userData.sailControl.mastId,manual=state.sailTrim[id]||0,gust=Math.sin(state.time*1.4+id.length)*.018*wind;p.rotation.y=(state.partTransforms[p.name]?.ry||0)+manual+Math.sin(angle)*.08*wind+gust;const a=cloths.get(p.name);if(a?.cloth&&a.elapsed<a.duration){a.elapsed=Math.min(a.duration,a.elapsed+clamp(dt,0,.1));const t=a.duration>0?a.elapsed/a.duration:1;a.cloth.scale.y=THREE.MathUtils.lerp(a.from,a.target,t*t*(3-2*t));}}},
-  getShipState(){const partTransforms=Object.fromEntries([...registry.keys()].map(n=>[n,api.getPartTransform(n)]).filter(([,v])=>v&&Object.values(v).some((x,i)=>i<6?Math.abs(x)>1e-8:Math.abs(x-1)>1e-8)));return {rudderAngle:state.rudderAngle,sailTrim:{...state.sailTrim},sailDeployment:{...state.sailDeployment},mastLean:{...state.mastLean},hiddenParts:Object.fromEntries(Object.entries(state.hiddenParts).filter(([,v])=>v)),unlinkedParts:[...state.unlinkedParts],partTransforms};},
-  applyShipState(s={}){for(const n of s.unlinkedParts||[])if(registry.has(n))api.detachPart(n);for(const [n,t] of Object.entries(s.partTransforms||{}))if(registry.has(n))api.setPartTransform(n,t);api.setRudderAngle(s.rudderAngle||0);for(const [id,v] of Object.entries(s.sailTrim||{}))api.setSailTrim(id,v);for(const [id,v] of Object.entries(s.sailDeployment||{}))api.setSailDeployment(id,v,0);for(const [id,v] of Object.entries(s.mastLean||{}))api.setMastLean(id,v);for(const [n,v] of Object.entries(s.hiddenParts||{}))if(registry.has(n))api.setPartVisible(n,!v);return true;},
+  setPartTransform(n,t={}){const p=registry.get(n),b=base.get(n);if(!p||!b)return false;const a={x:clamp(t.x,-1000,1000),y:clamp(t.y,-1000,1000),z:clamp(t.z,-1000,1000),rx:clamp(t.rx,-Math.PI*1000,Math.PI*1000),ry:clamp(t.ry,-Math.PI*1000,Math.PI*1000),rz:clamp(t.rz,-Math.PI*1000,Math.PI*1000),sx:clamp(t.sx??1,.001,1000),sy:clamp(t.sy??1,.001,1000),sz:clamp(t.sz??1,.001,1000)};
+   p.position.copy(b.position).add(V(a.x,a.y,a.z));state.partTransforms[n]=a;const pose=runtimeTarget(p)===p?(state.runtimePose[n]||{}):{};p.rotation.set(b.rotation.x+a.rx+(pose.rx||0),b.rotation.y+a.ry+(pose.ry||0),b.rotation.z+a.rz+(pose.rz||0),'XYZ');p.scale.set(b.scale.x*a.sx,b.scale.y*a.sy,b.scale.z*a.sz);return true;},
+  captureResetBaseline(defaultState={},defaultFrameVersion=1){
+   const defaultTransforms=defaultState.partTransforms||{},hidden=defaultState.hiddenParts||{},unlinkedNames=new Set(defaultState.unlinkedParts||[]);
+   const convertLegacy=(name,t)=>{
+    const frame=migratedTransformFrames.get(name);if(!frame)return t;
+    const oldBase=frame.oldBase,newBase=frame.newBase;
+    const oldPosition=oldBase.position.clone().add(V(t.x||0,t.y||0,t.z||0));
+    const oldRotation=new THREE.Euler(oldBase.rotation.x+(t.rx||0),oldBase.rotation.y+(t.ry||0),oldBase.rotation.z+(t.rz||0),'XYZ');
+    const oldScale=oldBase.scale.clone().multiply(V(t.sx??1,t.sy??1,t.sz??1));
+    const local=new THREE.Matrix4().compose(oldPosition,new THREE.Quaternion().setFromEuler(oldRotation),oldScale);
+    const world=frame.oldParentWorld.clone().multiply(local);
+    const next=frame.newParentWorld.clone().invert().multiply(world);
+    const position=new THREE.Vector3(),quaternion=new THREE.Quaternion(),scale=new THREE.Vector3();
+    next.decompose(position,quaternion,scale);
+    const rotation=new THREE.Euler().setFromQuaternion(quaternion,'XYZ');
+    return {x:position.x-newBase.position.x,y:position.y-newBase.position.y,z:position.z-newBase.position.z,
+     rx:rotation.x-newBase.rotation.x,ry:rotation.y-newBase.rotation.y,rz:rotation.z-newBase.rotation.z,
+     sx:scale.x/(newBase.scale.x||1),sy:scale.y/(newBase.scale.y||1),sz:scale.z/(newBase.scale.z||1)};
+   };
+   const intendedParent=name=>{
+    if(unlinkedNames.has(name))return unlinked;
+    for(const stay of pendingMastStays){
+     if(stay.standing?.name===name)return root;
+     if((stay.fittings||[]).some(fitting=>fitting.name===name))return hullPart;
+    }
+    return original.get(name)?.parent||registry.get(name)?.parent||root;
+   };
+   for(const [name,obj] of registry){
+    const neutral=generatorBase.get(name)||base.get(name),authored=original.get(name);
+    if(!neutral)continue;
+    const stored=defaultTransforms[name]||{},transform=Number(defaultFrameVersion)>=2?stored:convertLegacy(name,stored);
+    const position=neutral.position.clone().add(V(transform.x||0,transform.y||0,transform.z||0));
+    const rotation=new THREE.Euler(neutral.rotation.x+(transform.rx||0),neutral.rotation.y+(transform.ry||0),neutral.rotation.z+(transform.rz||0),'XYZ');
+    const scale=neutral.scale.clone().multiply(V(transform.sx??1,transform.sy??1,transform.sz??1));
+    resetBaseline.set(name,{parent:intendedParent(name),position,quaternion:new THREE.Quaternion().setFromEuler(rotation),rotation,scale,visible:authored?.visible!==false&&!hidden[name]});
+   }
+   return true;
+  },
+  resetPartTransform(n){
+   const p=registry.get(n),saved=resetBaseline.get(n)||original.get(n);
+   if(!p||!saved)return false;
+   if(p.parent!==saved.parent){p.parent?.remove(p);saved.parent.add(p);}
+   p.position.copy(saved.position);p.quaternion.copy(saved.quaternion);p.rotation.copy(saved.rotation);p.scale.copy(saved.scale);p.visible=saved.visible;p.updateMatrix();
+   // Runtime pivots are not part of a design transform. Reset them separately so
+   // a wind/steering pose cannot survive a component reset.
+   const target=runtimeTarget(p);
+   if(target!==p)target.rotation.set(0,0,0,'XYZ');
+   delete state.runtimePose[n];
+   if(p.userData.mastControl)state.mastLean[p.userData.mastControl.mastId]=0;
+   if(p.userData.sailControl){
+    state.sailTrim[p.userData.sailControl.mastId]=0;
+    api.setSailDeployment(p.userData.sailControl.mastId,'full',0);
+   }
+   if(n==='rudder'||n==='helm-wheel')api.setRudderAngle(0);
+   const raw=generatorBase.get(n);if(raw)base.set(n,{position:raw.position.clone(),rotation:raw.rotation.clone(),scale:raw.scale.clone()});
+   const transform=api.getPartTransform(n);
+   if(transform&&Object.values(transform).some((x,i)=>i<6?Math.abs(x)>1e-8:Math.abs(x-1)>1e-8))state.partTransforms[n]=transform;
+   else delete state.partTransforms[n];
+   if(p.visible)delete state.hiddenParts[n];else state.hiddenParts[n]=true;
+   if(p.parent===unlinked)state.unlinkedParts=[...new Set([...state.unlinkedParts,n])];
+   else state.unlinkedParts=state.unlinkedParts.filter(x=>x!==n);
+   return true;
+  },
+  setRudderAngle(a){
+    const p=registry.get('rudder');if(!p)return false;
+    const rc=p.userData.steeringControl||{},limit=Math.abs(Number(rc.maxAngle)||.62);
+    state.rudderAngle=clamp(a,-limit,limit);
+    setRuntimeRotation('rudder',{ry:state.rudderAngle*(rc.rotationSign??1)});
+    const wheel=registry.get('helm-wheel');
+    if(wheel){const wc=wheel.userData.steeringControl||{};setRuntimeRotation('helm-wheel',{rz:state.rudderAngle*(wc.ratio??4.5)*(wc.rotationSign??1)});}
+    return true;
+   },
+  setSailTrim(id,a){const targets=sailParts.filter(p=>p.userData.sailControl.mastId===id);if(!targets.length)return false;state.sailTrim[id]=clamp(a,-1.1,1.1);for(const p of targets)setRuntimeRotation(p.name,{ry:state.sailTrim[id]});return true;},
+  setMastLean(id,a){const p=mastParts.find(x=>x.userData.mastControl.mastId===id);if(!p)return false;state.mastLean[id]=clamp(a,-.16,.16);setRuntimeRotation(p.name,{rx:state.mastLean[id]});return true;},
+  setSailDeployment(id,mode='full',duration=.85){
+   const targets=sailParts.filter(p=>p.userData.sailControl.mastId===id);
+   if(!targets.length||!['full','reefed','furled'].includes(mode))return false;
+   const scale=mode==='full'?1:mode==='reefed'?.48:.001;
+   state.sailDeployment[id]=mode;
+   for(const p of targets){
+    const a=cloths.get(p.name);if(!a?.deployment)continue;
+    a.from=a.furlFrame?(a.currentScale??1):a.deployment.scale.y;a.target=scale;
+    a.fromPositionY=a.deployment.position.y;
+    a.targetPositionY=(1-scale)*a.furlAnchorY-a.pivotY;
+    a.elapsed=0;a.duration=clamp(duration,0,4);
+    if(a.duration===0){
+     if(a.furlFrame){a.currentScale=scale;applySailFurlScale(a,scale);}
+     else{a.deployment.scale.y=scale;a.deployment.position.y=a.targetPositionY;}
+    }
+   }
+   return true;
+  },
+  animateShip(dt=.016,weather={}){
+    const delta=clamp(dt,0,.05);state.time+=delta;
+    const gustEnvelope=weather.gusts===true?(0.72+0.28*(0.5+0.5*Math.sin(state.time*1.25))):1;
+    const targetWind=weather.enabled===true?clamp((weather.speedKnots??0)/30,0,1)*gustEnvelope:0;
+    state.windBlend+=(targetWind-state.windBlend)*(1-Math.exp(-delta*2.8));
+    const direction=((Number(weather.directionDeg??90)%360)+360)%360*Math.PI/180;
+    const transverse=Math.sin(direction),leeward=transverse>1e-4?-1:transverse< -1e-4?1:1;
+    const aftness=(1-Math.cos(direction))*.5,trimAngle=leeward*(.08+.82*aftness)*state.windBlend;
+    for(const mast of mastParts){
+     const id=mast.userData.mastControl.mastId;
+     const control=mast.userData.mastControl;
+     const maxHeel=THREE.MathUtils.degToRad(control.windHeelMaxDeg??2.5);
+     const maxRake=THREE.MathUtils.degToRad(control.windRakeMaxDeg??1.2);
+     // Wind-from starboard heels the masthead to port; bow wind adds a
+     // smaller aft rake. The mast-step motion is angle-limited and reversible.
+     setRuntimeRotation(mast.name,{
+      rx:(state.mastLean[id]||0)+Math.cos(direction)*state.windBlend*maxRake,
+      rz:Math.sin(direction)*state.windBlend*maxHeel
+     });
+    }
+    // Enforce both physical endpoints in their owning frames. The masthead
+    // follows the mast pivot; the foot follows the hull fitting. Re-evaluate
+    // local targets so saved/live component transforms cannot drag a stay away
+    // from either attachment. Always deform from the immutable rest array.
+    root.updateMatrixWorld(true);
+    for(const {pivot,stays} of mastStaySets.values()){
+     for(const {mesh,mast,data} of stays){
+      const attribute=mesh.geometry.attributes.position;
+      const stride=data.radialSegments+1;
+      if(!attribute||attribute.count!==(data.segments+1)*stride)continue;
+      const mastHeadWorld=pivot.localToWorld(new THREE.Vector3(...data.startPivotLocal));
+      const fixedWorld=hullPart.localToWorld(new THREE.Vector3(...data.fixedHullLocal));
+      const mastHeadLocal=mesh.worldToLocal(mastHeadWorld.clone());
+      const fixedLocal=mesh.worldToLocal(fixedWorld.clone());
+      if(mastHeadLocal.distanceToSquared(data.lastMastHeadLocal)<1e-12&&
+         fixedLocal.distanceToSquared(data.lastFixedLocal)<1e-12)continue;
+      const startCorrection=mastHeadLocal.sub(data.baseStartLocal);
+      const endCorrection=fixedLocal.sub(data.baseFixedLocal);
+      const positions=attribute.array,rest=data.restPositions;
+      for(let ring=0;ring<=data.segments;ring++){
+       const t=ring/data.segments,from=1-t,offset=ring*stride*3;
+       for(let radial=0;radial<=data.radialSegments;radial++){
+        const index=offset+radial*3;
+        positions[index]=rest[index]+startCorrection.x*from+endCorrection.x*t;
+        positions[index+1]=rest[index+1]+startCorrection.y*from+endCorrection.y*t;
+        positions[index+2]=rest[index+2]+startCorrection.z*from+endCorrection.z*t;
+       }
+      }
+      attribute.needsUpdate=true;
+      mesh.geometry.computeVertexNormals();
+      mesh.geometry.computeBoundingBox();
+      mesh.geometry.computeBoundingSphere();
+      data.lastMastHeadLocal.copy(mastHeadLocal.add(data.baseStartLocal));
+      data.lastFixedLocal.copy(fixedLocal.add(data.baseFixedLocal));
+     }
+    }
+    for(const [name,p] of registry){
+     const control=p.userData.windControl;
+     if(control?.kind==='boom')setRuntimeRotation(name,{ry:trimAngle*(control.trimScale??1)});
+     else if(control?.kind==='gaff')setRuntimeRotation(name,{ry:trimAngle,rx:Math.cos(direction)*state.windBlend*.012});
+    }
+    // Update sail trim first, then evaluate the wind in each canvas's own
+    // rotated frame. directionDeg is the side the wind comes FROM:
+    // 0° bow, 90° starboard, 180° stern, 270° port.
+    for(const p of sailParts){
+     const id=p.userData.sailControl.mastId,type=p.userData.sailControl.sailType||'';
+     const scale=/jib|staysail|headsail/i.test(type)?.78:/topsail/i.test(type)?.86:1;
+     const gust=Math.sin(state.time*1.7+p.name.length*.71)*.018*state.windBlend;
+     // The first two forward triangular headsails do not yaw with wind.
+     // Their directional cloth pressure remains active in the deformation pass below.
+     const isForwardTriangle=/^sail-head-[12]$/.test(p.name);
+     const windDrivenRotation=isForwardTriangle?0:trimAngle*scale+gust;
+     setRuntimeRotation(p.name,{ry:(state.sailTrim[id]||0)+windDrivenRotation});
+    }
+    root.updateMatrixWorld(true);
+    const rootWorldQuaternion=root.getWorldQuaternion(new THREE.Quaternion());
+    const windFromShip=new THREE.Vector3(Math.sin(direction),0,-Math.cos(direction));
+    const windFromWorld=windFromShip.applyQuaternion(rootWorldQuaternion);
+    for(const p of sailParts){
+     const animation=cloths.get(p.name);
+     if(animation?.mesh){
+      const data=animation.sailCloth,attribute=animation.mesh.geometry.attributes.position;
+      if(data&&attribute&&data.camberOffsets&&data.baseAxis){
+       const sailWorldQuaternion=animation.mesh.getWorldQuaternion(new THREE.Quaternion());
+       const windFromCanvas=windFromWorld.clone().applyQuaternion(sailWorldQuaternion.invert());
+       // Pressure pushes the canvas away from the wind source. The sign is
+       // calculated in the canvas frame, so sail trim and mast orientation
+       // naturally change which side receives the bulge.
+       const pressure=THREE.MathUtils.clamp(-windFromCanvas.getComponent(data.axisIndex),-1,1);
+       const gustPulse=weather.gusts===true
+        ?(0.88+0.12*(0.5+0.5*Math.sin(state.time*4.8+p.name.length*.37))):1;
+       const billow=pressure*state.windBlend*gustPulse;
+       const array=attribute.array,axisOffset=data.axisIndex;
+       for(let index=0;index<attribute.count;index++){
+        array[index*3+axisOffset]=data.baseAxis[index]+data.camberOffsets[index]*billow;
+       }
+       attribute.needsUpdate=true;
+       animation.mesh.geometry.computeVertexNormals();
+       animation.mesh.geometry.computeBoundingBox();
+       animation.mesh.geometry.computeBoundingSphere();
+      }
+     }
+     if(animation?.cloth&&animation.elapsed<animation.duration){
+      animation.elapsed=Math.min(animation.duration,animation.elapsed+delta);
+      const t=animation.duration>0?animation.elapsed/animation.duration:1;
+      const eased=t*t*(3-2*t);
+      if(animation.furlFrame){
+       animation.currentScale=THREE.MathUtils.lerp(animation.from,animation.target,eased);
+       applySailFurlScale(animation,animation.currentScale);
+      }else{
+       animation.deployment.scale.y=THREE.MathUtils.lerp(animation.from,animation.target,eased);
+       animation.deployment.position.y=THREE.MathUtils.lerp(animation.fromPositionY,animation.targetPositionY,eased);
+      }
+     }
+    }
+   },
+  getShipState(){const partTransforms=Object.fromEntries([...registry.keys()].map(n=>[n,api.getPartTransform(n)]).filter(([,v])=>v&&Object.values(v).some((x,i)=>i<6?Math.abs(x)>1e-8:Math.abs(x-1)>1e-8)));return {transformFrameVersion:2,rudderAngle:state.rudderAngle,sailTrim:{...state.sailTrim},sailDeployment:{...state.sailDeployment},mastLean:{...state.mastLean},hiddenParts:Object.fromEntries(Object.entries(state.hiddenParts).filter(([,v])=>v)),unlinkedParts:[...state.unlinkedParts],partTransforms};},
+  applyShipState(s={}){for(const n of s.unlinkedParts||[])if(registry.has(n))api.detachPart(n);for(const [n,t] of Object.entries(s.partTransforms||{}))if(registry.has(n))api.setPartTransform(n,t);if(Object.prototype.hasOwnProperty.call(s,'rudderAngle'))api.setRudderAngle(s.rudderAngle||0);for(const [id,v] of Object.entries(s.sailTrim||{}))api.setSailTrim(id,v);for(const [id,v] of Object.entries(s.sailDeployment||{}))api.setSailDeployment(id,v,0);for(const [id,v] of Object.entries(s.mastLean||{}))api.setMastLean(id,v);for(const [n,v] of Object.entries(s.hiddenParts||{}))if(registry.has(n))api.setPartVisible(n,!v);return true;},
   summary(){return {type:design.id,label:design.label,dimensions:{length:design.hullLength,beam:design.beam,draft:design.draft},lengthBeamRatio:design.lengthBeamRatio,rig:design.rig,era:design.era,reference:design.reference,sources:(design.sources||[]).map(s=>({...s})),hullProfile:design.hullProfile,partCount:registry.size,parts:[...registry.keys()],unlinkedParts:[...state.unlinkedParts]};}
  };
  return api;
@@ -98,8 +767,45 @@ export function finishShipModel(ctx,transforms={},saved={}){
  const geometries=new Set(),used=new Set(Object.values(materials));
  root.traverse(o=>{if(!o.isMesh)return;if(o.geometry)geometries.add(o.geometry);if(Array.isArray(o.material))o.material.forEach(m=>used.add(m));else if(o.material)used.add(o.material);o.userData.shipOwned=true;});
  root.userData.ownedGeometries=[...geometries];root.userData.ownedMaterials=[...used];
- const partTransforms=transforms&&Object.keys(transforms).length?transforms:(saved?.partTransforms||{}),state={...(saved||{}),partTransforms};
- if(Object.keys(partTransforms).length||Object.keys(state.hiddenParts||{}).length||(state.unlinkedParts||[]).length||Object.keys(state.sailTrim||{}).length||Object.keys(state.sailDeployment||{}).length||Object.keys(state.mastLean||{}).length||Number(state.rudderAngle))api.applyShipState(state);
+ const defaults=ctx.editorDefaults?.componentState||{},patch=saved||{};
+ const state={...defaults,...patch};
+ const suppliedTransforms=Object.prototype.hasOwnProperty.call(patch,'partTransforms')||Object.keys(transforms||{}).length>0;
+ state.transformFrameVersion=Object.prototype.hasOwnProperty.call(patch,'transformFrameVersion')
+  ?patch.transformFrameVersion
+  :(suppliedTransforms?1:(defaults.transformFrameVersion??1));
+ for(const key of ['hiddenParts','sailTrim','sailDeployment','mastLean']){
+  state[key]=Object.prototype.hasOwnProperty.call(patch,key)?{...(patch[key]||{})}:{...(defaults[key]||{})};
+ }
+ state.unlinkedParts=Object.prototype.hasOwnProperty.call(patch,'unlinkedParts')?[...(patch.unlinkedParts||[])]:[...(defaults.unlinkedParts||[])];
+ const baseTransforms=Object.prototype.hasOwnProperty.call(patch,'partTransforms')?(patch.partTransforms||{}):(defaults.partTransforms||{});
+ const partTransforms={...baseTransforms,...(transforms||{})};
+ state.partTransforms=partTransforms;
+ const newTransformFrame=Number(state.transformFrameVersion)>=2;
+ if(newTransformFrame){
+  // Ordinary components still use their original parent frames. Apply those
+  // first so mast/hull transforms are present when the rigging baseline is
+  // converted; then apply only migrated rigging deltas in their new frames.
+  const standingNames=new Set(api.standingRiggingPartNames());
+  const fittingNames=new Set(api.riggingFittingPartNames());
+  const detachedNames=new Set(state.unlinkedParts||[]);
+  const ordinaryTransforms={},standingTransforms={},fittingTransforms={};
+  for(const [name,value] of Object.entries(partTransforms)){
+   if(standingNames.has(name)&&!detachedNames.has(name))standingTransforms[name]=value;
+   else if(fittingNames.has(name)&&!detachedNames.has(name))fittingTransforms[name]=value;
+   else ordinaryTransforms[name]=value;
+  }
+  api.applyShipState({...state,partTransforms:ordinaryTransforms});
+  api.migrateStandingRigging();
+  api.applyShipState({partTransforms:standingTransforms});
+  api.migrateRiggingFittings();
+  api.applyShipState({partTransforms:fittingTransforms});
+ }else{
+  // Older defaults store rigging transforms in mast-local coordinates.
+  if(Object.keys(partTransforms).length||Object.keys(state.hiddenParts||{}).length||(state.unlinkedParts||[]).length||Object.keys(state.sailTrim||{}).length||Object.keys(state.sailDeployment||{}).length||Object.keys(state.mastLean||{}).length||Number(state.rudderAngle))api.applyShipState(state);
+  api.migrateMastRigging();
+ }
+ api.finalizeMastStays();
+ api.captureResetBaseline(defaults,Number(defaults.transformFrameVersion)||1);
  return root;
 }
 export function shipModelSummary(v){

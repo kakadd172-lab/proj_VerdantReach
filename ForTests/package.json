@@ -12,7 +12,10 @@
     "test": "node --test",
     "smoke": "node browser-smoke.mjs",
     "test:ships": "node --test tests/ship-redesign.test.js",
-    "check:modules": "node verify-game-modules.mjs"
+    "check:modules": "node verify-game-modules.mjs",
+    "visual-audit": "node visual-audit.mjs",
+    "audit:barque": "node visual-audit.mjs --ship barque",
+    "audit:vessel": "node visual-audit.mjs --ship"
   },
   "dependencies": {
     "three": "0.187.0"

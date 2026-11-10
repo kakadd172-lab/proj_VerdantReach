@@ -2,7 +2,7 @@
  * Common APIs for independent ForTests ship definitions.
  * No vessel catalogue is stored here; the definitions live in vessels/<id>.js.
  */
-export const SHIP_CATALOGUE_VERSION='0.8.7';
+export const SHIP_CATALOGUE_VERSION='0.8.9';
 export const SHIP_DESIGN_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
 export const SHIP_STRUCTURE_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
 export const WORLD_UNITS_PER_METRE=4/3;
@@ -31,7 +31,8 @@ function prepareDesign(data,structure){
  const masts=data.masts.flatMap(mast=>{
   const id=mast.id,names=['mast-'+id,'mast-lower-'+id,'mast-topmast-'+id,'mast-step-'+id,'running-rigging-'+id];
   if(mast.rig==='junk'){names.push('junk-yard-'+id,'junk-battens-'+id,'junk-sheets-'+id,'sail-'+id+'-junk','cloth-sail-'+id+'-junk');for(let i=1;i<=7;i++)names.push('batten-'+id+'-'+i);return names;}
-  names.push('standing-rigging-'+id,'shrouds-'+id,'ratlines-'+id,'mast-stays-'+id,'running-braces-'+id);
+  names.push('standing-rigging-'+id,'shrouds-'+id,'ratlines-'+id,'mast-stays-'+id);
+  if(mast.runningBraces!==false)names.push('running-braces-'+id);
   if(mast.rig==='square'||mast.rig==='brigantine')names.push('mast-platform-'+id);
   if(mast.rig==='square'){['course','topsail','topgallant'].slice(0,mast.squares??2).forEach(level=>names.push('yard-'+id+'-'+level,'sail-'+id+'-'+level,'cloth-sail-'+id+'-'+level,'sheets-'+id+'-'+level));if(mast.spanker)names.push('gaff-spar-'+id,'boom-'+id,'sail-'+id+'-spanker','cloth-sail-'+id+'-spanker');}
   else if(mast.rig==='brigantine')names.push('gaff-spar-'+id,'boom-'+id,'sail-'+id+'-gaff','cloth-sail-'+id+'-gaff','yard-'+id+'-topsail','sail-'+id+'-topsail','cloth-sail-'+id+'-topsail','sheets-'+id+'-topsail');
@@ -49,7 +50,7 @@ function prepareDesign(data,structure){
  modelScaleNote:data.modelScaleNote??'Dimensions are historical reference values where stated; rig heights and unrecorded details are reconstruction estimates.',
  hullFormNote:data.hullFormNote??'Original parametric hull loft informed by the cited vessel type; not a traced CAD or surviving lines plan.'});
 }
-export function defineVesselSpec(value){
+export function defineVesselSpec(value,editorDefaults={}){
  if(!value||typeof value.id!=='string'||!value.id)throw new TypeError('Vessel id is required.');
  if(value.design?.id!==value.id)throw new TypeError('Vessel design id must match '+value.id+'.');
  if(!Number.isFinite(value.structure?.frameCount))throw new TypeError('Vessel '+value.id+' requires a frame count.');
@@ -57,13 +58,14 @@ export function defineVesselSpec(value){
  if(!Array.isArray(value.design?.sternTiers))throw new TypeError('Vessel '+value.id+' requires a stern profile.');
  if(!value.design.keelDetails||!value.design.rudderDetails)throw new TypeError('Vessel '+value.id+' requires keel and rudder details.');
  return deepFreeze({id:value.id,design:clone(value.design),structure:clone(value.structure),
- editorModulePath:'ForTests/ships/vessels/'+value.id+'.js',gameDefinitionPath:'src/world/ships/vessels/'+value.id+'.js'});
+ editorModulePath:value.editorModulePath??('ForTests/ships/vessels/'+value.id+'.js'),gameDefinitionPath:'src/world/ships/vessels/'+value.id+'.js',editorDefaults:deepFreeze(clone(editorDefaults||{}))});
 }
 export function getResolvedVesselDefinition(spec){
  if(!spec?.id)return null;
- const design=mergeData(spec.design,designOverrides.get(spec.id)||{});
- const structure=deepFreeze(mergeData(spec.structure,structureOverrides.get(spec.id)||{}));
- return deepFreeze({id:spec.id,design:prepareDesign(design,structure),structure,editorModulePath:spec.editorModulePath,gameDefinitionPath:spec.gameDefinitionPath});
+ const persisted=spec.editorDefaults||{};
+ const design=mergeData(mergeData(spec.design,persisted.design||{}),designOverrides.get(spec.id)||{});
+ const structure=deepFreeze(mergeData(mergeData(spec.structure,persisted.structure||{}),structureOverrides.get(spec.id)||{}));
+ return deepFreeze({id:spec.id,design:prepareDesign(design,structure),structure,editorModulePath:spec.editorModulePath,gameDefinitionPath:spec.gameDefinitionPath,editorDefaults:persisted});
 }
 export const getShipDesignFromSpec=spec=>getResolvedVesselDefinition(spec)?.design??null;
 export const getShipStructureFromSpec=spec=>getResolvedVesselDefinition(spec)?.structure??null;

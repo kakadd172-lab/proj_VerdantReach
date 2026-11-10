@@ -1,14 +1,14 @@
-name: v0.8.8 ship visual audit
+name: v0.8.10 fleet visual audit
 on:
   push:
-    branches: [chatgpt-v0.8.8-vessel-form-refinement]
+    branches: [main, chatgpt-v0.8.10-game-ship-architecture-migration]
     paths:
       - 'ForTests/**'
       - '.github/workflows/ship-visual-audit.yml'
 permissions:
   contents: read
 concurrency:
-  group: v088-ship-visual-audit
+  group: v0810-fleet-visual-audit
   cancel-in-progress: true
 jobs:
   visual-audit:
@@ -29,7 +29,16 @@ jobs:
       - name: Verify vessel modules
         run: npm run check:modules
       - name: Run geometry and editor tests
-        run: npm test
+        shell: bash
+        run: set -o pipefail; npm test 2>&1 | tee test-output.log
+      - name: Upload geometry test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verdantreach-v0810-fleet-test-output
+          path: ForTests/test-output.log
+          if-no-files-found: warn
+          retention-days: 7
       - name: Build editor
         run: npm run build
       - name: Render every ship for visual inspection
@@ -39,7 +48,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: verdantreach-v088-ship-renders
+          name: verdantreach-v0810-fleet-render
           path: ForTests/visual-audit/
           if-no-files-found: warn
           retention-days: 7

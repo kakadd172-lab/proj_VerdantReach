@@ -62,6 +62,35 @@ try{
   assert.ok(Number(await page.locator('#parts').innerText())>0,'No model components were registered.');
   assert.ok(await page.locator('#part-select option').count()>20,'Component selector was not populated.');
 
+  // Sea-state test bench exposes environmental inputs without animating the ship yet.
+  assert.equal(await page.locator('#sea-state-value').innerText(),'OFF');
+  assert.equal(await page.locator('#sea-surface-toggle').getAttribute('aria-pressed'),'true');
+  await page.locator('#sea-surface-toggle').click();
+  assert.equal(await page.locator('#sea-surface-toggle').getAttribute('aria-pressed'),'false');
+  await page.locator('#sea-surface-toggle').click();
+  assert.equal(await page.locator('#sea-surface-toggle').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#wave-height').inputValue(),'0');
+  assert.equal(await page.locator('#wave-period').inputValue(),'5');
+  await page.locator('[data-sea-preset="moderate"]').click();
+  assert.equal(await page.locator('#sea-state-value').innerText(),'MODERATE');
+  assert.equal(await page.locator('#wave-height').inputValue(),'1.5');
+  assert.equal(await page.locator('#wave-period').inputValue(),'6');
+  await page.locator('[data-wave-direction="270"]').click();
+  assert.ok((await page.locator('#wave-direction-value').innerText()).startsWith('270°'));
+  await page.locator('#wave-height').evaluate(element=>{
+    element.value='0.8';
+    element.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  assert.equal(await page.locator('#wave-height-readout').innerText(),'0.8 m');
+  await page.locator('#sea-toggle').click();
+  assert.equal(await page.locator('#sea-toggle').getAttribute('aria-pressed'),'false');
+  await page.locator('#sea-toggle').click();
+  assert.equal(await page.locator('#sea-toggle').getAttribute('aria-pressed'),'true');
+  await page.locator('#sea-reset').click();
+  assert.equal(await page.locator('#sea-state-value').innerText(),'OFF');
+  assert.equal(await page.locator('#wave-height').inputValue(),'0');
+  assert.equal(await page.locator('#wave-direction').inputValue(),'90');
+
   await page.locator('#ship-select').selectOption('galleon');
   await page.waitForFunction(()=>document.querySelector('#description')?.textContent?.toLowerCase().includes('galleon'));
   const galleonStatus=await page.locator('#status').innerText();

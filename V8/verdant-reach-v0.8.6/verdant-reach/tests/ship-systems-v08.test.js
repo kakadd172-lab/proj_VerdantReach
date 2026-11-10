@@ -69,7 +69,7 @@ test('stern tiers are individual curved structures and match each design tier co
   const counts = {
     'galleon-castle': 3, 'high-aftercastle': 3, 'first-rate-aftercastle': 3,
     quarterdeck: 2, 'low-quarter': 2, 'fluyt-roundhouse': 2, 'low-cabin': 1,
-    'xebec-platform': 1, 'open-boat': 0, 'transom': 0,
+    'xebec-platform': 1, 'open-boat': 0,
   };
   for (const design of Object.values(SHIP_DESIGNS)) {
     const expected = counts[design.sternwork] ?? 1;
@@ -147,7 +147,7 @@ test('v0.8.6 game shell and v0.8.10 component-first ship modules use consistent 
   assert.ok(registry.includes('vessel.createModel(transforms, savedState)'));
   assert.ok(vessels.includes("./sloop/sloop.js"));
   assert.ok(registry.includes('getShipGenerator(type)'));
-  assert.ok(registry.includes('return generator(transforms, savedState)'));
+  assert.ok(registry.includes('createShip(type)'));
   assert.ok(structures.includes('getHullHalfBeam'));
 });
 

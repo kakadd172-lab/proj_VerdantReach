@@ -32,11 +32,15 @@
     .brand-copy span{display:block;margin-top:2px;color:var(--dim);font-size:10px}
     .header-meta{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:11px}
     .version-pill{padding:6px 9px;border:1px solid var(--line);border-radius:99px;color:var(--sage);font-size:10px;letter-spacing:.06em}
-    .header-actions{display:flex;gap:7px}
+    .header-actions{display:flex;align-items:center;gap:7px}
+    .save-state{padding:6px 8px;border:1px solid var(--line);border-radius:8px;color:var(--sage);font-size:9px;white-space:nowrap}
+    .save-state.dirty{border-color:rgba(216,191,142,.55);color:#e2c58e;background:rgba(216,191,142,.07)}
     .shell{display:grid;grid-template-columns:minmax(0,1fr) 390px;min-height:calc(100vh - 66px)}
     .viewport-wrap{position:relative;min-width:0;min-height:calc(100vh - 66px);overflow:hidden;background:radial-gradient(ellipse at 50% 42%,#263c3d 0%,#172627 45%,#0d1517 100%)}
     #viewport{position:absolute;inset:0;overflow:hidden}
     #viewport canvas{display:block;width:100%;height:100%}
+    .selection-marquee{position:absolute;z-index:8;pointer-events:none;border:1px solid #c6d5b6;background:rgba(170,205,151,.13);box-shadow:0 0 0 1px rgba(13,24,21,.55) inset}
+    .selection-marquee.crossing{border-color:#d8bf8e;background:rgba(216,191,142,.13);border-style:dashed}
     .viewport-topbar{position:absolute;top:17px;left:18px;right:18px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;pointer-events:none}
     .viewport-card{padding:10px 12px;border:1px solid rgba(219,225,207,.13);border-radius:13px;background:rgba(12,21,22,.58);backdrop-filter:blur(12px);box-shadow:0 12px 35px rgba(0,0,0,.15)}
     .viewport-kicker{color:var(--sage);font-size:9px;letter-spacing:.13em;text-transform:uppercase}
@@ -94,6 +98,22 @@
     .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
     #status{min-height:34px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(14,23,22,.75);color:var(--sage-strong);font-size:10px;line-height:1.5}
     .range-row{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:9px}
+    .wind-status{display:flex;align-items:center;gap:11px;margin:9px 0;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:rgba(8,15,15,.24)}
+    .wind-compass{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border:1px solid var(--line-strong);border-radius:50%;background:radial-gradient(circle,rgba(168,189,157,.12),rgba(8,15,15,.12))}
+    .wind-compass-arrow{display:block;color:var(--gold);font-size:24px;line-height:1;transform:rotate(var(--wind-direction,90deg));transition:transform .16s ease}
+    .wind-status-copy{min-width:0;display:grid;gap:3px}
+    .wind-status-copy strong{color:var(--sage-strong);font-size:10px}
+    .wind-status-copy span{color:var(--dim);font-size:9px}
+    .control-value{color:var(--sage-strong);font-variant-numeric:tabular-nums}
+    .steering-readouts{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+    .steering-readout{padding:8px;border:1px solid var(--line);border-radius:9px;background:rgba(8,15,15,.2)}
+    .steering-readout span{display:block;color:var(--dim);font-size:8px;text-transform:uppercase;letter-spacing:.07em}
+    .steering-readout strong{display:block;margin-top:4px;color:var(--sage-strong);font-size:11px;font-variant-numeric:tabular-nums}
+    .wind-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:8px 0 10px}
+    .wind-presets .btn{padding:7px 3px;font-size:9px}
+    .wind-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:9px}
+    .sail-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:7px 0 10px}
+    .sail-actions .btn{padding:8px 4px;font-size:9px}
     .hidden-input{display:none!important}
     @media(max-width:1050px){.shell{grid-template-columns:minmax(0,1fr) 350px}}
     @media(max-width:760px){
@@ -111,8 +131,8 @@
       <div class="brand-mark" aria-hidden="true">✦</div>
       <div class="brand-copy"><strong>Verdant Reach Shipyard</strong><span>Modular fleet design studio</span></div>
     </div>
-    <div class="header-meta"><span class="version-pill">GAME GENERATORS · v0.8.6</span><span>Local design workspace</span></div>
-    <div class="header-actions"><button id="save-design" class="btn primary" type="button">Save changes</button><button id="export-design" class="btn" type="button">Export JSON</button></div>
+    <div class="header-meta"><span class="version-pill">SHIP STUDIO · v0.8.9</span><span>Local design workspace</span></div>
+    <div class="header-actions"><span id="save-state" class="save-state">Vessel files saved</span><button id="save-design" class="btn primary" type="button">Save to ship files</button><button id="export-design" class="btn" type="button">Export backup</button></div>
   </header>
 
   <main class="shell">
@@ -152,6 +172,85 @@
       </section>
 
       <details class="section-card" open>
+        <summary>Wind & steering test bench</summary>
+        <div class="section-content">
+          <div class="row"><button id="wind-toggle" class="btn" type="button" aria-pressed="false">Wind off</button>
+            <div class="steering-readout"><span>Wind state</span><strong id="wind-state">CALM</strong></div></div>
+          <div class="wind-status"><div class="wind-compass" aria-hidden="true"><span id="wind-arrow" class="wind-compass-arrow">↑</span></div>
+            <div class="wind-status-copy"><strong id="wind-direction-value">90° · Starboard</strong><span id="wind-speed-value">12 knots · Wind disabled</span></div></div>
+          <label>Quick direction presets</label>
+          <div class="wind-presets" role="group" aria-label="Wind direction presets">
+            <button class="btn" type="button" data-wind-direction="0">Bow</button>
+            <button class="btn active" type="button" data-wind-direction="90">Starboard</button>
+            <button class="btn" type="button" data-wind-direction="180">Stern</button>
+            <button class="btn" type="button" data-wind-direction="270">Port</button>
+          </div>
+          <label for="wind-direction">Fine direction · relative to the ship</label>
+          <input id="wind-direction" type="range" min="0" max="359" step="1" value="90"/>
+          <div class="range-row"><span>0° Bow · 90° Starboard · 180° Stern · 270° Port</span><strong class="control-value" id="wind-direction-readout">90°</strong></div>
+          <label for="wind-speed" style="margin-top:11px">Wind speed</label>
+          <input id="wind-speed" type="range" min="0" max="30" step="1" value="12"/>
+          <div class="range-row"><span>Calm to strong test breeze</span><strong class="control-value" id="wind-speed-readout">12 kn</strong></div>
+          <div class="range-row"><span>Mast-step pivot · heel / rake</span><strong class="control-value" id="mast-response-value">Neutral · 0.0° / 0.0°</strong></div>
+          <div class="range-row"><span>Sail deployment</span><strong class="control-value" id="sail-state-value">FULL</strong></div>
+          <div class="sail-actions">
+            <button id="sails-full" class="btn active" type="button">Set full</button>
+            <button id="sails-reef" class="btn" type="button">Reef sails</button>
+            <button id="sails-furl" class="btn" type="button">Furl sails</button>
+          </div>
+          <div class="wind-actions">
+            <button id="gust-toggle" class="btn" type="button" aria-pressed="false">Gusts off</button>
+            <button id="simulation-toggle" class="btn" type="button" aria-pressed="false">Pause motion</button>
+            <button id="sailing-reset" class="btn" type="button">Reset test</button>
+          </div>
+          <p class="note">Wind rotates each mast around its mast-step pivot with a limited heel and fore-aft rake. Use the sail controls to set, reef or furl canvas; cloth gathers towards its tack. Gust mode varies pressure; pause freezes motion. Reset affects only this test bench, not saved ship edits.</p>
+
+          <div class="range-row" style="margin-top:17px"><span>Sea-state test environment</span><strong class="control-value">PREVIEW ONLY</strong></div>
+          <div class="row"><button id="sea-toggle" class="btn" type="button" aria-pressed="false">Waves off</button>
+            <div class="steering-readout"><span>Sea condition</span><strong id="sea-state-value">OFF</strong></div></div>
+          <button id="sea-surface-toggle" class="btn active" style="width:100%;margin-top:7px" type="button" aria-pressed="true">Waterline plane on</button>
+          <div class="wind-status"><div class="wind-compass" aria-hidden="true"><span id="wave-arrow" class="wind-compass-arrow">↑</span></div>
+            <div class="wind-status-copy"><strong id="wave-direction-value">90° · Starboard beam</strong><span>Wave approach direction relative to hull</span></div></div>
+          <label>Sea-state presets</label>
+          <div class="wind-presets" role="group" aria-label="Sea-state presets">
+            <button class="btn active" type="button" data-sea-preset="flat" aria-pressed="true">Flat</button>
+            <button class="btn" type="button" data-sea-preset="light" aria-pressed="false">Light</button>
+            <button class="btn" type="button" data-sea-preset="moderate" aria-pressed="false">Moderate</button>
+            <button class="btn" type="button" data-sea-preset="rough" aria-pressed="false">Rough</button>
+          </div>
+          <label>Wave approach presets</label>
+          <div class="wind-presets" role="group" aria-label="Wave approach direction presets">
+            <button class="btn" type="button" data-wave-direction="0">Head</button>
+            <button class="btn active" type="button" data-wave-direction="90">Starboard</button>
+            <button class="btn" type="button" data-wave-direction="180">Following</button>
+            <button class="btn" type="button" data-wave-direction="270">Port</button>
+          </div>
+          <label for="wave-direction">Fine wave direction · relative to the ship</label>
+          <input id="wave-direction" type="range" min="0" max="359" step="1" value="90"/>
+          <div class="range-row"><span>0° Head · 90° Starboard · 180° Following · 270° Port</span><strong class="control-value" id="wave-direction-readout">90°</strong></div>
+          <label for="wave-height" style="margin-top:11px">Wave height · crest to trough</label>
+          <input id="wave-height" type="range" min="0" max="4" step=".1" value="0"/>
+          <div class="range-row"><span>Flat to high test sea</span><strong class="control-value" id="wave-height-readout">0.0 m</strong></div>
+          <label for="wave-period" style="margin-top:11px">Wave period · seconds</label>
+          <input id="wave-period" type="range" min="2" max="12" step=".5" value="5"/>
+          <div class="range-row"><span>Time between wave crests</span><strong class="control-value" id="wave-period-readout">5.0 s</strong></div>
+          <button id="sea-reset" class="btn" style="width:100%;margin-top:9px" type="button">Reset sea conditions</button>
+          <div class="range-row" style="margin-top:15px"><span>Sloop hull response</span><strong class="control-value" id="sloop-rocking-status">Sloop only · select Sloop</strong></div>
+          <div class="row">
+            <div class="steering-readout"><span>Roll</span><strong id="sloop-roll-value">0.0°</strong></div>
+            <div class="steering-readout"><span>Pitch</span><strong id="sloop-pitch-value">0.0°</strong></div>
+            <div class="steering-readout"><span>Heave</span><strong id="sloop-heave-value">0.00 m</strong></div>
+          </div>
+          <p class="note">The Sloop now rocks about its amidships waterline. Sea direction controls roll and pitch response; wave height controls motion strength and period controls its cycle. Other vessel types remain unchanged. The waterline plane is a fixed visual reference, not a simulated ocean surface.</p>
+
+          <div class="range-row" style="margin-top:14px"><span>Rudder angle</span><strong class="control-value" id="rudder-angle-value">0° · Center</strong></div>
+          <input id="rudder-angle" type="range" min="-35" max="35" step="1" value="0"/>
+          <div class="steering-readouts"><div class="steering-readout"><span>Helm wheel rotation</span><strong id="helm-wheel-angle">0°</strong></div><button id="rudder-center" class="btn" type="button">Centre rudder</button></div>
+          <p class="note">Positive rudder angle is starboard; negative is port. The wheel follows the rudder through its configured steering ratio.</p>
+        </div>
+      </details>
+
+      <details class="section-card" open>
         <summary>Build & transform</summary>
         <div class="section-content">
           <div class="tool-grid">
@@ -163,8 +262,10 @@
           <div class="row"><button id="undo" class="btn" type="button" disabled>Undo</button><button id="redo" class="btn" type="button" disabled>Redo</button></div>
           <div class="history-line"><span>Design history</span><strong id="history-count">0 / 0</strong></div>
           <div class="row"><button id="reset-part" class="btn" type="button">Reset component</button><button id="frame-selected" class="btn" type="button">Focus component · F</button></div>
-          <div class="row"><button id="reset-all-parts" class="btn" type="button">Reset all parts</button><button id="reset-vessel" class="btn" type="button">Reset vessel</button></div>
+          <div class="row"><button id="reset-all-parts" class="btn" type="button">Reset all parts</button><button id="reset-vessel" class="btn" type="button">Discard edits</button></div>
           <div class="row"><button id="detach-part" class="btn" type="button" disabled>Detach</button><button id="relink-part" class="btn" type="button" disabled>Relink</button></div>
+          <div class="row"><button id="box-select-toggle" class="btn" type="button" aria-pressed="false">Box select · Q</button><button id="clear-selection" class="btn" type="button" disabled>Clear selection</button></div>
+          <div class="history-line"><span id="selection-count" aria-live="polite">0 components selected</span><span>Shift + drag adds to selection</span></div>
         </div>
       </details>
 
@@ -249,7 +350,8 @@
             <button id="export-design-secondary" class="btn" type="button">Export backup</button>
           </div>
           <input id="import-file" class="hidden-input" type="file" accept=".json,application/json"/>
-          <p class="note">Import accepts this editor's exported JSON or a saved design-overrides.json file. It does not modify the base vessel modules.</p>
+          <button id="restore-generator-defaults" class="btn danger" style="width:100%;margin-top:8px" type="button">Restore generator originals for this vessel</button>
+          <p class="note">Import creates an editable draft. Save writes a dedicated editor-defaults.js file inside each vessel's own folder. Export creates a portable full-fleet backup. Restore clears the selected vessel's editor defaults without touching its independent part generators.</p>
         </div>
       </details>
 
