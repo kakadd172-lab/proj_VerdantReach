@@ -78,6 +78,8 @@ try{
   });
   assert.equal(await page.locator('#wave-height-readout').innerText(),'0.8 m');
   await page.locator('#sea-toggle').click();
+  assert.equal(await page.locator('#sea-toggle').getAttribute('aria-pressed'),'false');
+  await page.locator('#sea-toggle').click();
   assert.equal(await page.locator('#sea-toggle').getAttribute('aria-pressed'),'true');
   await page.locator('#sea-reset').click();
   assert.equal(await page.locator('#sea-state-value').innerText(),'OFF');
