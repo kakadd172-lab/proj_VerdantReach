@@ -448,9 +448,13 @@ function setupPartApi(root,registry,design){
     }
    });
    const anchorY=p.userData.sailControl.deploymentAnchorY??p.userData.sailControl.pivotPoint?.[1]??0;
+   const geometryBounds=mesh?.geometry?.boundingBox||mesh?.geometry?.computeBoundingBox();
+   // Furling/reefing gathers the canvas upward to its head (highest attached
+   // edge), rather than collapsing it down toward the lower tack.
+   const furlAnchorY=geometryBounds?.max?.y??anchorY;
    return [p.name,{
     cloth,deployment,mesh,sailCloth,from:1,target:1,elapsed:0,duration:0,
-    pivotY:anchorY,
+    pivotY:anchorY,furlAnchorY,
     fromPositionY:deployment?.position.y||0,targetPositionY:deployment?.position.y||0
    }];
   }));
@@ -567,7 +571,8 @@ function setupPartApi(root,registry,design){
    for(const p of targets){
     const a=cloths.get(p.name);if(!a?.deployment)continue;
     a.from=a.deployment.scale.y;a.target=scale;
-    a.fromPositionY=a.deployment.position.y;a.targetPositionY=-a.pivotY*scale;
+    a.fromPositionY=a.deployment.position.y;
+    a.targetPositionY=(1-scale)*a.furlAnchorY-a.pivotY;
     a.elapsed=0;a.duration=clamp(duration,0,4);
     if(a.duration===0){a.deployment.scale.y=scale;a.deployment.position.y=a.targetPositionY;}
    }
