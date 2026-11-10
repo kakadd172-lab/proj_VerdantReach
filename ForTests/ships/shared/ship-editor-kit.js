@@ -51,7 +51,8 @@ export function createShipContext(vessel,palette={}){
     points:curvePoints.map(point=>point.toArray()),
     fixedEndIndex:curvePoints.length-1,
     fixedPoint:curvePoints[curvePoints.length-1].toArray(),
-    radius,segments
+    radius,segments,radialSegments:7,
+    restPositions:new Float32Array(line.geometry.attributes.position.array)
    };
   }
   return line;
@@ -249,12 +250,26 @@ function setupPartApi(root,registry,design){
      for(const {mesh,data,lastQuaternion} of stays){
       if(1-Math.abs(lastQuaternion.dot(rotation))<1e-9)continue;
       const inverse=rotation.clone().invert();
-      const moved=data.points.map(point=>new THREE.Vector3(...point).applyQuaternion(rotation));
-      moved[data.fixedEndIndex].set(...data.fixedPoint);
-      const local=moved.map(point=>point.applyQuaternion(inverse));
-      const curve=new THREE.CatmullRomCurve3(local);
-      const geometry=new THREE.TubeGeometry(curve,data.segments,data.radius,7,false);
-      mesh.geometry.dispose();mesh.geometry=geometry;lastQuaternion.copy(rotation);
+      const fixed=new THREE.Vector3(...data.fixedPoint);
+      const correction=fixed.clone().sub(fixed.clone().applyQuaternion(rotation)).applyQuaternion(inverse);
+      const attribute=mesh.geometry.attributes.position;
+      const rest=data.restPositions,radialSegments=data.radialSegments??7,stride=radialSegments+1;
+      if(attribute&&rest&&rest.length===attribute.array.length){
+       const array=attribute.array;
+       for(let ring=0;ring<=data.segments;ring++){
+        const weight=ring/data.segments;
+        for(let radial=0;radial<=radialSegments;radial++){
+         const offset=(ring*stride+radial)*3;
+         array[offset]=rest[offset]+correction.x*weight;
+         array[offset+1]=rest[offset+1]+correction.y*weight;
+         array[offset+2]=rest[offset+2]+correction.z*weight;
+        }
+       }
+       attribute.needsUpdate=true;
+       mesh.geometry.computeBoundingBox();
+       mesh.geometry.computeBoundingSphere();
+      }
+      lastQuaternion.copy(rotation);
      }
     }
     for(const [name,p] of registry){

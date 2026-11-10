@@ -144,9 +144,11 @@ test('all 16 independent ForTests generators build separate editable models', ()
         assert.ok(supportLines.length>0,id+' '+mastDefinition.id+' has articulated standing rigging');
         const sample=supportLines[0],metadata=sample.userData.dynamicMastStay;
         const geometryBefore=sample.geometry.uuid;
+        const positionsBefore=new Float32Array(sample.geometry.attributes.position.array);
         ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
         ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
-        assert.notEqual(sample.geometry.uuid,geometryBefore,id+' '+mastDefinition.id+' standing rig updates with mast heel');
+        assert.equal(sample.geometry.uuid,geometryBefore,id+' '+mastDefinition.id+' standing rig reuses its tube geometry');
+        assert.ok(sample.geometry.attributes.position.array.some((value,index)=>Math.abs(value-positionsBefore[index])>1e-6),id+' '+mastDefinition.id+' stay vertices respond to mast heel');
         const inverse=pivot.quaternion.clone().invert();
         const Vector3Type=sample.position.constructor;
         const localFixed=new Vector3Type(...metadata.fixedPoint).applyQuaternion(inverse);

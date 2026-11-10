@@ -266,6 +266,7 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
   const anchoredShroud=shroudsForTest(ship,'standing-shroud-port-forward');
   const chainplateWorldBefore=chainplates.getWorldPosition(new Vector3()).clone();
   const shroudGeometryBefore=anchoredShroud.geometry.uuid;
+  const shroudPositionsBefore=new Float32Array(anchoredShroud.geometry.attributes.position.array);
   const before=ship.userData.getPartTransform('boom-single');
   const boomPivot=boom.userData.animationPivot;
   const mainPivot=mainsail.userData.sailControl.pivotGroup;
@@ -278,7 +279,8 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
   assert.equal(chainplates.parent,mast,'chainplates remain outside the moving mast pivot');
   mast.updateMatrixWorld(true);
   assert.ok(chainplates.getWorldPosition(new Vector3()).distanceTo(chainplateWorldBefore)<1e-8,'chainplates remain fixed while the mast heels');
-  assert.notEqual(anchoredShroud.geometry.uuid,shroudGeometryBefore,'shroud tube updates as its masthead end moves');
+  assert.equal(anchoredShroud.geometry.uuid,shroudGeometryBefore,'shroud tube geometry is reused during mast motion');
+  assert.ok(anchoredShroud.geometry.attributes.position.array.some((value,index)=>Math.abs(value-shroudPositionsBefore[index])>1e-6),'shroud vertices adjust as the masthead end moves');
   assert.deepEqual(ship.userData.getPartTransform('mast-single'),mastEditorTransform,'wind does not modify the mast editor transform');
   for(let frame=0;frame<55;frame++)ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
   const fullHeel=mast.userData.mastControl.pivotGroup.rotation.z;
