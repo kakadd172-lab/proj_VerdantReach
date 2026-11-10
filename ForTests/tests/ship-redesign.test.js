@@ -171,7 +171,20 @@ test('all 16 independent ForTests generators build separate editable models', ()
         }
         initialEndCenter.multiplyScalar(1/(radial+1));
         const initialFixed=sample.localToWorld(initialEndCenter.clone());
-        assert.ok(initialFixed.distanceTo(fixedBefore)<.02,id+' '+mastDefinition.id+' stay starts at its declared hull fitting');
+        const initialGap=initialFixed.distanceTo(fixedBefore);
+        const anchorDiagnostic={
+          vessel:id,mast:mastDefinition.id,stay:sample.name,coordinateSpace:metadata.coordinateSpace,
+          parent:sample.parent?.name,fixedFrame:fixedFrame.name,
+          fixedPoint:metadata.fixedPoint,endCenter:initialEndCenter.toArray(),
+          fixedWorld:fixedBefore.toArray(),actualWorld:initialFixed.toArray(),
+          gap:initialGap,
+          samplePosition:sample.position.toArray(),
+          parentPosition:sample.parent?.position.toArray(),
+          mastPosition:mast.position.toArray(),
+          sampleMatrixWorld:sample.matrixWorld.elements,
+          mastMatrixWorld:mast.matrixWorld.elements
+        };
+        assert.ok(initialGap<.02,id+' '+mastDefinition.id+' stay starts at its declared hull fitting; diagnostic='+JSON.stringify(anchorDiagnostic));
         ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
         ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
         assert.equal(sample.geometry.uuid,geometryBefore,id+' '+mastDefinition.id+' standing rig reuses its tube geometry');
