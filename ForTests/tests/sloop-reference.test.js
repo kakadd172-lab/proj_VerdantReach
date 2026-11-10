@@ -4,6 +4,18 @@ import { Vector3 } from 'three';
 import * as THREE from 'three';
 import { getShipDesign, getVesselModule, createShipModel, disposeShipModel } from '../ships/index.js?v=0.8.30-reset-frame-registry';
 import { deckY, keelY, hullPoint, stationZ, halfBreadth, hullShapeStation, sectionBreadth } from '../ships/vessels/sloop/architecture/hull-geometry.js';
+ 
+function disposeAndRelease(ship) {
+  if (!ship) return;
+  disposeAndRelease(ship);
+  ship.clear();
+  for (const key of Object.keys(ship.userData)) {
+    if (typeof ship.userData[key] === 'function') delete ship.userData[key];
+  }
+  ship.userData.ownedGeometries = [];
+  ship.userData.ownedMaterials = [];
+}
+
 
 test('Loguivy homardier keeps the dimensions and rig described by the 1866 sheet',()=>{
  const d=getShipDesign('sloop');
@@ -77,7 +89,7 @@ test('The central vivier is an editable open-deck component, not a box placed on
   assert.equal(ventSides,2,'vivier should have both port and starboard water-slot groups');
   assert.ok(ship.userData.getPart('vivier-grate'));
   assert.ok(ship.userData.partNames.includes('vivier'));
- }finally{disposeShipModel(ship);}
+ }finally{disposeAndRelease(ship);}
 });
 
 test('The transom, rudder, anchors and expanded single-mast rig assemble as separate editable parts',()=>{
@@ -99,7 +111,7 @@ test('The transom, rudder, anchors and expanded single-mast rig assemble as sepa
   assert.equal(ship.userData.getPart('ratlines-single').children.length,18,'ratlines form two short ladders, one on each side');
   assert.ok(ship.userData.getPart('cloth-sail-head-1'));
   assert.ok(ship.userData.getPart('cloth-sail-head-2'));
- }finally{disposeShipModel(ship);}
+ }finally{disposeAndRelease(ship);}
 });
 
 test('The gaff mainsail remains intact and the topsail plus two distinct headsails are generated',()=>{
@@ -168,7 +180,7 @@ test('The gaff mainsail remains intact and the topsail plus two distinct headsai
    assert.ok(sailMesh,name+' canvas is present');sailMesh.geometry.computeBoundingBox();
    assert.ok(sailMesh.geometry.boundingBox.min.x>=-1e-5,name+' should sit on the vessel centreline, not be displaced to port');
   }
- }finally{disposeShipModel(ship);}
+ }finally{disposeAndRelease(ship);}
 });
 
 
@@ -262,7 +274,7 @@ test('The Sloop rig has continuous, correctly led standing and running rigging',
    const size=line.geometry.boundingBox.getSize(new Vector3());
    assert.ok(size.length()>.25,'rigging line '+name+' must span between distinct fittings');
   }
- }finally{disposeShipModel(ship);}
+ }finally{disposeAndRelease(ship);}
 });
 
 test('Sloop rigging transforms survive a save/reload across coordinate-frame versions',()=>{
@@ -297,9 +309,9 @@ test('Sloop rigging transforms survive a save/reload across coordinate-frame ver
   assert.equal(detached.userData.getPart('backstay-chainplates-single').parent,detached.userData.getPart('hull'),
    'backstay chainplates remain hull-mounted when standing rigging is detached');
  }finally{
-  disposeShipModel(first);
-  if(restored)disposeShipModel(restored);
-  if(detached)disposeShipModel(detached);
+  disposeAndRelease(first);
+  if(restored)disposeAndRelease(restored);
+  if(detached)disposeAndRelease(detached);
  }
 });
 
@@ -329,7 +341,7 @@ test('Rudder and helm wheel rotate around their pivots and remain mechanically l
   assert.ok(Math.abs(wheelPivot.rotation.z)<1e-8,'reset also clears the mechanically linked wheel pose');
   assert.equal(ship.userData.getShipState().rudderAngle,0);
   assert.deepEqual(ship.userData.getPartTransform('rudder'),rudderEditorTransform,'reset preserves the saved rudder component baseline');
- }finally{disposeShipModel(ship);}
+ }finally{disposeAndRelease(ship);}
 });
 
 function shroudsForTest(ship,name){
@@ -384,7 +396,7 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
   let displaced=false;
   for(let i=0;i<attribute.array.length;i++)if(Math.abs(attribute.array[i]-clothRestPositions[i])>1e-5){displaced=true;break;}
   assert.ok(displaced);
- }finally{disposeShipModel(ship);}
+ }finally{disposeAndRelease(ship);}
 });
 
 test('Sails reef and furl the full canvas assembly towards their tack',()=>{
@@ -415,7 +427,7 @@ test('Sails reef and furl the full canvas assembly towards their tack',()=>{
   assert.equal(ship.userData.getShipState().sailDeployment.single,'furled');
   ship.userData.resetPartTransform('sail-single-gaff');
   assert.ok(Math.abs(deployment.scale.y-1)<1e-8,'reset restores the full canvas assembly');
- }finally{disposeShipModel(ship);}
+ }finally{disposeAndRelease(ship);}
 });
 test('Aft helm is compact, clear of the aft locker and mounted at the aft quarter',()=>{
  const ship=createShipModel('sloop');
@@ -432,5 +444,5 @@ test('Aft helm is compact, clear of the aft locker and mounted at the aft quarte
   assert.ok(axlePivot,'the wheel has a nested axle pivot');
   assert.ok(axlePivot.children.some(object=>object.name==='helm-wheel-hub'));
   assert.equal(axlePivot.children.filter(object=>object.name.startsWith('helm-spoke-')).length,8);
- }finally{disposeShipModel(ship);}
+ }finally{disposeAndRelease(ship);}
 });
