@@ -212,6 +212,7 @@ function setupPartApi(root,registry,design){
   const target=sourceFrame.localToWorld(new THREE.Vector3(...point));
   let best=null;
   for(const fitting of fittings){
+   if(isUnlinked(fitting))continue;
    fitting.updateWorldMatrix(true,true);
    fitting.traverse(object=>{
     if(!object.isMesh||object.geometry?.type!=='CylinderGeometry')return;
