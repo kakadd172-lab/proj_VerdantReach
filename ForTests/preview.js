@@ -954,7 +954,7 @@ function mergePatch(base,patch){
 function effectiveVesselConfig(id){
   const source=VESSEL_EDITOR_DEFAULTS[id]||{},edits=overrideConfig[id]||{},sourceState=source.componentState||{},editState=edits.partState||{};
   const partState={...clone(sourceState),...clone(editState)};
-  for(const key of ['partTransforms','hiddenParts','sailTrim','sailDeployment','mastLean','unlinkedParts']){
+  for(const key of ['transformFrameVersion','partTransforms','hiddenParts','sailTrim','sailDeployment','mastLean','unlinkedParts']){
     if(Object.prototype.hasOwnProperty.call(editState,key))partState[key]=clone(editState[key]);else if(sourceState[key]!==undefined)partState[key]=clone(sourceState[key]);
   }
   if(!Object.prototype.hasOwnProperty.call(editState,'partTransforms')&&edits.componentTransforms)partState.partTransforms=clone(edits.componentTransforms);
