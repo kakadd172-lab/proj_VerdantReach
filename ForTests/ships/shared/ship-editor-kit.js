@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.18';
+export const SHIP_EDITOR_KIT_VERSION='0.8.19';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -201,11 +201,48 @@ function setupPartApi(root,registry,design){
   for(let parent=object;parent;parent=parent.parent)if(parent===unlinked)return true;
   return false;
  }
+ function resolveFixedFitting(stay){
+  const {metadata,mast,standing,fittings=[]}=stay;
+  const point=metadata.fixedPoint||
+   (Array.isArray(metadata.points)?metadata.points[metadata.fixedEndIndex??metadata.points.length-1]:null);
+  if(!Array.isArray(point))return null;
+  // The points are authored in the standing group frame. Applying its saved
+  // transform first lets us find the actual chainplate position after edits.
+  const sourceFrame=metadata.coordinateSpace==='mast-group'?(standing||mast):(stay.mesh.parent||mast);
+  const target=sourceFrame.localToWorld(new THREE.Vector3(...point));
+  let best=null;
+  for(const fitting of fittings){
+   fitting.updateWorldMatrix(true,true);
+   fitting.traverse(object=>{
+    if(!object.isMesh||object.geometry?.type!=='CylinderGeometry')return;
+    const geometry=object.geometry;
+    geometry.computeBoundingBox();
+    const bounds=geometry.boundingBox;
+    if(!bounds)return;
+    const a=object.localToWorld(new THREE.Vector3(0,bounds.min.y,0));
+    const b=object.localToWorld(new THREE.Vector3(0,bounds.max.y,0));
+    const segment=b.clone().sub(a),lengthSq=segment.lengthSq();
+    if(lengthSq<1e-12)return;
+    const t=THREE.MathUtils.clamp(target.clone().sub(a).dot(segment)/lengthSq,0,1);
+    const nearest=a.addScaledVector(segment,t);
+    const distance=nearest.distanceTo(target);
+    if(!best||distance<best.distance)best={point:nearest,distance};
+   });
+  }
+  // If a vessel uses a non-cylinder fitting, retain its declared endpoint.
+  const fixedWorld=best&&best.distance<1?best.point:target;
+  return hullPart.worldToLocal(fixedWorld.clone()).toArray();
+ }
  function finalizeMastStays(){
-  // Apply the editor's saved transforms in the original hierarchy first.
-  // Object3D.attach then moves each component to its physical parent while
-  // preserving its actual world matrix; no offsets are reinterpreted in a
-  // different coordinate frame.
+  // Resolve the hull anchor after saved transforms, against the actual
+  // chainplate geometry. Then migrate components while preserving world pose.
+  root.updateMatrixWorld(true);
+  for(const stay of pendingMastStays){
+   const resolved=resolveFixedFitting(stay);
+   if(resolved)stay.fixedHullLocal=resolved;
+  }
+  // Object3D.attach preserves each component's actual world matrix; converted
+  // editor deltas are recalculated in the new parent frame below.
   for(const stay of pendingMastStays){
    if(stay.standing&&!isUnlinked(stay.standing)&&stay.standing.parent!==root){
     root.updateMatrixWorld(true);
