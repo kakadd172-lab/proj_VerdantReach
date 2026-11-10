@@ -189,6 +189,19 @@ function refreshSailingControls(){
  if(wheelReadout&&wheelPart){const wheelPivot=wheelPart.userData.steeringControl?.pivotGroup||wheelPart;const rotation=THREE.MathUtils.radToDeg(wheelPivot.rotation.z||0);wheelReadout.textContent=(rotation<0?'−':'')+Math.abs(rotation).toFixed(0)+'°';}
  else if(wheelReadout)wheelReadout.textContent='Not fitted';
 }
+function updateSailingTelemetry(){
+ const output=document.querySelector('#mast-response-value');
+ if(!output)return;
+ const mastDefinition=SHIP_DESIGNS[activeShipId]?.masts?.[0];
+ const mast=mastDefinition&&ship?.userData.getPart('mast-'+mastDefinition.id);
+ const pivot=mast?.userData.mastControl?.pivotGroup||mast?.userData.animationPivot;
+ if(!pivot){output.textContent='No articulated mast';return;}
+ const heel=THREE.MathUtils.radToDeg(pivot.rotation.z||0);
+ const rake=THREE.MathUtils.radToDeg(pivot.rotation.x||0);
+ const heelText=Math.abs(heel)<.05?'Neutral':Math.abs(heel).toFixed(1)+'° '+(heel>0?'Port':'Starboard');
+ const rakeText=Math.abs(rake)<.05?'Neutral':Math.abs(rake).toFixed(1)+'° '+(rake>0?'Aft':'Forward');
+ output.textContent=heelText+' / '+rakeText;
+}
 const raycaster=new THREE.Raycaster();
 const rayPointer=new THREE.Vector2();
 const identity={x:0,y:0,z:0,rx:0,ry:0,rz:0,sx:1,sy:1,sz:1};
@@ -1156,6 +1169,7 @@ function animate(){
   requestAnimationFrame(animate);
   const delta=Math.min(animationClock.getDelta(),.05);
   if(!windSettings.paused&&ship?.userData.animateShip)ship.userData.animateShip(delta,windSettings);
+  updateSailingTelemetry();
   orbit.update();updateSelectionHelpers();renderer.render(scene,camera);
 }
 loadShip(selector.value||Object.keys(SHIP_DESIGNS)[0],reviewPartName);

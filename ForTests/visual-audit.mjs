@@ -107,8 +107,14 @@ try{
  await page.locator('#wind-speed').evaluate(el=>{el.value='21';el.dispatchEvent(new Event('input',{bubbles:true}));});
  await page.locator('#gust-toggle').click();
  assert.equal(await page.locator('#gust-toggle').getAttribute('aria-pressed'),'true');
+ await page.locator('[data-wind-direction="90"]').click();
  await page.locator('#wind-toggle').click();
  assert.equal(await page.locator('#wind-toggle').getAttribute('aria-pressed'),'true');
+ await page.waitForTimeout(1100);
+ assert.match(await page.locator('#mast-response-value').textContent(),/Port/,'wind from starboard should heel the mast to port');
+ await page.locator('[data-wind-direction="270"]').click();
+ await page.waitForTimeout(1100);
+ assert.match(await page.locator('#mast-response-value').textContent(),/Starboard/,'wind from port should heel the mast to starboard');
  await page.locator('#simulation-toggle').click();
  assert.equal(await page.locator('#simulation-toggle').getAttribute('aria-pressed'),'true');
  await page.locator('#simulation-toggle').click();
@@ -119,6 +125,8 @@ try{
  assert.equal(await page.locator('#gust-toggle').getAttribute('aria-pressed'),'false');
  assert.equal(await page.locator('#simulation-toggle').getAttribute('aria-pressed'),'false');
  assert.match(await page.locator('#rudder-angle-value').textContent(),/Center/);
+ await page.waitForTimeout(1200);
+ assert.match(await page.locator('#mast-response-value').textContent(),/Neutral/,'mast should return to neutral after wind is disabled');
 
  assert.deepEqual(errors,[],'Browser page errors: '+errors.join(' | '));
  const fs=await import('node:fs/promises');

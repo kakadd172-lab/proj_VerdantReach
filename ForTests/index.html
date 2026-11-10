@@ -189,12 +189,13 @@
           <label for="wind-speed" style="margin-top:11px">Wind speed</label>
           <input id="wind-speed" type="range" min="0" max="30" step="1" value="12"/>
           <div class="range-row"><span>Calm to strong test breeze</span><strong class="control-value" id="wind-speed-readout">12 kn</strong></div>
+          <div class="range-row"><span>Mast-step pivot · heel / rake</span><strong class="control-value" id="mast-response-value">Neutral · 0.0° / 0.0°</strong></div>
           <div class="wind-actions">
             <button id="gust-toggle" class="btn" type="button" aria-pressed="false">Gusts off</button>
             <button id="simulation-toggle" class="btn" type="button" aria-pressed="false">Pause motion</button>
             <button id="sailing-reset" class="btn" type="button">Reset test</button>
           </div>
-          <p class="note">Wind drives boom trim, sail rotation, cloth billow and restrained mast flex. Gust mode varies wind pressure; pause freezes the current preview pose. Reset affects only this test bench, not saved ship edits.</p>
+          <p class="note">Wind rotates each mast around its mast-step pivot with a limited heel and fore-aft rake. Boom and sail trim are separate. Gust mode varies pressure; pause freezes motion. Reset affects only this test bench, not saved ship edits.</p>
           <div class="range-row" style="margin-top:14px"><span>Rudder angle</span><strong class="control-value" id="rudder-angle-value">0° · Center</strong></div>
           <input id="rudder-angle" type="range" min="-35" max="35" step="1" value="0"/>
           <div class="steering-readouts"><div class="steering-readout"><span>Helm wheel rotation</span><strong id="helm-wheel-angle">0°</strong></div><button id="rudder-center" class="btn" type="button">Centre rudder</button></div>
