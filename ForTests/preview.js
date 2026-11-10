@@ -125,6 +125,17 @@ const ground=new THREE.Mesh(new THREE.PlaneGeometry(2400,2400),new THREE.MeshSta
 ground.rotation.x=-Math.PI/2;
 ground.receiveShadow=true;
 scene.add(ground);
+// Static waterline reference: vessel geometry uses y=0 as its design waterline.
+// This remains level while the hull is later given its rocking motion.
+const seaSurface=new THREE.Mesh(
+ new THREE.PlaneGeometry(2400,2400),
+ new THREE.MeshStandardMaterial({color:0x1b5963,roughness:.42,metalness:.08,transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false})
+);
+seaSurface.name='sea-surface-reference';
+seaSurface.rotation.x=-Math.PI/2;
+seaSurface.position.y=0;
+seaSurface.renderOrder=1;
+scene.add(seaSurface);
 const grid=new THREE.GridHelper(500,50,0x58717a,0x324b55);
 grid.material.transparent=true;
 grid.material.opacity=.28;
@@ -188,6 +199,8 @@ function waveDirectionName(degrees){
  return directions[Math.round(angle/45)%8];
 }
 function refreshSeaControls(){
+ const surfaceToggle=document.querySelector('#sea-surface-toggle');
+ if(surfaceToggle){surfaceToggle.textContent=seaSurface.visible?'Waterline plane on':'Waterline plane off';surfaceToggle.classList.toggle('active',seaSurface.visible);surfaceToggle.setAttribute('aria-pressed',String(seaSurface.visible));}
  const toggle=document.querySelector('#sea-toggle'),state=document.querySelector('#sea-state-value');
  const direction=document.querySelector('#wave-direction'),height=document.querySelector('#wave-height'),period=document.querySelector('#wave-period');
  const arrow=document.querySelector('#wave-arrow'),directionValue=document.querySelector('#wave-direction-value');
@@ -1093,6 +1106,9 @@ document.querySelector('#restore-generator-defaults')?.addEventListener('click',
 document.querySelector('#export-design').addEventListener('click',exportDesign);
 document.querySelector('#export-design-secondary')?.addEventListener('click',exportDesign);
 document.querySelector('#compare-select')?.addEventListener('change',updateComparison);
+document.querySelector('#sea-surface-toggle')?.addEventListener('click',()=>{
+  seaSurface.visible=!seaSurface.visible;refreshSeaControls();
+});
 document.querySelector('#sea-toggle')?.addEventListener('click',()=>{
   seaSettings.enabled=!seaSettings.enabled;
   if(seaSettings.enabled&&seaSettings.heightMeters<.05){
