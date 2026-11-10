@@ -73,7 +73,7 @@ export function buildHeadSails(d,ctx){
       [V(stayX,plan.peak.y,plan.peak.z),block,
        V(halyardX*1.25,(block.y+belay.y)*.52,block.z+.03),belay],
       .009,materials.rope,plan.id+'-halyard-fall',36);
-    halyards.userData.sailControl=plan.id;
+    halyards.userData.servesSail=plan.id;
 
     // Port and starboard sheets are both present, led through quarter blocks
     // and aft to separate fairleads. One is working and the other is slack in
