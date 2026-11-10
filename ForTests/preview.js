@@ -167,13 +167,58 @@ let measureEnabled=false;
 let measurementPoints=[];
 let measurementLine=null;
 let sectionEnabled=false;
-const windSettings={enabled:false,directionDeg:90,speedKnots:12,gusts:false,paused:false};
+const seaSettings={enabled:false,directionDeg:90,heightMeters:0,periodSeconds:5,preset:'flat'};
+const windSettings={enabled:false,directionDeg:90,speedKnots:12,gusts:false,paused:false,sea:seaSettings};
+const SEA_PRESETS={
+ flat:{enabled:false,heightMeters:0,periodSeconds:5},
+ light:{enabled:true,heightMeters:.5,periodSeconds:4.5},
+ moderate:{enabled:true,heightMeters:1.5,periodSeconds:6},
+ rough:{enabled:true,heightMeters:3,periodSeconds:8}
+};
 function windDirectionName(degrees){
  const angle=((Math.round(degrees)%360)+360)%360;
  if(angle<45||angle>=315)return 'Bow';
  if(angle<135)return 'Starboard';
  if(angle<225)return 'Stern';
  return 'Port';
+}
+function waveDirectionName(degrees){
+ const angle=((Math.round(degrees)%360)+360)%360;
+ const directions=['Head sea','Starboard bow','Starboard beam','Starboard quarter','Following sea','Port quarter','Port beam','Port bow'];
+ return directions[Math.round(angle/45)%8];
+}
+function refreshSeaControls(){
+ const toggle=document.querySelector('#sea-toggle'),state=document.querySelector('#sea-state-value');
+ const direction=document.querySelector('#wave-direction'),height=document.querySelector('#wave-height'),period=document.querySelector('#wave-period');
+ const arrow=document.querySelector('#wave-arrow'),directionValue=document.querySelector('#wave-direction-value');
+ const directionReadout=document.querySelector('#wave-direction-readout');
+ const heightReadout=document.querySelector('#wave-height-readout'),periodReadout=document.querySelector('#wave-period-readout');
+ if(toggle){toggle.textContent=seaSettings.enabled?'Waves on':'Waves off';toggle.classList.toggle('active',seaSettings.enabled);toggle.setAttribute('aria-pressed',String(seaSettings.enabled));}
+ const seaState=!seaSettings.enabled?'OFF':seaSettings.heightMeters<.05?'FLAT':seaSettings.heightMeters<1?'LIGHT':seaSettings.heightMeters<2?'MODERATE':'ROUGH';
+ if(state)state.textContent=seaState;
+ if(direction)direction.value=String(seaSettings.directionDeg);
+ if(height)height.value=String(seaSettings.heightMeters);
+ if(period)period.value=String(seaSettings.periodSeconds);
+ if(arrow)arrow.style.setProperty('--wind-direction',seaSettings.directionDeg+'deg');
+ if(directionValue)directionValue.textContent=seaSettings.directionDeg+'° · '+waveDirectionName(seaSettings.directionDeg);
+ if(directionReadout)directionReadout.textContent=seaSettings.directionDeg+'°';
+ if(heightReadout)heightReadout.textContent=seaSettings.heightMeters.toFixed(1)+' m';
+ if(periodReadout)periodReadout.textContent=seaSettings.periodSeconds.toFixed(1)+' s';
+ for(const preset of document.querySelectorAll('[data-sea-preset]')){
+  const active=preset.dataset.seaPreset===seaSettings.preset;
+  preset.classList.toggle('active',active);preset.setAttribute('aria-pressed',String(active));
+ }
+ for(const preset of document.querySelectorAll('[data-wave-direction]')){
+  const active=Number(preset.dataset.waveDirection)===seaSettings.directionDeg;
+  preset.classList.toggle('active',active);preset.setAttribute('aria-pressed',String(active));
+ }
+}
+function applySeaPreset(name){
+ const preset=SEA_PRESETS[name];
+ if(!preset)return false;
+ Object.assign(seaSettings,preset,{preset:name});
+ refreshSeaControls();
+ return true;
 }
 function refreshSailingControls(){
  const toggle=document.querySelector('#wind-toggle'),windState=document.querySelector('#wind-state');
@@ -994,6 +1039,7 @@ function exportDesign(){
 }
 
 renderTransformInputs();
+refreshSeaControls();
 refreshSelectionCount();
 updateSaveIndicator();
 window.addEventListener('beforeunload',event=>{if(!hasUnsavedChanges)return;event.preventDefault();event.returnValue='';});
@@ -1047,6 +1093,30 @@ document.querySelector('#restore-generator-defaults')?.addEventListener('click',
 document.querySelector('#export-design').addEventListener('click',exportDesign);
 document.querySelector('#export-design-secondary')?.addEventListener('click',exportDesign);
 document.querySelector('#compare-select')?.addEventListener('change',updateComparison);
+document.querySelector('#sea-toggle')?.addEventListener('click',()=>{
+  seaSettings.enabled=!seaSettings.enabled;
+  if(seaSettings.enabled&&seaSettings.heightMeters<.05){
+    seaSettings.heightMeters=.5;seaSettings.periodSeconds=4.5;seaSettings.preset='light';
+  }
+  refreshSeaControls();
+});
+document.querySelector('#wave-direction')?.addEventListener('input',event=>{
+  seaSettings.directionDeg=((Number(event.target.value)||0)%360+360)%360;refreshSeaControls();
+});
+document.querySelector('#wave-height')?.addEventListener('input',event=>{
+  seaSettings.heightMeters=Number(event.target.value)||0;seaSettings.preset='custom';refreshSeaControls();
+});
+document.querySelector('#wave-period')?.addEventListener('input',event=>{
+  seaSettings.periodSeconds=Number(event.target.value)||2;seaSettings.preset='custom';refreshSeaControls();
+});
+document.querySelectorAll('[data-sea-preset]').forEach(button=>button.addEventListener('click',()=>applySeaPreset(button.dataset.seaPreset)));
+document.querySelectorAll('[data-wave-direction]').forEach(button=>button.addEventListener('click',()=>{
+  seaSettings.directionDeg=Number(button.dataset.waveDirection)||0;refreshSeaControls();
+}));
+document.querySelector('#sea-reset')?.addEventListener('click',()=>{
+  Object.assign(seaSettings,{enabled:false,directionDeg:90,heightMeters:0,periodSeconds:5,preset:'flat'});
+  refreshSeaControls();
+});
 document.querySelector('#wind-toggle')?.addEventListener('click',()=>{windSettings.enabled=!windSettings.enabled;refreshSailingControls();});
 document.querySelector('#wind-direction')?.addEventListener('input',event=>{windSettings.directionDeg=Number(event.target.value)||0;refreshSailingControls();});
 document.querySelector('#wind-speed')?.addEventListener('input',event=>{windSettings.speedKnots=Number(event.target.value)||0;refreshSailingControls();});
