@@ -42,7 +42,7 @@ export const SloopDefinition = defineVesselSpec({
     rudderDetails: { pivotOffset: 0.12, yFactor: 0.38, breadthFactor: 0.14, depthFactor: 0.92 },
     sailingSpeed: 8.2,
     handling: 1.15,
-    masts: [{ id: 'single', z: 0.08, height: 9.6, rig: 'gaff', span: 0.42, squares: 0 }],
+    masts: [{ id: 'single', z: 0.08, height: 9.6, rig: 'gaff', span: 0.42, squares: 0, runningBraces: false }],
     headsails: 2,
     oars: false
   },

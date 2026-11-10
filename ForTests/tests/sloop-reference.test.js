@@ -13,6 +13,8 @@ test('Loguivy homardier keeps the dimensions and rig described by the 1866 sheet
  assert.equal(d.masts.length,1);
  assert.equal(d.masts[0].rig,'gaff');
  assert.equal(d.headsails,2);
+ assert.equal(d.masts[0].runningBraces,false,'the Sloop does not carry an extra yard-brace system');
+ assert.ok(!d.partNames.includes('running-braces-single'),'the editor catalogue excludes the removed brace rigging');
  assert.equal(d.sternTiers.length,0,'source drawing has no raised aft cabin');
 });
 

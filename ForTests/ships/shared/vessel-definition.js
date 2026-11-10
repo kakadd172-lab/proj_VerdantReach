@@ -31,7 +31,8 @@ function prepareDesign(data,structure){
  const masts=data.masts.flatMap(mast=>{
   const id=mast.id,names=['mast-'+id,'mast-lower-'+id,'mast-topmast-'+id,'mast-step-'+id,'running-rigging-'+id];
   if(mast.rig==='junk'){names.push('junk-yard-'+id,'junk-battens-'+id,'junk-sheets-'+id,'sail-'+id+'-junk','cloth-sail-'+id+'-junk');for(let i=1;i<=7;i++)names.push('batten-'+id+'-'+i);return names;}
-  names.push('standing-rigging-'+id,'shrouds-'+id,'ratlines-'+id,'mast-stays-'+id,'running-braces-'+id);
+  names.push('standing-rigging-'+id,'shrouds-'+id,'ratlines-'+id,'mast-stays-'+id);
+  if(mast.runningBraces!==false)names.push('running-braces-'+id);
   if(mast.rig==='square'||mast.rig==='brigantine')names.push('mast-platform-'+id);
   if(mast.rig==='square'){['course','topsail','topgallant'].slice(0,mast.squares??2).forEach(level=>names.push('yard-'+id+'-'+level,'sail-'+id+'-'+level,'cloth-sail-'+id+'-'+level,'sheets-'+id+'-'+level));if(mast.spanker)names.push('gaff-spar-'+id,'boom-'+id,'sail-'+id+'-spanker','cloth-sail-'+id+'-spanker');}
   else if(mast.rig==='brigantine')names.push('gaff-spar-'+id,'boom-'+id,'sail-'+id+'-gaff','cloth-sail-'+id+'-gaff','yard-'+id+'-topsail','sail-'+id+'-topsail','cloth-sail-'+id+'-topsail','sheets-'+id+'-topsail');
