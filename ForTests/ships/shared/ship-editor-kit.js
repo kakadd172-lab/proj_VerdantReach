@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 /** Low-level editor support only. Vessel geometry lives in each vessel module. */
-export const SHIP_EDITOR_KIT_VERSION='0.8.10';
+export const SHIP_EDITOR_KIT_VERSION='0.8.11';
 const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 const COLORS={hull:0x684632,lower:0x3e342d,plank:0x8d6b4b,deck:0xb1946a,trim:0x49382b,rope:0x6d5944,sail:0xe5dcc8,sailShade:0xbdb39a,iron:0x58615f,brass:0xb58b4e,glass:0x7faaa6,flag:0x8b4938};
@@ -43,9 +43,9 @@ export function createShipContext(vessel,palette={}){
   if(!Array.isArray(points)||points.length<2)return null;
   const curvePoints=points.map(point=>point?.isVector3?point.clone():V(...point));
   const line=mesh(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(curvePoints),segments,radius,7,false),material,name);
-  // Mast-supporting tubes are authored in mast-local space. Record their
-  // original centerline so the shared mast-step system can keep the final
-  // deck/bow/stern fitting fixed while moving the masthead end.
+  // Mast-supporting tubes are authored in the standing-rigging group's
+  // stable hull frame. Record their centerline so the mast-step system can
+  // move masthead ends while keeping deck/bow/stern fittings stationary.
   const mastStayGroup=(parent.name||'').match(/^(?:shrouds|mast-stays|backstays)-(.+)$/);
   if(mastStayGroup){
    line.userData.dynamicMastStay={
@@ -81,19 +81,19 @@ function setupPartApi(root,registry,design){
  };
 
  // Install pivots before editor baselines are captured. The component root
- // remains the editable object; only its child assembly rotates at runtime.
+ // remains the editable object; only the mast/spar/sail assembly rotates.
+ // Standing rigging is deliberately excluded from that pivot: its hull-side
+ // fittings must remain in the hull frame while its masthead ends are updated
+ // from the mast pivot below. Rotating the whole rigging group and then trying
+ // to counter-rotate its tube vertices causes endpoint drift.
  const mastParts=[...registry.values()].filter(p=>p.userData.mastControl);
  const mastStaySets=new Map();
  for(const mast of mastParts){
   const control=mast.userData.mastControl,id=control.mastId;
   const standing=mast.getObjectByName('standing-rigging-'+id);
-  const fixedFittings=new Set();
-  for(const name of ['chainplates-'+id,'backstay-chainplates-'+id]){
-   const fitting=standing?.getObjectByName(name);
-   if(fitting){mast.attach(fitting);fixedFittings.add(fitting);}
-  }
+  const excluded=new Set(standing?[standing]:[]);
   const pivot=control.pivotGroup||mast.userData.animationPivot||
-   makeNestedPivot(mast,V(0,0,0),mast.name+'-mast-step-pivot',fixedFittings);
+   makeNestedPivot(mast,V(0,0,0),mast.name+'-mast-step-pivot',excluded);
   control.pivotGroup=pivot;
   control.windHeelMaxDeg=Number(control.windHeelMaxDeg)||2.5;
   control.windRakeMaxDeg=Number(control.windRakeMaxDeg)||1.2;
