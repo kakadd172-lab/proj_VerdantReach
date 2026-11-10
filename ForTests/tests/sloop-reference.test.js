@@ -220,17 +220,21 @@ test('Rudder and helm wheel rotate around their pivots and remain mechanically l
  const ship=createShipModel('sloop');
  try{
   const rudder=ship.userData.getPart('rudder'),wheel=ship.userData.getPart('helm-wheel');
+  const rudderPivot=rudder.userData.steeringControl.pivotGroup,wheelPivot=wheel.userData.steeringControl.pivotGroup;
   assert.equal(rudder.userData.steeringControl.axis,'y');
   assert.equal(rudder.userData.steeringControl.rotationSign,1);
   assert.equal(wheel.userData.steeringControl.axis,'z');
   assert.equal(wheel.userData.steeringControl.ratio,4.5);
+  assert.ok(rudderPivot&&wheelPivot,'steering axes are nested under the editable component roots');
+  const rudderEditorTransform=ship.userData.getPartTransform('rudder');
   ship.userData.setRudderAngle(.30);
-  assert.ok(Math.abs(rudder.rotation.y-.30)<1e-6);
-  assert.ok(Math.abs(wheel.rotation.z-1.35)<1e-6);
+  assert.ok(Math.abs(rudderPivot.rotation.y-.30)<1e-6);
+  assert.ok(Math.abs(wheelPivot.rotation.z-1.35)<1e-6);
+  assert.deepEqual(ship.userData.getPartTransform('rudder'),rudderEditorTransform,'steering animation must not alter saved rudder transforms');
   ship.userData.setRudderAngle(2);
   assert.ok(Math.abs(ship.userData.getShipState().rudderAngle-.62)<1e-6);
   ship.userData.setRudderAngle(0);
-  assert.ok(Math.abs(wheel.rotation.z)<1e-6);
+  assert.ok(Math.abs(wheelPivot.rotation.z)<1e-6);
  }finally{disposeShipModel(ship);}
 });
 
@@ -244,10 +248,13 @@ test('Wind drives boom trim, sail rotation, cloth billow and restrained mast fle
   assert.ok(boom.userData.pivotPoint);
   assert.ok(mainsail.userData.sailControl.windPivot);
   const before=ship.userData.getPartTransform('boom-single');
+  const boomPivot=boom.userData.animationPivot;
+  const mainPivot=mainsail.userData.sailControl.pivotGroup;
+  const jibPivot=jib.userData.sailControl.pivotGroup;
   ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:24});
   ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:24});
-  assert.ok(boom.rotation.y<-.05);
-  assert.ok(Math.abs(mainsail.rotation.y)>.05&&Math.abs(jib.rotation.y)>.03);
+  assert.ok(boomPivot.rotation.y<-.05);
+  assert.ok(Math.abs(mainPivot.rotation.y)>.05&&Math.abs(jibPivot.rotation.y)>.03);
   assert.ok(Math.abs(mast.rotation.z)>.0001);
   assert.ok(Math.abs(ship.userData.getPartTransform('boom-single').ry-before.ry)<1e-8);
   const data=clothMesh.userData.sailCloth,attribute=clothMesh.geometry.attributes.position;

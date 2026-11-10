@@ -179,7 +179,7 @@ function refreshSailingControls(){
  const angle=ship?THREE.MathUtils.radToDeg(ship.userData.getShipState().rudderAngle||0):0;
  if(rudder&&document.activeElement!==rudder)rudder.value=String(Math.round(angle));
  if(rudderValue){const rounded=Math.round(angle);rudderValue.textContent=Math.abs(rounded)<1?'0° · Center':Math.abs(rounded)+'° · '+(rounded>0?'Starboard':'Port');}
- if(wheelReadout&&wheelPart){const rotation=THREE.MathUtils.radToDeg(wheelPart.rotation.z||0);wheelReadout.textContent=(rotation<0?'−':'')+Math.abs(rotation).toFixed(0)+'°';}
+ if(wheelReadout&&wheelPart){const wheelPivot=wheelPart.userData.steeringControl?.pivotGroup||wheelPart;const rotation=THREE.MathUtils.radToDeg(wheelPivot.rotation.z||0);wheelReadout.textContent=(rotation<0?'−':'')+Math.abs(rotation).toFixed(0)+'°';}
  else if(wheelReadout)wheelReadout.textContent='Not fitted';
 }
 const raycaster=new THREE.Raycaster();

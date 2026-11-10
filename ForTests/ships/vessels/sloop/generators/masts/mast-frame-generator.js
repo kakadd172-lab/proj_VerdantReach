@@ -1,9 +1,17 @@
 import { deckY, stationZ, halfBreadth, V } from "../../architecture/hull-geometry.js";
 
-function setPartPivot(group,pivot){
-  for(const child of group.children)child.position.sub(pivot);
-  group.position.add(pivot);
+function setPartPivot(THREE,group,pivot){
+  const pivotGroup=new THREE.Group();
+  pivotGroup.name=group.name+'-animation-pivot';
+  pivotGroup.position.copy(pivot);
+  for(const child of [...group.children]){
+    group.remove(child);
+    child.position.sub(pivot);
+    pivotGroup.add(child);
+  }
+  group.add(pivotGroup);
   group.userData.pivotPoint=pivot.toArray();
+  group.userData.animationPivot=pivotGroup;
 }
 import { buildCanvasSail } from "../sails/sail-cloth-generator.js";
 import { buildStandingRigging } from "../rigging/standing-rigging-generator.js";
@@ -59,9 +67,9 @@ export function buildMast(d,ctx,mast){
     const peakPoint=V(0,peak,headRun);
     const clew=V(0,low*.92,clewRun);
     beam(gaff,throatPoint,peakPoint,.062,materials.trim,'gaff-spar');
-    setPartPivot(gaff,throatPoint);gaff.userData.windControl={kind:'gaff'};
+    setPartPivot(THREE,gaff,throatPoint);gaff.userData.windControl={kind:'gaff'};
     beam(boom,tack,clew,.066,materials.trim,'boom-spar');
-    setPartPivot(boom,tack);boom.userData.windControl={kind:'boom',trimScale:1};
+    setPartPivot(THREE,boom,tack);boom.userData.windControl={kind:'boom',trimScale:1};
 
     // The mainsail is laced to the mast/gaff/boom perimeter; the triangular
     // topsail is set above the gaff with no unsupported spare jackyard.

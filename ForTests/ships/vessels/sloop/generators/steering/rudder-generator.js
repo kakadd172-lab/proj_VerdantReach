@@ -95,7 +95,14 @@ export function buildRudder(d,ctx){
     'sloop-rudder-tiller-head'
   );
   const pivotY=0.35,pivotZ=transomZAt(pivotY);
-  rudder.position.set(0,upperY+pivotY,pivotZ);
-  for(const child of rudder.children)child.position.sub(V(0,pivotY,pivotZ));
-  rudder.userData.steeringControl={axis:'y',rotationSign:1,maxAngle:.62};
+  const pivotGroup=new ctx.THREE.Group();
+  pivotGroup.name='rudder-stock-pivot';
+  pivotGroup.position.set(0,pivotY,pivotZ);
+  for(const child of [...rudder.children]){
+    rudder.remove(child);
+    child.position.sub(V(0,pivotY,pivotZ));
+    pivotGroup.add(child);
+  }
+  rudder.add(pivotGroup);
+  rudder.userData.steeringControl={axis:'y',rotationSign:1,maxAngle:.62,pivotGroup};
 }

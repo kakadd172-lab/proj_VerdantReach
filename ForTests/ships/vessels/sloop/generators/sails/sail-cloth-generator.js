@@ -83,9 +83,18 @@ export function buildCanvasSail(ctx,name,mastId,corners,fullness=.09,parent=ctx.
   for(let i=1;i<=2;i++)seam('panel-'+i,i/3,false);
  }
  const pivot=points[0].clone();
- for(const child of control.children)child.position.sub(pivot);
- control.position.add(pivot);
+ const pivotGroup=new THREE.Group();
+ pivotGroup.name=name+'-animation-pivot';
+ pivotGroup.position.copy(pivot);
+ for(const child of [...control.children]){
+  control.remove(child);
+  child.position.sub(pivot);
+  pivotGroup.add(child);
+ }
+ control.add(pivotGroup);
  control.userData.sailControl.pivotPoint=pivot.toArray();
+ control.userData.sailControl.pivotGroup=pivotGroup;
+ control.userData.animationPivot=pivotGroup;
  control.userData.windControl={kind:'sail'};
  return control;
 }
