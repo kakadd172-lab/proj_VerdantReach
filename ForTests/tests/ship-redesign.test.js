@@ -7,14 +7,14 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.14-fixed-fitting-endpoints';
+} from '../ships/index.js?v=0.8.15-hull-anchored-stays';
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
 test('the editor uses 16 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.9');
-  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.14');
+  assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.15');
   assert.equal(ids.length, 16);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
@@ -159,10 +159,11 @@ test('all 16 independent ForTests generators build separate editable models', ()
         const positionsBefore=new Float32Array(sample.geometry.attributes.position.array);
         const parent=sample.parent,Vector3Type=sample.position.constructor;
         ship.updateMatrixWorld(true);
-        // Sloop standing-rigging metadata is authored in mast-component space;
-        // other vessel generators retain the default immediate-parent space.
-        const fixedFrame=metadata.coordinateSpace==='mast-group'?mast:parent;
-        const fixedBefore=fixedFrame.localToWorld(new Vector3Type(...metadata.fixedPoint));
+        // Dynamic stays now declare their physical foot in hull-local space,
+        // independent of the generator's original tube coordinate frame.
+        const fixedFrame=ship.userData.getPart('hull')||ship;
+        assert.ok(Array.isArray(metadata.fixedPointHull),id+' '+mastDefinition.id+' stay records a hull-local fitting');
+        const fixedBefore=fixedFrame.localToWorld(new Vector3Type(...metadata.fixedPointHull));
         const attribute=sample.geometry.attributes.position,radial=metadata.radialSegments??7,stride=radial+1;
         const initialEndCenter=new Vector3Type();
         for(let i=0;i<=radial;i++){
