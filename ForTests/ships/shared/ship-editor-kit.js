@@ -41,7 +41,20 @@ export function createShipContext(vessel,palette={}){
  }
  function tube(parent,points,radius,material=materials.rope,name='line',segments=36){
   if(!Array.isArray(points)||points.length<2)return null;
-  return mesh(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>p?.isVector3?p:V(...p))),segments,radius,7,false),material,name);
+  const curvePoints=points.map(point=>point?.isVector3?point.clone():V(...point));
+  const line=mesh(parent,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(curvePoints),segments,radius,7,false),material,name);
+  // Mast-supporting tubes are authored in mast-local space. Record their
+  // original centerline so the shared mast-step system can keep the final
+  // deck/bow/stern fitting fixed while moving the masthead end.
+  if(/^(?:shrouds|mast-stays|backstays)-/.test(parent.name||'')){
+   line.userData.dynamicMastStay={
+    points:curvePoints.map(point=>point.toArray()),
+    fixedEndIndex:curvePoints.length-1,
+    fixedPoint:curvePoints[curvePoints.length-1].toArray(),
+    radius,segments
+   };
+  }
+  return line;
  }
  function box(parent,w,h,depth,material=materials.trim,name='box'){
   return mesh(parent,new THREE.BoxGeometry(w,h,depth),material,name);

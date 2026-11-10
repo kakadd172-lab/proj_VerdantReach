@@ -133,6 +133,26 @@ test('all 16 independent ForTests generators build separate editable models', ()
       assert.ok(ship.userData.getPart('hull'), id + ' hull');
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
+      // Every vessel's own mast shrouds/stays now participate in the same
+      // articulation system without replacing its local rigging design.
+      for(const mastDefinition of getShipDesign(id).masts){
+        const mast=ship.userData.getPart('mast-'+mastDefinition.id);
+        const pivot=mast?.userData.mastControl?.pivotGroup;
+        assert.ok(mast&&pivot,id+' '+mastDefinition.id+' mast-step pivot');
+        const supportLines=[];
+        mast.traverse(object=>{if(object.isMesh&&object.userData.dynamicMastStay)supportLines.push(object);});
+        assert.ok(supportLines.length>0,id+' '+mastDefinition.id+' has articulated standing rigging');
+        const sample=supportLines[0],metadata=sample.userData.dynamicMastStay;
+        const geometryBefore=sample.geometry.uuid;
+        ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
+        ship.userData.animateShip(.05,{enabled:true,directionDeg:90,speedKnots:30});
+        assert.notEqual(sample.geometry.uuid,geometryBefore,id+' '+mastDefinition.id+' standing rig updates with mast heel');
+        const inverse=pivot.quaternion.clone().invert();
+        const localFixed=new (await import('three')).Vector3(...metadata.fixedPoint).applyQuaternion(inverse);
+        const actualFixed=sample.localToWorld(localFixed.clone());
+        const expectedFixed=mast.localToWorld(new (await import('three')).Vector3(...metadata.fixedPoint));
+        assert.ok(actualFixed.distanceTo(expectedFixed)<1e-5,id+' '+mastDefinition.id+' stay remains attached to its fixed hull fitting');
+      }
       if (id !== 'pinnace' && id !== 'sloop') {
         const cabin = ship.userData.getPart('stern-tier-1');
         assert.ok(cabin, id + ' should have a proportioned aft cabin');
