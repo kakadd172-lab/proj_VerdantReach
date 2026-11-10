@@ -9,9 +9,9 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
-    "test": "node --test --test-concurrency=1",
+    "test": "node --expose-gc --test --test-concurrency=1",
     "smoke": "node browser-smoke.mjs",
-    "test:ships": "node --test --test-concurrency=1 tests/ship-redesign.test.js",
+    "test:ships": "node --expose-gc --test --test-concurrency=1 tests/ship-redesign.test.js",
     "check:modules": "node verify-game-modules.mjs",
     "visual-audit": "node visual-audit.mjs",
     "audit:barque": "node visual-audit.mjs --ship barque",
