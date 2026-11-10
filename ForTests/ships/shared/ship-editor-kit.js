@@ -155,22 +155,45 @@ function setupPartApi(root,registry,design){
   }
   return center.multiplyScalar(1/stride);
  }
+ function rebaseMigratedPart(name){
+  const object=registry.get(name),applied=state.partTransforms[name]||{};
+  if(!object)return;
+  const neutralScale=new THREE.Vector3(applied.sx??1,applied.sy??1,applied.sz??1);
+  const neutral={
+   position:object.position.clone().sub(V(applied.x||0,applied.y||0,applied.z||0)),
+   rotation:object.rotation.clone().set(
+    object.rotation.x-(applied.rx||0),
+    object.rotation.y-(applied.ry||0),
+    object.rotation.z-(applied.rz||0),'XYZ'),
+   scale:object.scale.clone().divide(neutralScale)
+  };
+  base.set(name,neutral);
+  generatorBase.set(name,{position:neutral.position.clone(),rotation:neutral.rotation.clone(),scale:neutral.scale.clone()});
+ }
+
  function finalizeMastStays(){
   // Saved transforms have now been applied in the original authored
   // hierarchy. Only now detach standing rigging from the mast and move the
   // physical chainplates to the hull, preserving their fully edited world pose.
+  const migratedNames=new Set();
   for(const stay of pendingMastStays){
    if(stay.standing&&stay.standing.parent!==root){
     root.updateMatrixWorld(true);
     root.attach(stay.standing);
+    migratedNames.add(stay.standing.name);
    }
    for(const fitting of stay.fittings||[]){
     if(fitting.parent!==hullPart){
      root.updateMatrixWorld(true);
      hullPart.attach(fitting);
+     migratedNames.add(fitting.name);
     }
    }
   }
+  // Rebase editor deltas after reparenting. The visual world pose is
+  // preserved, while saved transform values continue to mean the same thing
+  // in the inspector, reset workflow, export, and next reload.
+  for(const name of migratedNames)rebaseMigratedPart(name);
   root.updateMatrixWorld(true);
   mastStaySets.clear();
   for(const stay of pendingMastStays){
@@ -344,7 +367,7 @@ function setupPartApi(root,registry,design){
    sx:p.scale.x/(b.scale.x||1),sy:p.scale.y/(b.scale.y||1),sz:p.scale.z/(b.scale.z||1)};},
   detachPart(n){const p=registry.get(n);if(!p||p.parent===unlinked)return false;root.updateMatrixWorld(true);const world=p.matrixWorld.clone();unlinked.updateMatrixWorld(true);p.parent?.remove(p);unlinked.add(p);unlinked.updateMatrixWorld(true);
    unlinked.matrixWorld.clone().invert().multiply(world).decompose(p.position,p.quaternion,p.scale);base.set(n,{position:p.position.clone(),rotation:p.rotation.clone(),scale:p.scale.clone()});state.unlinkedParts=[...new Set([...state.unlinkedParts,n])];return true;},
-  relinkPart(n){const p=registry.get(n),o=original.get(n);if(!p||!o||p.parent!==unlinked)return false;unlinked.updateMatrixWorld(true);const world=p.matrixWorld.clone();o.parent.updateMatrixWorld(true);o.parent.add(p);
+  relinkPart(n){const p=registry.get(n),o=resetBaseline.get(n)||original.get(n);if(!p||!o||p.parent!==unlinked)return false;unlinked.updateMatrixWorld(true);const world=p.matrixWorld.clone();o.parent.updateMatrixWorld(true);o.parent.add(p);
    o.parent.matrixWorld.clone().invert().multiply(world).decompose(p.position,p.quaternion,p.scale);base.set(n,{position:p.position.clone(),rotation:p.rotation.clone(),scale:p.scale.clone()});state.unlinkedParts=state.unlinkedParts.filter(x=>x!==n);return true;},
   setPartVisible(n,v){const p=registry.get(n);if(!p)return false;p.visible=!!v;state.hiddenParts[n]=!p.visible;return true;},
   setPartTransform(n,t={}){const p=registry.get(n),b=base.get(n);if(!p||!b)return false;const a={x:clamp(t.x,-1000,1000),y:clamp(t.y,-1000,1000),z:clamp(t.z,-1000,1000),rx:clamp(t.rx,-Math.PI*1000,Math.PI*1000),ry:clamp(t.ry,-Math.PI*1000,Math.PI*1000),rz:clamp(t.rz,-Math.PI*1000,Math.PI*1000),sx:clamp(t.sx??1,.001,1000),sy:clamp(t.sy??1,.001,1000),sz:clamp(t.sz??1,.001,1000)};
