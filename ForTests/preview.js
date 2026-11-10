@@ -32,7 +32,7 @@ async function bootShipStudio(){
     if(!DESIGN_OVERRIDES||typeof DESIGN_OVERRIDES!=='object'||Array.isArray(DESIGN_OVERRIDES)){
       throw new Error('design-overrides.json must contain a JSON object (use {} for an empty workspace).');
     }
-    const shipModule=await import('./ships/index.js?v=0.8.16-mast-local-rigging');
+    const shipModule=await import('./ships/index.js?v=0.8.17-rigging-transform-baselines');
     const {SHIP_DESIGNS,VESSEL_IDS,VESSEL_EDITOR_DEFAULTS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
       getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
       createShipModel,disposeShipModel,SHIP_MODEL_MODULE_VERSION}=shipModule;
@@ -45,7 +45,7 @@ async function bootShipStudio(){
     if(typeof disposeShipModel!=='function')apiProblems.push('ships/shared/ship-editor-kit.js: disposeShipModel');
     if(SHIP_DESIGN_MODULE_VERSION!=='0.8.9')apiProblems.push('ships/index.js design API version '+String(SHIP_DESIGN_MODULE_VERSION));
     if(SHIP_STRUCTURE_MODULE_VERSION!=='0.8.9')apiProblems.push('ships/index.js structure API version '+String(SHIP_STRUCTURE_MODULE_VERSION));
-    if(SHIP_MODEL_MODULE_VERSION!=='0.8.16')apiProblems.push('ships/shared/ship-editor-kit.js version '+String(SHIP_MODEL_MODULE_VERSION));
+    if(SHIP_MODEL_MODULE_VERSION!=='0.8.17')apiProblems.push('ships/shared/ship-editor-kit.js version '+String(SHIP_MODEL_MODULE_VERSION));
     if(Object.keys(SHIP_DESIGNS||{}).length!==16)apiProblems.push('ship catalogue count '+Object.keys(SHIP_DESIGNS||{}).length);
     if(Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length!==16)apiProblems.push('per-vessel editor defaults count '+Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length);
     if(apiProblems.length){
