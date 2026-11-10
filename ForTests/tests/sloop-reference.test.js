@@ -417,8 +417,8 @@ test('Sails reef and furl the full canvas assembly towards their tack',()=>{
   const tackY=sail.userData.sailControl.pivotPoint[1];
   process.stdout.write('SLOOP-SAIL: tack read\n');
   assert.ok(cloth&&seams&&deployment);
-  assert.equal(cloth.parent,deployment);
-  assert.equal(seams.parent,deployment,'panel seams and boltropes share the deployment group');
+  assert.ok(cloth.parent===deployment,'canvas group must be parented directly under the sail deployment assembly');
+  assert.ok(seams.parent===deployment,'panel seams and boltropes must share the sail deployment assembly');
   assert.ok(Math.abs(deployment.scale.y-1)<1e-8);
   process.stdout.write('SLOOP-SAIL: initial pose checked\n');
   const seamLine=seams.children.find(child=>child.geometry);
