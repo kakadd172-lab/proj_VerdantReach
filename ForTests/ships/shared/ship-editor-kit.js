@@ -374,6 +374,7 @@ function setupPartApi(root,registry,design){
        }
       }
       attribute.needsUpdate=true;
+      mesh.geometry.computeVertexNormals();
       mesh.geometry.computeBoundingBox();
       mesh.geometry.computeBoundingSphere();
       lastQuaternion.copy(rotation);
