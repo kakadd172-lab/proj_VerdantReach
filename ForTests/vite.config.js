@@ -51,7 +51,7 @@ function sanitizeMiscConfig(id,config){
  if(!Array.isArray(rawUnlinked)||rawUnlinked.length>1000)throw new Error('Invalid unlinkedParts for '+id);
  return {format:'verdant-reach-misc-model-defaults',schemaVersion:1,modelId:id,savedAt:new Date().toISOString(),design:{},structure:{},componentState:{transformFrameVersion:2,partTransforms:transformMap(state.partTransforms||config.componentTransforms||{}),hiddenParts:booleanMap(state.hiddenParts||{},'hiddenParts'),unlinkedParts:rawUnlinked.map(n=>safeName(n,'unlinked component'))}};
 }
-async function writeMiscDefaults(root,id,defaults){const variant=id.replace('misc-cannon-','');const dest=path.join(root,'ships','misc','cannons',variant,'editor-defaults.js');await fs.mkdir(path.dirname(dest),{recursive:true});const temp=dest+'.tmp';await fs.writeFile(temp,'export default Object.freeze('+JSON.stringify(defaults,null,2)+');\\n','utf8');await fs.rename(temp,dest);return 'ships/misc/cannons/'+variant+'/editor-defaults.js';}
+async function writeMiscDefaults(root,id,defaults){const variant=id.replace('misc-cannon-','');const dest=path.join(root,'ships','misc','cannons',variant,'editor-defaults.js');await fs.mkdir(path.dirname(dest),{recursive:true});const temp=dest+'.tmp';await fs.writeFile(temp,'export default Object.freeze('+JSON.stringify(defaults,null,2)+');\n','utf8');await fs.rename(temp,dest);return 'ships/misc/cannons/'+variant+'/editor-defaults.js';}
 function emptyMiscDefaults(id){return {format:'verdant-reach-misc-model-defaults',schemaVersion:1,modelId:id,savedAt:null,design:{},structure:{},componentState:{transformFrameVersion:2,partTransforms:{},hiddenParts:{},unlinkedParts:[]}};}
 async function writeDefaults(root,id,defaults){const dest=path.join(root,'ships','vessels',id,'editor-defaults.js');await fs.mkdir(path.dirname(dest),{recursive:true});const temp=dest+'.tmp';await fs.writeFile(temp,'export default Object.freeze('+JSON.stringify(defaults,null,2)+');\n','utf8');await fs.rename(temp,dest);return 'ships/vessels/'+id+'/editor-defaults.js';}
 async function readRequest(req){let body='';for await(const chunk of req){body+=chunk;if(body.length>2*1024*1024)throw new Error('Save payload exceeds 2 MB');}return JSON.parse(body||'{}');}
@@ -68,14 +68,14 @@ export function shipEditorSavePlugin(){return {name:'verdant-reach-persistent-ve
    const preparedMisc=miscEntries.map(([id,config])=>{try{return [id,sanitizeMiscConfig(id,config)];}catch(error){throw new Error(id+': '+error.message);}});
    const written=[];for(const [id,defaults] of preparedVessels)written.push(await writeDefaults(root,id,defaults));
    for(const [id,defaults] of preparedMisc)written.push(await writeMiscDefaults(root,id,defaults));
-   await fs.writeFile(path.join(root,'design-overrides.json'),'{}\\n','utf8');sendJson(res,200,{saved:true,vessels:preparedVessels.length,miscModels:preparedMisc.length,files:written});
+   await fs.writeFile(path.join(root,'design-overrides.json'),'{}\n','utf8');sendJson(res,200,{saved:true,vessels:preparedVessels.length,miscModels:preparedMisc.length,files:written});
   }catch(error){sendJson(res,400,{saved:false,error:error.message});}});
   server.middlewares.use('/__ship-editor/reset',async(req,res)=>{if(req.method!=='POST')return sendJson(res,405,{error:'Method not allowed'});try{
    const payload=await readRequest(req),id=payload&&payload.shipId;
    if(typeof id!=='string'||(!allowedShips.has(id)&&!allowedMiscModels.has(id)))throw new Error('Unknown model ID: '+String(id));
    const file=allowedShips.has(id)?await writeDefaults(root,id,emptyDefaults(id)):await writeMiscDefaults(root,id,emptyMiscDefaults(id));
    const legacyPath=path.join(root,'design-overrides.json');
-   try{const legacy=JSON.parse(await fs.readFile(legacyPath,'utf8'));if(isRecord(legacy)&&Object.prototype.hasOwnProperty.call(legacy,id)){delete legacy[id];await fs.writeFile(legacyPath,JSON.stringify(legacy,null,2)+'\\n','utf8');}}catch(error){if(error.code!=='ENOENT')throw error;}
+   try{const legacy=JSON.parse(await fs.readFile(legacyPath,'utf8'));if(isRecord(legacy)&&Object.prototype.hasOwnProperty.call(legacy,id)){delete legacy[id];await fs.writeFile(legacyPath,JSON.stringify(legacy,null,2)+'\n','utf8');}}catch(error){if(error.code!=='ENOENT')throw error;}
    sendJson(res,200,{saved:true,model:id,file});
   }catch(error){sendJson(res,400,{saved:false,error:error.message});}});
 }};}
