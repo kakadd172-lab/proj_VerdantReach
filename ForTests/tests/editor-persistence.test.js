@@ -33,3 +33,15 @@ test('reset restores only the selected vessel defaults module',async()=>{
   const f=await readFile(join(root,'ships','vessels','sloop','editor-defaults.js'),'utf8');assert.ok(f.includes('schemaVersion'));assert.equal(f.includes('"hullLength"'),false);
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('save and reset persist an individual miscellaneous model defaults module',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'verdant-misc-'));try{
+  const h=attach(root),r=await request(h.get('/__ship-editor/save'),'POST',{ships:{},miscModels:{'misc-cannon-18-pounder':{componentState:{partTransforms:{'barrel-body':{x:.5,y:0,z:0,rx:0,ry:0,rz:0,sx:1,sy:1,sz:1}},hiddenParts:{},unlinkedParts:[]}}}});
+  assert.equal(r.status,200);assert.equal(r.body.saved,true);assert.equal(r.body.miscModels,1);
+  const file=join(root,'ships','misc','cannons','18-pounder','editor-defaults.js');
+  const saved=await readFile(file,'utf8');assert.ok(saved.includes('verdant-reach-misc-model-defaults'));assert.ok(saved.includes('"x": 0.5'));
+  const reset=await request(h.get('/__ship-editor/reset'),'POST',{shipId:'misc-cannon-18-pounder'});
+  assert.equal(reset.status,200);assert.equal(reset.body.saved,true);
+  const defaults=await readFile(file,'utf8');assert.ok(defaults.includes('"partTransforms": {}'));
+ }finally{await rm(root,{recursive:true,force:true});}
+});
