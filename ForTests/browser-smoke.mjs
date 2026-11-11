@@ -240,12 +240,16 @@ try{
   await page.locator('#redo').click();
   assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-16.4)<1e-6,'Redo did not restore the imported vessel configuration.');
 
-  // Miscellaneous category exposes the Cannon variants and returns cleanly to vessels.
+  // Miscellaneous category exposes independent prop generators and returns cleanly to vessels.
   await page.locator('#model-category').selectOption('miscellaneous');
-  assert.equal(await page.locator('#ship-select option').count(),3,'Miscellaneous category should expose three cannon variants.');
-  assert.equal(await page.locator('#ship-select').inputValue(),'misc-cannon-9-pounder','Miscellaneous category should select its first Cannon variant.');
-  assert.ok((await page.locator('#ship-caption').innerText()).toLowerCase().includes('9-pounder'),'The miscellaneous Cannon model did not load.');
-  assert.ok(await page.locator('#part-select option').count()>10,'Miscellaneous model did not expose its editable visual components.');
+  assert.equal(await page.locator('#ship-select option').count(),7,'Miscellaneous category should expose three existing display variants and four new props.');
+  assert.equal(await page.locator('#ship-select').inputValue(),'misc-cannon-9-pounder','Miscellaneous category should preserve its first existing item.');
+  for (const [id,label] of [['misc-prop-barrel','Cargo barrel'],['misc-prop-crate','Cargo crate'],['misc-prop-lantern','Deck lantern'],['misc-prop-bollard','Mooring bollard']]) {
+    await page.locator('#ship-select').selectOption(id);
+    await page.waitForFunction(expected=>document.querySelector('#ship-caption')?.textContent?.toLowerCase().includes(expected),label.toLowerCase());
+    assert.ok(await page.locator('#part-select option').count()>=5,id+' did not expose independently editable components.');
+    assert.ok(Number(await page.locator('#parts').innerText())>=5,id+' did not build its component hierarchy.');
+  }
   await page.locator('#model-category').selectOption('vessels');
   assert.equal(await page.locator('#ship-select option').count(),16,'Switching back should restore all 16 vessel designs.');
   assert.equal(await page.locator('#ship-select').inputValue(),'sloop','Returning to Sailing vessels should select the Sloop again.');
