@@ -40,7 +40,9 @@ test('each miscellaneous Cannon variant creates a generic editor-compatible mode
       for (const name of model.userData.partNames) {
         assert.ok(model.userData.getPart(name), id + ' exposes editable visual component ' + name);
       }
-      assert.equal(model.userData.getPartNames, undefined);
+      const editableName=model.userData.partNames[0];
+      assert.equal(model.userData.setPartTransform(editableName,{x:0.125}),true);
+      assert.equal(model.userData.getPartTransform(editableName).x,0.125);
     } finally {
       model.userData.dispose();
     }
