@@ -1022,8 +1022,10 @@ function loadShip(type,preferredPart='',reframe=true,skipSync=false){
   if(!design){setStatus('Unknown model design.',true);return;}
   try{
     const config=getConfig(type);
-    const savedState=config.partState||(config.componentTransforms?{partTransforms:config.componentTransforms}:{});
-    ship=createActiveModel(type,savedState.partTransforms||config.componentTransforms||{},savedState);
+    const sourceState=getActiveDefaults(type)?.componentState||{};
+    const editState=config.partState||(config.componentTransforms?{partTransforms:config.componentTransforms}:{});
+    const savedState={...clone(sourceState),...clone(editState),partTransforms:clone(editState.partTransforms||editState.componentTransforms||sourceState.partTransforms||{})};
+    ship=createActiveModel(type,savedState.partTransforms||{},savedState);
     scene.add(ship);
     applyWireframe();
     if(reframe)fit(ship);
