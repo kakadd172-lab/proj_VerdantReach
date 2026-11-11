@@ -34,7 +34,7 @@ async function bootShipStudio(){
       throw new Error('design-overrides.json must contain a JSON object (use {} for an empty workspace).');
     }
     const shipModule=await import('./ships/index.js?v=0.8.30-reset-frame-registry');
-    const miscModule=await import('./ships/misc/index.js?v=0.4.0');
+    const miscModule=await import('./ships/misc/index.js?v=0.4.1');
     const {SHIP_DESIGNS,VESSEL_IDS,VESSEL_EDITOR_DEFAULTS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
       getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
       createShipModel,disposeShipModel,SHIP_MODEL_MODULE_VERSION}=shipModule;
