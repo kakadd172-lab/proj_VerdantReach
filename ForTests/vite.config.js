@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+const allowedMiscModels=new Set(['misc-cannon-9-pounder','misc-cannon-18-pounder','misc-cannon-36-pounder']);
 const allowedShips=new Set(['sloop','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','fluyt','xebec','junk','first-rate','pinnace']);
 const safePartName=/^[a-z0-9][a-z0-9_-]{0,100}$/i;
 const transformKeys=['x','y','z','rx','ry','rz','sx','sy','sz'];
@@ -41,22 +42,42 @@ function sanitizeConfig(id,config){
  return {format:'verdant-reach-vessel-defaults',schemaVersion:1,vesselId:id,savedAt:new Date().toISOString(),design,structure,componentState:cs};
 }
 function emptyDefaults(id){return {format:'verdant-reach-vessel-defaults',schemaVersion:1,vesselId:id,savedAt:null,design:{},structure:{},componentState:{transformFrameVersion:2,rudderAngle:0,sailTrim:{},sailDeployment:{},mastLean:{},hiddenParts:{},unlinkedParts:[],partTransforms:{}}};}
+function sanitizeMiscConfig(id,config){
+ if(!allowedMiscModels.has(id))throw new Error('Unknown miscellaneous model ID: '+id);
+ if(!isRecord(config))throw new Error('Invalid configuration for '+id);
+ const state=config.componentState||config.partState||{};
+ if(!isRecord(state))throw new Error('Invalid component state for '+id);
+ const rawUnlinked=state.unlinkedParts===undefined?[]:state.unlinkedParts;
+ if(!Array.isArray(rawUnlinked)||rawUnlinked.length>1000)throw new Error('Invalid unlinkedParts for '+id);
+ return {format:'verdant-reach-misc-model-defaults',schemaVersion:1,modelId:id,savedAt:new Date().toISOString(),design:{},structure:{},componentState:{transformFrameVersion:2,partTransforms:transformMap(state.partTransforms||config.componentTransforms||{}),hiddenParts:booleanMap(state.hiddenParts||{},'hiddenParts'),unlinkedParts:rawUnlinked.map(n=>safeName(n,'unlinked component'))}};
+}
+async function writeMiscDefaults(root,id,defaults){const variant=id.replace('misc-cannon-','');const dest=path.join(root,'ships','misc','cannons',variant,'editor-defaults.js');await fs.mkdir(path.dirname(dest),{recursive:true});const temp=dest+'.tmp';await fs.writeFile(temp,'export default Object.freeze('+JSON.stringify(defaults,null,2)+');\\n','utf8');await fs.rename(temp,dest);return 'ships/misc/cannons/'+variant+'/editor-defaults.js';}
+function emptyMiscDefaults(id){return {format:'verdant-reach-misc-model-defaults',schemaVersion:1,modelId:id,savedAt:null,design:{},structure:{},componentState:{transformFrameVersion:2,partTransforms:{},hiddenParts:{},unlinkedParts:[]}};}
 async function writeDefaults(root,id,defaults){const dest=path.join(root,'ships','vessels',id,'editor-defaults.js');await fs.mkdir(path.dirname(dest),{recursive:true});const temp=dest+'.tmp';await fs.writeFile(temp,'export default Object.freeze('+JSON.stringify(defaults,null,2)+');\n','utf8');await fs.rename(temp,dest);return 'ships/vessels/'+id+'/editor-defaults.js';}
 async function readRequest(req){let body='';for await(const chunk of req){body+=chunk;if(body.length>2*1024*1024)throw new Error('Save payload exceeds 2 MB');}return JSON.parse(body||'{}');}
 function sendJson(res,status,value){res.statusCode=status;res.setHeader('Content-Type','application/json; charset=utf-8');res.end(JSON.stringify(value));}
 export function shipEditorSavePlugin(){return {name:'verdant-reach-persistent-vessel-authoring',configureServer(server){
  const root=server.config.root;
- server.middlewares.use('/__ship-editor/save',async(req,res)=>{if(req.method!=='POST')return sendJson(res,405,{error:'Method not allowed'});try{
-  const payload=await readRequest(req),ships=payload&&payload.ships?payload.ships:payload;if(!isRecord(ships))throw new Error('Expected a ships object');const entries=Object.entries(ships);if(!entries.length)throw new Error('There are no vessel configurations to save');
-  const prepared=entries.map(([id,config])=>{try{return [id,sanitizeConfig(id,config)];}catch(error){throw new Error(id+': '+error.message);}});
-  const written=[];for(const [id,defaults] of prepared)written.push(await writeDefaults(root,id,defaults));
-  await fs.writeFile(path.join(root,'design-overrides.json'),'{}\n','utf8');sendJson(res,200,{saved:true,vessels:written.length,files:written});
- }catch(error){sendJson(res,400,{saved:false,error:error.message});}});
- server.middlewares.use('/__ship-editor/reset',async(req,res)=>{if(req.method!=='POST')return sendJson(res,405,{error:'Method not allowed'});try{
-  const payload=await readRequest(req),id=payload&&payload.shipId;if(typeof id!=='string'||!allowedShips.has(id))throw new Error('Unknown vessel ID: '+String(id));const file=await writeDefaults(root,id,emptyDefaults(id)),legacyPath=path.join(root,'design-overrides.json');
-  try{const legacy=JSON.parse(await fs.readFile(legacyPath,'utf8'));if(isRecord(legacy)&&Object.prototype.hasOwnProperty.call(legacy,id)){delete legacy[id];await fs.writeFile(legacyPath,JSON.stringify(legacy,null,2)+'\n','utf8');}}catch(error){if(error.code!=='ENOENT')throw error;}
-  sendJson(res,200,{saved:true,vessel:id,file});
- }catch(error){sendJson(res,400,{saved:false,error:error.message});}});
+  server.middlewares.use('/__ship-editor/save',async(req,res)=>{if(req.method!=='POST')return sendJson(res,405,{error:'Method not allowed'});try{
+   const payload=await readRequest(req),ships=payload&&payload.ships?payload.ships:payload;
+   if(!isRecord(ships))throw new Error('Expected a ships object');
+   const vesselEntries=Object.entries(ships).filter(([id])=>allowedShips.has(id));
+   const miscEntries=Object.entries(payload?.miscModels||{}).filter(([id])=>allowedMiscModels.has(id));
+   if(!vesselEntries.length&&!miscEntries.length)throw new Error('There are no recognized model configurations to save');
+   const preparedVessels=vesselEntries.map(([id,config])=>{try{return [id,sanitizeConfig(id,config)];}catch(error){throw new Error(id+': '+error.message);}});
+   const preparedMisc=miscEntries.map(([id,config])=>{try{return [id,sanitizeMiscConfig(id,config)];}catch(error){throw new Error(id+': '+error.message);}});
+   const written=[];for(const [id,defaults] of preparedVessels)written.push(await writeDefaults(root,id,defaults));
+   for(const [id,defaults] of preparedMisc)written.push(await writeMiscDefaults(root,id,defaults));
+   await fs.writeFile(path.join(root,'design-overrides.json'),'{}\\n','utf8');sendJson(res,200,{saved:true,vessels:preparedVessels.length,miscModels:preparedMisc.length,files:written});
+  }catch(error){sendJson(res,400,{saved:false,error:error.message});}});
+  server.middlewares.use('/__ship-editor/reset',async(req,res)=>{if(req.method!=='POST')return sendJson(res,405,{error:'Method not allowed'});try{
+   const payload=await readRequest(req),id=payload&&payload.shipId;
+   if(typeof id!=='string'||(!allowedShips.has(id)&&!allowedMiscModels.has(id)))throw new Error('Unknown model ID: '+String(id));
+   const file=allowedShips.has(id)?await writeDefaults(root,id,emptyDefaults(id)):await writeMiscDefaults(root,id,emptyMiscDefaults(id));
+   const legacyPath=path.join(root,'design-overrides.json');
+   try{const legacy=JSON.parse(await fs.readFile(legacyPath,'utf8'));if(isRecord(legacy)&&Object.prototype.hasOwnProperty.call(legacy,id)){delete legacy[id];await fs.writeFile(legacyPath,JSON.stringify(legacy,null,2)+'\\n','utf8');}}catch(error){if(error.code!=='ENOENT')throw error;}
+   sendJson(res,200,{saved:true,model:id,file});
+  }catch(error){sendJson(res,400,{saved:false,error:error.message});}});
 }};}
 const forTestsDir=path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({root:forTestsDir,base:'./',server:{host:'127.0.0.1',port:5174,strictPort:true,fs:{allow:[forTestsDir]}},resolve:{dedupe:['three']},optimizeDeps:{include:['three'],force:true},plugins:[shipEditorSavePlugin()]});
