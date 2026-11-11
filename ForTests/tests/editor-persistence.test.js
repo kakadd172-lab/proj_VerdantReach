@@ -45,3 +45,26 @@ test('save and reset persist an individual miscellaneous model defaults module',
   const defaults=await readFile(file,'utf8');assert.ok(defaults.includes('"partTransforms": {}'));
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('save and reset persist each independent maritime prop defaults module',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'verdant-props-'));try{
+  const h=attach(root);
+  const cases=[
+   ['misc-prop-barrel',['barrels','editor-defaults.js']],
+   ['misc-prop-crate',['crates','editor-defaults.js']],
+   ['misc-prop-lantern',['lanterns','editor-defaults.js']],
+   ['misc-prop-bollard',['fittings','editor-defaults.js']]
+  ];
+  for(const [id,parts] of cases){
+   const config={componentState:{partTransforms:{'editable-part':{x:.25}},hiddenParts:{},unlinkedParts:[]}};
+   const saved=await request(h.get('/__ship-editor/save'),'POST',{ships:{},miscModels:{[id]:config}});
+   assert.equal(saved.status,200,id+' should save');
+   const file=join(root,'ships','misc',...parts);
+   const contents=await readFile(file,'utf8');
+   assert.ok(contents.includes('"x": 0.25'),id+' should persist transforms');
+   const reset=await request(h.get('/__ship-editor/reset'),'POST',{shipId:id});
+   assert.equal(reset.status,200,id+' should reset');
+   assert.ok((await readFile(file,'utf8')).includes('"partTransforms": {}'),id+' should reset its own defaults');
+  }
+ }finally{await rm(root,{recursive:true,force:true});}
+});
