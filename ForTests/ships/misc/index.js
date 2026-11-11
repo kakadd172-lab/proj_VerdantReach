@@ -18,7 +18,7 @@ import CRATE_DEFAULTS from './crates/editor-defaults.js';
 import LANTERN_DEFAULTS from './lanterns/editor-defaults.js';
 import BOLLARD_DEFAULTS from './fittings/editor-defaults.js';
 
-export const MISC_MODEL_REGISTRY_VERSION = '0.3.0';
+export const MISC_MODEL_REGISTRY_VERSION = '0.4.0';
 
 const DEFINITIONS = Object.freeze({
   'misc-cannon-9-pounder': { id:'misc-cannon-9-pounder', itemId:'cannon', variantId:'9-pounder', label:'Cannon · 9-pounder', kind:'cannon' },
