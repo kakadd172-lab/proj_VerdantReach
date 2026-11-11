@@ -256,8 +256,8 @@ try{
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('36-pounder'),{timeout:10000});
   await page.locator('#model-category').selectOption('vessels');
   assert.equal(await page.locator('#ship-select option').count(),16,'Switching back should restore all 16 vessel designs.');
-  await page.locator('#ship-select').selectOption('sloop');
-  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('sloop'),{timeout:10000});
+  assert.equal(await page.locator('#ship-select').inputValue(),'sloop','Returning to Sailing vessels should select the Sloop again.');
+  await page.waitForFunction(()=>document.querySelector('#ship-caption')?.textContent?.includes('merchant sloop'),null,{timeout:10000});
 
   assert.deepEqual(pageErrors,[],'Browser runtime errors: '+pageErrors.join(' | '));
   assert.deepEqual(consoleErrors,[],'Browser console errors: '+consoleErrors.join(' | '));
