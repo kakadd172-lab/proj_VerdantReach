@@ -7,7 +7,7 @@ import {
 import { createBarrelModel } from './barrels/index.js';
 import { createBarrelV2Model } from './barrels/v2/index.js';
 import { createCrateModel } from './crates/index.js';
-import { createLanternModel } from './lanterns/index.js';
+import { createLanternModel, LANTERN_PART_NAMES } from './lanterns/index.js';
 import { createBollardModel } from './fittings/index.js';
 import CANNON_9_DEFAULTS from './cannons/9-pounder/editor-defaults.js';
 import CANNON_18_DEFAULTS from './cannons/18-pounder/editor-defaults.js';
@@ -18,7 +18,7 @@ import CRATE_DEFAULTS from './crates/editor-defaults.js';
 import LANTERN_DEFAULTS from './lanterns/editor-defaults.js';
 import BOLLARD_DEFAULTS from './fittings/editor-defaults.js';
 
-export const MISC_MODEL_REGISTRY_VERSION = '0.4.0';
+export const MISC_MODEL_REGISTRY_VERSION = '0.4.1';
 
 const DEFINITIONS = Object.freeze({
   'misc-cannon-9-pounder': { id:'misc-cannon-9-pounder', itemId:'cannon', variantId:'9-pounder', label:'Cannon · 9-pounder', kind:'cannon' },
@@ -27,7 +27,7 @@ const DEFINITIONS = Object.freeze({
   'misc-prop-barrel': { id:'misc-prop-barrel', itemId:'barrel', label:'Cargo Barrel · V1', kind:'barrel', dimensions:[1.05,.82,.82], partNames:['barrel-body','barrel-top','barrel-bottom','stave-set','hoop-top','hoop-middle','hoop-bottom'] },
   'misc-prop-barrel-v2': { id:'misc-prop-barrel-v2', itemId:'barrel', label:'Cargo Barrel · V2', kind:'barrel-v2', dimensions:[1.04,.82,.82], partNames:['barrel-body-core','barrel-staves','barrel-hoop-lower','barrel-hoop-lower-middle','barrel-hoop-upper-middle','barrel-hoop-upper','barrel-head-top','barrel-head-bottom','barrel-bung','barrel-rim-details'] },
   'misc-prop-crate': { id:'misc-prop-crate', itemId:'crate', label:'Cargo Crate', kind:'crate', dimensions:[.95,.82,.82], partNames:['crate-core','front-planks','rear-planks','port-planks','starboard-planks','top-planks','corner-braces','iron-fasteners'] },
-  'misc-prop-lantern': { id:'misc-prop-lantern', itemId:'lantern', label:'Deck Lantern', kind:'lantern', dimensions:[.52,.52,1.28], partNames:['lantern-base','lantern-frame','lantern-glass','lantern-roof','lantern-vent','lantern-handle','lantern-burner','lantern-hardware','lantern-guard'] },
+  'misc-prop-lantern': { id:'misc-prop-lantern', itemId:'lantern', label:'Deck Lantern', kind:'lantern', dimensions:[.52,.52,1.28], partNames:[...LANTERN_PART_NAMES] },
   'misc-prop-bollard': { id:'misc-prop-bollard', itemId:'fitting', label:'Mooring Bollard', kind:'fitting', dimensions:[.55,.55,.75], partNames:['bollard-foot','bollard-stem','bollard-head','bollard-collar','mounting-bolts'] }
 });
 
