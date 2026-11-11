@@ -1,0 +1,14 @@
+export default Object.freeze({
+  format:'verdant-reach-misc-model-defaults',
+  schemaVersion:1,
+  modelId:'misc-prop-barrel-v2',
+  savedAt:null,
+  design:{},
+  structure:{},
+  componentState:{
+    transformFrameVersion:2,
+    partTransforms:{},
+    hiddenParts:{},
+    unlinkedParts:[]
+  }
+});
