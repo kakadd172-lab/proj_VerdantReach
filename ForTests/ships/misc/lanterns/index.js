@@ -47,7 +47,8 @@ export function createLanternModel(transforms={},savedState={}){
     'Deck Lantern',
     {length:.52,beam:.52,draft:1.28}
   );
-  const { THREE:T,part,mesh,materials }=ctx;
+  const T=THREE;
+  const {part,mesh,materials}=ctx;
 
   // Lower foot, octagonal plinth, and the sealed oil-reservoir silhouette.
   const base=part('lantern-base');
@@ -136,7 +137,7 @@ export function createLanternModel(transforms={},savedState={}){
   addCylinder(ctx,vent,'vent-stack',.047,.052,.12,[0,1.15,0],materials.brass,16);
   addCylinder(ctx,vent,'vent-rim',.075,.075,.022,[0,1.215,0],materials.iron,16);
   addCylinder(ctx,vent,'rain-cap',.092,.063,.025,[0,1.239,0],materials.brass,16);
-  const ventSlots=part('lantern-hardware');
+  const hardware=part('lantern-hardware');
   for(let i=0;i<8;i++){
     const angle=i*Math.PI/4;
     const slot=mesh(ventSlots,new T.BoxGeometry(.012,.032,.004),materials.lower,'vent-slot-'+(i+1));
@@ -171,7 +172,6 @@ export function createLanternModel(transforms={},savedState={}){
   center.material.emissiveIntensity=.22;
 
   // Hinge straps, front latch, screws, and separate corner guard rods.
-  const hardware=part('lantern-hardware');
   for(const x of [-.164,.164]){
     for(const z of [-.164,.164]){
       const rivet=mesh(hardware,new T.SphereGeometry(.012,10,8),materials.iron,'frame-fastener');
