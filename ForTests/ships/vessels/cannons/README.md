@@ -4,11 +4,19 @@ This is the fleet-wide, non-functional visual cannon asset. It is not a simulati
 
 ## Blueprint interpretation
 
-The supplied sheet contains three barrel size profiles (36-, 18- and 9-pounder) and multiple carriage orthographic views. The generator offers those three selectable exterior profiles from one reusable module. Visible shapes and proportions are reconstructed from the drawings. Unshown carriage dimensions are visual estimates.
+The supplied sheet contains three barrel size profiles and orthographic carriage views. The generator offers these exterior profiles:
+
+| Profile | Calibre | Barrel length | Listed weight |
+|---|---:|---:|---:|
+| 36-pounder | 174 mm | 2.925 m | 7,450 lb / 3,643 kg |
+| 18-pounder | 138 mm | 2.600 m | 4,000 lb / 1,956 kg |
+| 9-pounder | 106 mm | 2.221 m | 2,450 lb / 1,198 kg |
+
+These table values are preserved as reference metadata. Visible shapes and proportions are reconstructed from the drawings. Unshown carriage dimensions are visual estimates, not CAD measurements.
 
 ## Part-by-part folders
 
-- `profiles/`: selectable exterior size profiles.
+- `profiles/`: selectable exterior size profiles and blueprint metadata.
 - `barrel/body/`: solid turned barrel silhouette.
 - `barrel/muzzle/`: solid sealed face and outer moulding; no bore.
 - `barrel/reinforcement-rings/`: separate decorative bands.

@@ -13,21 +13,21 @@ const freeze = value => {
 export const CANNON_PROFILES = freeze({
  '36-pounder': {
   id:'36-pounder', label:'36-pounder naval cannon', calibreMm:174,
-  barrelLengthMetres:2.925, bodyRadiusMetres:.235,
+  barrelLengthMetres:2.925, weightLb:7450, weightKg:3643, bodyRadiusMetres:.235,
   muzzleRadiusFactor:1.12, breechRadiusFactor:1.12,
   wheelRadiusMetres:.455, carriageWidthMetres:1.18,
   carriageLengthFactor:.80, carriageHeightFactor:.73
  },
  '18-pounder': {
   id:'18-pounder', label:'18-pounder naval cannon', calibreMm:138,
-  barrelLengthMetres:2.600, bodyRadiusMetres:.202,
+  barrelLengthMetres:2.600, weightLb:4000, weightKg:1956, bodyRadiusMetres:.202,
   muzzleRadiusFactor:1.13, breechRadiusFactor:1.13,
   wheelRadiusMetres:.395, carriageWidthMetres:1.04,
   carriageLengthFactor:.81, carriageHeightFactor:.73
  },
  '9-pounder': {
   id:'9-pounder', label:'9-pounder naval cannon', calibreMm:106,
-  barrelLengthMetres:2.221, bodyRadiusMetres:.166,
+  barrelLengthMetres:2.221, weightLb:2450, weightKg:1198, bodyRadiusMetres:.166,
   muzzleRadiusFactor:1.14, breechRadiusFactor:1.14,
   wheelRadiusMetres:.337, carriageWidthMetres:.91,
   carriageLengthFactor:.82, carriageHeightFactor:.72

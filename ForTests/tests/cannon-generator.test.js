@@ -81,6 +81,8 @@ test('blueprint barrel profiles preserve the three published external reference 
  assert.equal(large.calibreMm,174);
  assert.equal(medium.calibreMm,138);
  assert.equal(small.calibreMm,106);
+ assert.deepEqual([large.weightLb,medium.weightLb,small.weightLb],[7450,4000,2450]);
+ assert.deepEqual([large.weightKg,medium.weightKg,small.weightKg],[3643,1956,1198]);
  assert.equal(large.barrelLengthMetres,2.925);
  assert.equal(medium.barrelLengthMetres,2.600);
  assert.equal(small.barrelLengthMetres,2.221);
