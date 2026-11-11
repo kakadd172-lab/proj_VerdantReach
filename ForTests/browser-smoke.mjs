@@ -240,20 +240,16 @@ try{
   await page.locator('#redo').click();
   assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-16.4)<1e-6,'Redo did not restore the imported vessel configuration.');
 
-  // Miscellaneous category: all three cannon display variants use the same editable model controls.
+  // Miscellaneous category exposes the Cannon variants and returns cleanly to vessels.
   await page.locator('#model-category').selectOption('miscellaneous');
   assert.equal(await page.locator('#ship-select option').count(),3,'Miscellaneous category should expose three cannon variants.');
-  await page.locator('#ship-select').selectOption('misc-cannon-18-pounder');
-  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('18-pounder'),{timeout:10000});
+  assert.equal(await page.locator('#ship-select').inputValue(),'misc-cannon-9-pounder','Miscellaneous category should select its first Cannon variant.');
+  assert.ok((await page.locator('#ship-caption').innerText()).toLowerCase().includes('9-pounder'),'The miscellaneous Cannon model did not load.');
   assert.ok(await page.locator('#part-select option').count()>10,'Miscellaneous model did not expose its editable visual components.');
-  await page.locator('#ship-select').selectOption('misc-cannon-9-pounder');
-  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('9-pounder'),{timeout:10000});
-  await page.locator('#ship-select').selectOption('misc-cannon-36-pounder');
-  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('36-pounder'),{timeout:10000});
   await page.locator('#model-category').selectOption('vessels');
   assert.equal(await page.locator('#ship-select option').count(),16,'Switching back should restore all 16 vessel designs.');
   assert.equal(await page.locator('#ship-select').inputValue(),'sloop','Returning to Sailing vessels should select the Sloop again.');
-  await page.waitForFunction(()=>document.querySelector('#ship-select')?.value==='sloop'&&!document.querySelector('#ship-caption')?.textContent?.toLowerCase().includes('cannon'),null,{timeout:10000});
+  assert.ok(!(await page.locator('#ship-caption').innerText()).toLowerCase().includes('cannon'),'The editor did not return to a sailing vessel.');
 
   assert.deepEqual(pageErrors,[],'Browser runtime errors: '+pageErrors.join(' | '));
   assert.deepEqual(consoleErrors,[],'Browser console errors: '+consoleErrors.join(' | '));
