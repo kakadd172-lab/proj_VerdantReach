@@ -1,0 +1,164 @@
+name: Deploy ForTests civilian shipyard preview
+
+on:
+  push:
+    branches:
+      - test-integrity-infrastructure
+    paths:
+      - "ForTests/**"
+      - ".github/workflows/deploy-for-tests-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Serialize deployments with the main site's existing gh-pages publisher.
+concurrency:
+  group: verdant-reach-pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the testing branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install preview dependencies
+        working-directory: ForTests
+        run: npm install --no-audit --no-fund --no-package-lock
+
+      - name: Prepare a civilian-only hosted editor
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+
+          const allowed = new Set(['sloop', 'schooner']);
+          const registryPath = 'ForTests/ships/index.js';
+          let registry = readFileSync(registryPath, 'utf8');
+
+          registry = registry.replace(
+            /^import\s+(\w+)\s+from\s+['"]\.\/vessels\/([^/]+)\/[^'"]+['"];\r?\n/gm,
+            (line, _symbol, vesselId) => allowed.has(vesselId) ? line : ''
+          );
+
+          const listPattern = /export const VESSEL_MODULE_LIST=Object\.freeze\(\[[^\]]*\]\);/;
+          if (!listPattern.test(registry)) {
+            throw new Error('Could not safely isolate the two approved civilian vessel modules.');
+          }
+          registry = registry.replace(listPattern, 'export const VESSEL_MODULE_LIST=Object.freeze([Sloop,Schooner]);');
+
+          const remainingVesselImports = [...registry.matchAll(/^import\s+\w+\s+from\s+['"]\.\/vessels\/([^/]+)\//gm)]
+            .map((match) => match[1]);
+          if (remainingVesselImports.length !== 2 ||
+              !remainingVesselImports.includes('sloop') ||
+              !remainingVesselImports.includes('schooner')) {
+            throw new Error('The hosted editor vessel allowlist did not validate.');
+          }
+          writeFileSync(registryPath, registry);
+
+          const previewPath = 'ForTests/preview.js';
+          let preview = readFileSync(previewPath, 'utf8');
+          const designCountCheck = "Object.keys(SHIP_DESIGNS||{}).length!==16";
+          const defaultsCountCheck = "Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length!==16";
+          if (!preview.includes(designCountCheck) || !preview.includes(defaultsCountCheck)) {
+            throw new Error('Could not update the editor catalogue integrity checks.');
+          }
+          preview = preview
+            .replace(designCountCheck, "Object.keys(SHIP_DESIGNS||{}).length!==2")
+            .replace(defaultsCountCheck, "Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length!==2")
+            .replace(
+              "node.textContent=hasUnsavedChanges?'Unsaved edits':'Vessel files saved';",
+              "node.textContent=hasUnsavedChanges?'Unsaved edits':'Browser preview · export to keep';"
+            )
+            .replace(
+              "Exported a full backup of all 16 vessels, including saved defaults and current edits.",
+              "Exported a backup of both hosted civilian vessels, including saved defaults and current edits."
+            );
+          writeFileSync(previewPath, preview);
+
+          const htmlPath = 'ForTests/index.html';
+          let html = readFileSync(htmlPath, 'utf8');
+          html = html.replace(
+            '<span>Local design workspace</span>',
+            '<span>Hosted preview · two civilian vessels</span>'
+          );
+          html = html.replace(
+            /<select id="ship-select">[\s\S]*?<\/select>/,
+            '<select id="ship-select">\n' +
+            '          <option value="sloop" selected>Loguivy decked lobster boat</option>\n' +
+            '          <option value="schooner">West Indies schooner</option>\n' +
+            '        </select>'
+          );
+          html = html.replace(
+            '<span id="save-state" class="save-state">Vessel files saved</span><button id="save-design" class="btn primary" type="button">Save to ship files</button>',
+            '<span id="save-state" class="save-state">Browser-only preview</span><button id="save-design" class="btn primary" type="button" disabled title="This hosted preview is static. Use Export backup to preserve edits.">File saving unavailable online</button>'
+          );
+          html = html.replace(
+            'Try: mast, hull, cannon…',
+            'Try: mast, hull, rudder…'
+          );
+          html = html.replace(
+            '<button id="restore-generator-defaults" class="btn danger" style="width:100%;margin-top:8px" type="button">Restore generator originals for this vessel</button>',
+            '<button id="restore-generator-defaults" class="btn danger" style="width:100%;margin-top:8px" type="button" disabled title="Restoring source files is available only in the local Vite workspace.">Source reset unavailable online</button>'
+          );
+          html = html.replace(
+            /<p class="note">Import creates an editable draft\.[\s\S]*?<\/p>/,
+            '<p class="note">This hosted preview is a static, browser-only workspace with two civilian vessel designs. Export JSON to preserve edits; use Import JSON to continue them later. Server-side file saving and source reset are unavailable online.</p>'
+          );
+          if (!html.includes('File saving unavailable online') ||
+              !html.includes('Source reset unavailable online') ||
+              (html.match(/<option value=/g) || []).length < 3) {
+            throw new Error('The hosted-preview limitations or two-vessel selector were not applied.');
+          }
+          writeFileSync(htmlPath, html);
+          console.log('Prepared the two-vessel civilian preview; source and cannon modules are not part of this hosted build.');
+          NODE
+
+      - name: Build the browser preview
+        working-directory: ForTests
+        run: npm run build
+
+      - name: Verify the static preview output
+        run: |
+          node --input-type=module <<'NODE'
+          import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+          import { join } from 'node:path';
+
+          const dist = 'ForTests/dist';
+          const htmlPath = join(dist, 'index.html');
+          if (!existsSync(htmlPath)) throw new Error('Vite did not produce ForTests/dist/index.html.');
+
+          const html = readFileSync(htmlPath, 'utf8');
+          if (!html.includes('Loguivy decked lobster boat') ||
+              !html.includes('West Indies schooner') ||
+              !html.includes('File saving unavailable online')) {
+            throw new Error('The hosted HTML is missing its approved vessel choices or static-hosting notice.');
+          }
+
+          const assetsDir = join(dist, 'assets');
+          if (!existsSync(assetsDir)) throw new Error('The built asset directory is missing.');
+          const assets = readdirSync(assetsDir);
+          if (!assets.some((name) => name.endsWith('.js')) ||
+              !assets.some((name) => name.endsWith('.css'))) {
+            throw new Error('The preview is missing its JavaScript or CSS bundle.');
+          }
+
+          writeFileSync(join(dist, '.nojekyll'), '');
+          console.log('Verified the browser preview HTML, stylesheet, JavaScript bundle, and static-hosting notice.');
+          NODE
+
+      - name: Publish only to the ForTests subdirectory
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: \${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ForTests/dist
+          destination_dir: for-tests
+          commit_message: "Deploy civilian ForTests preview from test-integrity-infrastructure"
