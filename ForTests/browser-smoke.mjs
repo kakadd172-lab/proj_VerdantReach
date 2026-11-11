@@ -242,9 +242,9 @@ try{
 
   // Miscellaneous category exposes independent prop generators and returns cleanly to vessels.
   await page.locator('#model-category').selectOption('miscellaneous');
-  assert.equal(await page.locator('#ship-select option').count(),7,'Miscellaneous category should expose three existing display variants and four new props.');
+  assert.equal(await page.locator('#ship-select option').count(),8,'Miscellaneous category should expose three existing display variants and five maritime props/versions.');
   assert.equal(await page.locator('#ship-select').inputValue(),'misc-cannon-9-pounder','Miscellaneous category should preserve its first existing item.');
-  for (const [id,label] of [['misc-prop-barrel','Cargo barrel'],['misc-prop-crate','Cargo crate'],['misc-prop-lantern','Deck lantern'],['misc-prop-bollard','Mooring bollard']]) {
+  for (const [id,label] of [['misc-prop-barrel','Cargo barrel'],['misc-prop-barrel-v2','Cargo barrel'],['misc-prop-crate','Cargo crate'],['misc-prop-lantern','Deck lantern'],['misc-prop-bollard','Mooring bollard']]) {
     await page.locator('#ship-select').selectOption(id);
     await page.waitForFunction(expected=>document.querySelector('#ship-caption')?.textContent?.toLowerCase().includes(expected),label.toLowerCase());
     assert.ok(await page.locator('#part-select option').count()>=5,id+' did not expose independently editable components.');
