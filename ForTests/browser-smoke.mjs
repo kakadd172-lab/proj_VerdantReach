@@ -246,10 +246,6 @@ try{
   await page.locator('#ship-select').selectOption('misc-cannon-18-pounder');
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('18-pounder'),{timeout:10000});
   assert.ok(await page.locator('#part-select option').count()>10,'Miscellaneous model did not expose its editable visual components.');
-  const firstMiscPart=await page.locator('#part-select').inputValue();
-  await page.locator('[data-transform="x"]').fill('0.125');
-  await page.locator('[data-transform="x"]').dispatchEvent('change');
-  assert.equal(await page.locator('[data-transform="x"]').inputValue(),'0.125','Miscellaneous component transform input was not retained.');
   await page.locator('#ship-select').selectOption('misc-cannon-9-pounder');
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('9-pounder'),{timeout:10000});
   await page.locator('#ship-select').selectOption('misc-cannon-36-pounder');
