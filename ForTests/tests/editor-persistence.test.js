@@ -51,6 +51,7 @@ test('save and reset persist each independent maritime prop defaults module',asy
   const h=attach(root);
   const cases=[
    ['misc-prop-barrel',['barrels','editor-defaults.js']],
+   ['misc-prop-barrel-v2',['barrels','v2','editor-defaults.js']],
    ['misc-prop-crate',['crates','editor-defaults.js']],
    ['misc-prop-lantern',['lanterns','editor-defaults.js']],
    ['misc-prop-bollard',['fittings','editor-defaults.js']]
