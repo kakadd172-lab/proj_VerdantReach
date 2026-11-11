@@ -70,7 +70,7 @@ for(const [id,d] of Object.entries(SHIP_DESIGNS)){
   option.textContent=d.label;
   selector.appendChild(option);
 }
-// Optional direct-review URL: ?ship=barque&camera=side&part=hull
+// Optional direct-review URL: ?ship=barque&camera=side&part=hull or ?model=misc-cannon-18-pounder
 const reviewParams=new URLSearchParams(window.location.search);
 const reviewShipId=reviewParams.get('ship')||'';
 const reviewPartName=reviewParams.get('part')||'';
@@ -1099,8 +1099,8 @@ async function restoreGeneratorDefaults(){
 }
 function exportDesign(){
   const blob=new Blob([JSON.stringify(buildExport(),null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),link=document.createElement('a');
-  link.href=url;link.download='verdant-reach-vessel-authoring-backup.json';link.click();URL.revokeObjectURL(url);
-  setStatus('Exported a full backup of all 16 vessels, including saved defaults and current edits.');
+  link.href=url;link.download='verdant-reach-model-authoring-backup.json';link.click();URL.revokeObjectURL(url);
+  setStatus('Exported a full backup of all 16 vessels and 3 miscellaneous models, including saved defaults and current edits.');
 }
 
 renderTransformInputs();
