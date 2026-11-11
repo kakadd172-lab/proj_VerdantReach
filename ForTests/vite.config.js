@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-const allowedMiscModels=new Set(['misc-cannon-9-pounder','misc-cannon-18-pounder','misc-cannon-36-pounder']);
+const allowedMiscModels=new Set(['misc-cannon-9-pounder','misc-cannon-18-pounder','misc-cannon-36-pounder','misc-prop-barrel','misc-prop-crate','misc-prop-lantern','misc-prop-bollard']);
 const allowedShips=new Set(['sloop','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','fluyt','xebec','junk','first-rate','pinnace']);
 const safePartName=/^[a-z0-9][a-z0-9_-]{0,100}$/i;
 const transformKeys=['x','y','z','rx','ry','rz','sx','sy','sz'];
@@ -51,7 +51,7 @@ function sanitizeMiscConfig(id,config){
  if(!Array.isArray(rawUnlinked)||rawUnlinked.length>1000)throw new Error('Invalid unlinkedParts for '+id);
  return {format:'verdant-reach-misc-model-defaults',schemaVersion:1,modelId:id,savedAt:new Date().toISOString(),design:{},structure:{},componentState:{transformFrameVersion:2,partTransforms:transformMap(state.partTransforms||config.componentTransforms||{}),hiddenParts:booleanMap(state.hiddenParts||{},'hiddenParts'),unlinkedParts:rawUnlinked.map(n=>safeName(n,'unlinked component'))}};
 }
-async function writeMiscDefaults(root,id,defaults){const variant=id.replace('misc-cannon-','');const dest=path.join(root,'ships','misc','cannons',variant,'editor-defaults.js');await fs.mkdir(path.dirname(dest),{recursive:true});const temp=dest+'.tmp';await fs.writeFile(temp,'export default Object.freeze('+JSON.stringify(defaults,null,2)+');\n','utf8');await fs.rename(temp,dest);return 'ships/misc/cannons/'+variant+'/editor-defaults.js';}
+async function writeMiscDefaults(root,id,defaults){let relative;if(id.startsWith('misc-cannon-')){const variant=id.replace('misc-cannon-','');relative=path.join('ships','misc','cannons',variant,'editor-defaults.js');}else{const routes={'misc-prop-barrel':['barrels','editor-defaults.js'],'misc-prop-crate':['crates','editor-defaults.js'],'misc-prop-lantern':['lanterns','editor-defaults.js'],'misc-prop-bollard':['fittings','editor-defaults.js']};const route=routes[id];if(!route)throw new Error('Unknown miscellaneous model ID: '+id);relative=path.join('ships','misc',...route);}const dest=path.join(root,relative);await fs.mkdir(path.dirname(dest),{recursive:true});const temp=dest+'.tmp';await fs.writeFile(temp,'export default Object.freeze('+JSON.stringify(defaults,null,2)+');\n','utf8');await fs.rename(temp,dest);return relative.split(path.sep).join('/');}
 function emptyMiscDefaults(id){return {format:'verdant-reach-misc-model-defaults',schemaVersion:1,modelId:id,savedAt:null,design:{},structure:{},componentState:{transformFrameVersion:2,partTransforms:{},hiddenParts:{},unlinkedParts:[]}};}
 async function writeDefaults(root,id,defaults){const dest=path.join(root,'ships','vessels',id,'editor-defaults.js');await fs.mkdir(path.dirname(dest),{recursive:true});const temp=dest+'.tmp';await fs.writeFile(temp,'export default Object.freeze('+JSON.stringify(defaults,null,2)+');\n','utf8');await fs.rename(temp,dest);return 'ships/vessels/'+id+'/editor-defaults.js';}
 async function readRequest(req){let body='';for await(const chunk of req){body+=chunk;if(body.length>2*1024*1024)throw new Error('Save payload exceeds 2 MB');}return JSON.parse(body||'{}');}
