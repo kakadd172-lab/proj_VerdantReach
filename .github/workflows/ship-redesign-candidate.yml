@@ -27,8 +27,6 @@ jobs:
           node-version: 22
       - name: Install candidate dependencies
         run: npm install --no-audit --no-fund
-      - name: Install Chromium for the browser smoke test
-        run: npx playwright install --with-deps chromium
       - name: Verify the standalone ForTests vessel definitions and shared geometry engine
         run: npm run check:modules
       - name: Run standalone editor, persistence and 16-vessel generator tests
@@ -47,5 +45,7 @@ jobs:
         run: npm run test:sloop:sails
       - name: Build the standalone modular ship editor
         run: npm run build
+      - name: Install Chromium for the browser smoke test
+        run: npx playwright install --with-deps chromium
       - name: Verify all 16 standalone vessel generators load in the editor
         run: npm run smoke
