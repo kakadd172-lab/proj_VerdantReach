@@ -101,10 +101,10 @@ export function createLanternModel(transforms={},savedState={}){
   paneMaterial.roughness=.2;
   paneMaterial.depthWrite=false;
   const paneSpecs=[
-    ['front',new T.BoxGeometry(.285,.385,.009),[0,.577,half-.009],0],
-    ['rear',new T.BoxGeometry(.285,.385,.009),[0,.577,-half+.009],0],
-    ['port',new T.BoxGeometry(.009,.385,.285),[-half+.009,.577,0],0],
-    ['starboard',new T.BoxGeometry(.009,.385,.285),[half-.009,.577,0],0]
+    ['front',new T.BoxGeometry(.285,.385,.009),[0,.577,half-.009]],
+    ['rear',new T.BoxGeometry(.285,.385,.009),[0,.577,-half+.009]],
+    ['port',new T.BoxGeometry(.009,.385,.285),[-half+.009,.577,0]],
+    ['starboard',new T.BoxGeometry(.009,.385,.285),[half-.009,.577,0]]
   ];
   for(const [name,geometry,position] of paneSpecs){
     const pane=mesh(glass,geometry,paneMaterial,'glazed-pane-'+name);
@@ -136,11 +136,10 @@ export function createLanternModel(transforms={},savedState={}){
   addCylinder(ctx,vent,'vent-collar',.072,.082,.045,[0,1.079,0],materials.iron,16);
   addCylinder(ctx,vent,'vent-stack',.047,.052,.12,[0,1.15,0],materials.brass,16);
   addCylinder(ctx,vent,'vent-rim',.075,.075,.022,[0,1.215,0],materials.iron,16);
-  addCylinder(ctx,vent,'rain-cap',.092,.063,.025,[0,1.239,0],materials.brass,16);
-  const hardware=part('lantern-hardware');
+  addCylinder(ctx,vent,'rain-cap',.063,.092,.025,[0,1.239,0],materials.brass,16);
   for(let i=0;i<8;i++){
     const angle=i*Math.PI/4;
-    const slot=mesh(hardware,new T.BoxGeometry(.012,.032,.004),materials.lower,'vent-slot-'+(i+1));
+    const slot=mesh(vent,new T.BoxGeometry(.012,.032,.004),materials.lower,'vent-slot-'+(i+1));
     slot.position.set(Math.sin(angle)*.049,1.151,Math.cos(angle)*.049);
     slot.rotation.y=angle;
   }
@@ -171,6 +170,9 @@ export function createLanternModel(transforms={},savedState={}){
   center.material.emissive=new T.Color(0x4a3010);
   center.material.emissiveIntensity=.22;
 
+  // Hardware is registered after the handle and burner so the editor's
+  // component order matches LANTERN_PART_NAMES and the catalogue definition.
+  const hardware=part('lantern-hardware');
   // Hinge straps, front latch, screws, and separate corner guard rods.
   for(const x of [-.164,.164]){
     for(const z of [-.164,.164]){
