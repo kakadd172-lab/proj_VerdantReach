@@ -97,6 +97,7 @@ test('Deck Lantern exposes its detailed storm-lantern assemblies as independentl
   ]);
   const lantern = createMiscModel('misc-prop-lantern');
   try {
+    assert.deepEqual(getMiscModelDefinition('misc-prop-lantern').partNames, [...LANTERN_PART_NAMES]);
     assert.deepEqual(lantern.userData.partNames, [...LANTERN_PART_NAMES]);
     for (const name of LANTERN_PART_NAMES) {
       const component = lantern.userData.getPart(name);
