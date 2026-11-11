@@ -15,7 +15,7 @@ const [css,gameHtml]=await Promise.all([
 ]);
 
 const requiredIds=[
-  'viewport','ship-select','part-select','undo','redo','position-fields','rotation-fields',
+  'viewport','model-category','model-category-caption','ship-select','part-select','undo','redo','position-fields','rotation-fields',
   'scale-fields','design-controls','length','beam','draft','masts','parts','description',
   'save-design','export-design','save-state','restore-generator-defaults','status','part-size','part-parent','part-meshes','part-materials',
   'compare-select','compare-summary','measure-toggle','clear-measurement','measurement-value',
@@ -112,4 +112,19 @@ test('shipyard supports drag-box multi-selection and collective gizmo transforms
     "else if(key==='q')toggleBoxSelect()",
   ])assert.ok(preview.includes(symbol),'Missing box-selection behavior: '+symbol);
   assert.ok(html.includes('Shift + drag adds to selection'));
+});
+
+test('shipyard exposes a separate miscellaneous category and variant-aware model adapter',()=>{
+  assert.match(html,/<option value="miscellaneous">Miscellaneous<\\/option>/);
+  for(const symbol of [
+    "document.querySelector('#model-category')",
+    "import('./ships/misc/index.js?v=0.1.0')",
+    'MISC_MODEL_IDS',
+    'function createActiveModel(',
+    'function refreshModelOptions(',
+    "categorySelector.addEventListener('change'",
+    'function effectiveMiscModelConfig(',
+    'miscModels',
+    'function createMiscModel(',
+  ])assert.ok(preview.includes(symbol),'Missing miscellaneous integration: '+symbol);
 });
