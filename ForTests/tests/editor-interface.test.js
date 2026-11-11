@@ -118,7 +118,7 @@ test('shipyard exposes a separate miscellaneous category and variant-aware model
   assert.ok(html.includes('<option value="miscellaneous">Miscellaneous</option>'));
   for(const symbol of [
     "document.querySelector('#model-category')",
-    "import('./ships/misc/index.js?v=0.1.0')",
+    "import('./ships/misc/index.js?v=0.2.0')",
     'MISC_MODEL_IDS',
     'function createActiveModel(',
     'function refreshModelOptions(',
