@@ -52,7 +52,7 @@ async function bootShipStudio(){
     if(Object.keys(SHIP_DESIGNS||{}).length!==16)apiProblems.push('ship catalogue count '+Object.keys(SHIP_DESIGNS||{}).length);
     if(Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length!==16)apiProblems.push('per-vessel editor defaults count '+Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length);
     if(typeof createMiscModel!=='function'||typeof getMiscModelDefinition!=='function'||typeof getMiscModelDefaults!=='function')apiProblems.push('ships/misc/index.js miscellaneous model API');
-    if(!Array.isArray(MISC_MODEL_IDS)||MISC_MODEL_IDS.length!==3)apiProblems.push('miscellaneous model catalogue count '+(MISC_MODEL_IDS||[]).length);
+    if(!Array.isArray(MISC_MODEL_IDS)||MISC_MODEL_IDS.length!==7)apiProblems.push('miscellaneous model catalogue count '+(MISC_MODEL_IDS||[]).length);
     if(apiProblems.length){
       throw new Error('Ship module mismatch: '+apiProblems.join('; ')+'. Pull the latest ForTests files, restart Vite, then hard-refresh the preview.');
     }
@@ -70,7 +70,7 @@ for(const [id,d] of Object.entries(SHIP_DESIGNS)){
   option.textContent=d.label;
   selector.appendChild(option);
 }
-// Optional direct-review URL: ?ship=barque&camera=side&part=hull or ?model=misc-cannon-18-pounder
+// Optional direct-review URL: ?ship=barque&camera=side&part=hull or ?model=misc-prop-barrel
 const reviewParams=new URLSearchParams(window.location.search);
 const reviewShipId=reviewParams.get('ship')||'';
 const reviewPartName=reviewParams.get('part')||'';
@@ -184,7 +184,7 @@ function refreshModelOptions(category,preferredId){
   for(const [id,definition] of entries){const option=document.createElement('option');option.value=id;option.textContent=definition.label;selector.appendChild(option);}
   const next=preferredId&&entries.some(([id])=>id===preferredId)?preferredId:entries[0]?.[0];
   if(next)selector.value=next;
-  const caption=document.querySelector('#model-category-caption');if(caption)caption.textContent=category==='miscellaneous'?'Miscellaneous models · '+entries.length+' variants':'Sailing vessels · '+entries.length+' designs';
+  const caption=document.querySelector('#model-category-caption');if(caption)caption.textContent=category==='miscellaneous'?'Miscellaneous props and display assets · '+entries.length+' models':'Sailing vessels · '+entries.length+' designs';
 }
 let historyEntries=[];
 let historyCursor=0;
@@ -883,7 +883,7 @@ function renderDesignInputs(){
   container.replaceChildren();
   const design=getActiveDefinition(selector.value);
   const structure=isMiscModelId(selector.value)?null:getShipStructureBlueprint(selector.value);
-  if(isMiscModelId(selector.value)){container.textContent='Miscellaneous visual model · use the shared component inspector and transform tools to edit its individual parts.';return;}
+  if(isMiscModelId(selector.value)){container.textContent='Miscellaneous model · use the shared component inspector and transform tools to edit its individual parts.';return;}
   for(const field of DESIGN_FIELDS){
     const root=field.path.startsWith('design.')?design:structure;
     const localPath=field.path.replace(/^design\./,'');
