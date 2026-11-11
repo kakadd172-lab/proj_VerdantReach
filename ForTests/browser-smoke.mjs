@@ -240,6 +240,25 @@ try{
   await page.locator('#redo').click();
   assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-16.4)<1e-6,'Redo did not restore the imported vessel configuration.');
 
+  // Miscellaneous category: all three cannon display variants use the same editable model controls.
+  await page.locator('#model-category').selectOption('miscellaneous');
+  assert.equal(await page.locator('#ship-select option').count(),3,'Miscellaneous category should expose three cannon variants.');
+  await page.locator('#ship-select').selectOption('misc-cannon-18-pounder');
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('18-pounder'),{timeout:10000});
+  assert.ok(await page.locator('#part-select option').count()>10,'Miscellaneous model did not expose its editable visual components.');
+  const firstMiscPart=await page.locator('#part-select').inputValue();
+  await page.locator('[data-transform="x"]').fill('0.125');
+  await page.locator('[data-transform="x"]').dispatchEvent('change');
+  assert.equal(await page.locator('[data-transform="x"]').inputValue(),'0.125','Miscellaneous component transform input was not retained.');
+  await page.locator('#ship-select').selectOption('misc-cannon-9-pounder');
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('9-pounder'),{timeout:10000});
+  await page.locator('#ship-select').selectOption('misc-cannon-36-pounder');
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('36-pounder'),{timeout:10000});
+  await page.locator('#model-category').selectOption('vessels');
+  assert.equal(await page.locator('#ship-select option').count(),16,'Switching back should restore all 16 vessel designs.');
+  await page.locator('#ship-select').selectOption('sloop');
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('sloop'),{timeout:10000});
+
   assert.deepEqual(pageErrors,[],'Browser runtime errors: '+pageErrors.join(' | '));
   assert.deepEqual(consoleErrors,[],'Browser console errors: '+consoleErrors.join(' | '));
   assert.deepEqual(duplicateThreeWarnings,[],'Multiple Three.js instances detected: '+duplicateThreeWarnings.join(' | '));
