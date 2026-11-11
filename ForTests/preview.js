@@ -1086,7 +1086,7 @@ async function saveDesign(){
   finally{if(button)button.disabled=false;}
 }
 async function restoreGeneratorDefaults(){
-  if(!activeShipId)return;const label=getShipDesign(activeShipId)?.label||activeShipId;
+  if(!activeShipId)return;const label=getActiveDefinition(activeShipId)?.label||activeShipId;
   if(!window.confirm('Restore '+label+' to its original generator defaults? This clears only its editor-defaults.js file and leaves all individual part generators untouched.'))return;
   const button=document.querySelector('#restore-generator-defaults');if(button)button.disabled=true;
   try{
