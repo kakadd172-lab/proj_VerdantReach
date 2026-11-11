@@ -140,7 +140,7 @@ export function createLanternModel(transforms={},savedState={}){
   const hardware=part('lantern-hardware');
   for(let i=0;i<8;i++){
     const angle=i*Math.PI/4;
-    const slot=mesh(ventSlots,new T.BoxGeometry(.012,.032,.004),materials.lower,'vent-slot-'+(i+1));
+    const slot=mesh(hardware,new T.BoxGeometry(.012,.032,.004),materials.lower,'vent-slot-'+(i+1));
     slot.position.set(Math.sin(angle)*.049,1.151,Math.cos(angle)*.049);
     slot.rotation.y=angle;
   }
