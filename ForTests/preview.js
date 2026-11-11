@@ -34,7 +34,7 @@ async function bootShipStudio(){
       throw new Error('design-overrides.json must contain a JSON object (use {} for an empty workspace).');
     }
     const shipModule=await import('./ships/index.js?v=0.8.30-reset-frame-registry');
-    const miscModule=await import('./ships/misc/index.js?v=0.2.0');
+    const miscModule=await import('./ships/misc/index.js?v=0.3.0');
     const {SHIP_DESIGNS,VESSEL_IDS,VESSEL_EDITOR_DEFAULTS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
       getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
       createShipModel,disposeShipModel,SHIP_MODEL_MODULE_VERSION}=shipModule;
@@ -52,7 +52,7 @@ async function bootShipStudio(){
     if(Object.keys(SHIP_DESIGNS||{}).length!==16)apiProblems.push('ship catalogue count '+Object.keys(SHIP_DESIGNS||{}).length);
     if(Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length!==16)apiProblems.push('per-vessel editor defaults count '+Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length);
     if(typeof createMiscModel!=='function'||typeof getMiscModelDefinition!=='function'||typeof getMiscModelDefaults!=='function')apiProblems.push('ships/misc/index.js miscellaneous model API');
-    if(!Array.isArray(MISC_MODEL_IDS)||MISC_MODEL_IDS.length!==7)apiProblems.push('miscellaneous model catalogue count '+(MISC_MODEL_IDS||[]).length);
+    if(!Array.isArray(MISC_MODEL_IDS)||MISC_MODEL_IDS.length!==8)apiProblems.push('miscellaneous model catalogue count '+(MISC_MODEL_IDS||[]).length);
     if(apiProblems.length){
       throw new Error('Ship module mismatch: '+apiProblems.join('; ')+'. Pull the latest ForTests files, restart Vite, then hard-refresh the preview.');
     }
@@ -1100,7 +1100,7 @@ async function restoreGeneratorDefaults(){
 function exportDesign(){
   const blob=new Blob([JSON.stringify(buildExport(),null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),link=document.createElement('a');
   link.href=url;link.download='verdant-reach-model-authoring-backup.json';link.click();URL.revokeObjectURL(url);
-  setStatus('Exported a full backup of all 16 vessels and 3 miscellaneous models, including saved defaults and current edits.');
+  setStatus('Exported a full backup of all 16 vessels and 8 miscellaneous models, including saved defaults and current edits.');
 }
 
 renderTransformInputs();
