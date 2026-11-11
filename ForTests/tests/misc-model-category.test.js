@@ -80,3 +80,32 @@ test('Cargo Barrel V2 has its own ten editable assemblies and is distinct from V
     v2.userData.dispose();
   }
 });
+
+test('Deck Lantern exposes its detailed storm-lantern assemblies as independently editable parts', async () => {
+  const { LANTERN_PART_NAMES, LANTERN_GENERATOR_VERSION } = await import('../ships/misc/lanterns/index.js');
+  assert.equal(LANTERN_GENERATOR_VERSION, '0.2.0');
+  assert.deepEqual(LANTERN_PART_NAMES, [
+    'lantern-base',
+    'lantern-frame',
+    'lantern-glass',
+    'lantern-roof',
+    'lantern-vent',
+    'lantern-handle',
+    'lantern-burner',
+    'lantern-hardware',
+    'lantern-guard'
+  ]);
+  const lantern = createMiscModel('misc-prop-lantern');
+  try {
+    assert.deepEqual(lantern.userData.partNames, [...LANTERN_PART_NAMES]);
+    for (const name of LANTERN_PART_NAMES) {
+      const component = lantern.userData.getPart(name);
+      assert.ok(component, 'Missing editable lantern assembly: ' + name);
+      assert.ok(component.children.length > 0, 'Lantern assembly has no geometry: ' + name);
+    }
+    assert.equal(lantern.userData.setPartTransform('lantern-handle', { y: 0.05 }), true);
+    assert.equal(lantern.userData.getPartTransform('lantern-handle').y, 0.05);
+  } finally {
+    lantern.userData.dispose();
+  }
+});
