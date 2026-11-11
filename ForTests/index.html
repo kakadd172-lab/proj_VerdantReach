@@ -147,10 +147,15 @@
     </section>
 
     <aside class="sidebar">
-      <div class="sidebar-heading"><div><h2>Ship workspace</h2><p>Shape, inspect and compare each vessel.</p></div><span class="saved-dot" title="Local workspace active"></span></div>
+      <div class="sidebar-heading"><div><h2>Model workspace</h2><p>Edit sailing vessels and miscellaneous visual assets.</p></div><span class="saved-dot" title="Local workspace active"></span></div>
 
       <section class="card">
-        <label for="ship-select">Vessel design</label>
+        <label for="model-category">Model category</label>
+        <select id="model-category">
+          <option value="vessels" selected>Sailing vessels</option>
+          <option value="miscellaneous">Miscellaneous</option>
+        </select>
+        <label for="ship-select" style="margin-top:10px">Model / variant</label>
         <select id="ship-select">
           <option value="sloop" selected>Caribbean merchant sloop</option>
           <option value="schooner">West Indies schooner</option>
@@ -169,6 +174,7 @@
           <option value="first-rate">First-rate ship of the line</option>
           <option value="pinnace">Ship’s pinnace</option>
         </select>
+        <p id="model-category-caption" class="muted" aria-live="polite">Sailing vessels · 16 designs</p>
       </section>
 
       <details class="section-card" open>
