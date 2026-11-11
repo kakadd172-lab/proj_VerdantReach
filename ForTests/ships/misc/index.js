@@ -27,7 +27,7 @@ const DEFINITIONS = Object.freeze({
   'misc-prop-barrel': { id:'misc-prop-barrel', itemId:'barrel', label:'Cargo Barrel · V1', kind:'barrel', dimensions:[1.05,.82,.82], partNames:['barrel-body','barrel-top','barrel-bottom','stave-set','hoop-top','hoop-middle','hoop-bottom'] },
   'misc-prop-barrel-v2': { id:'misc-prop-barrel-v2', itemId:'barrel', label:'Cargo Barrel · V2', kind:'barrel-v2', dimensions:[1.04,.82,.82], partNames:['barrel-body-core','barrel-staves','barrel-hoop-lower','barrel-hoop-lower-middle','barrel-hoop-upper-middle','barrel-hoop-upper','barrel-head-top','barrel-head-bottom','barrel-bung','barrel-rim-details'] },
   'misc-prop-crate': { id:'misc-prop-crate', itemId:'crate', label:'Cargo Crate', kind:'crate', dimensions:[.95,.82,.82], partNames:['crate-core','front-planks','rear-planks','port-planks','starboard-planks','top-planks','corner-braces','iron-fasteners'] },
-  'misc-prop-lantern': { id:'misc-prop-lantern', itemId:'lantern', label:'Deck Lantern', kind:'lantern', dimensions:[.48,.48,.82], partNames:['lantern-base','lantern-frame','lantern-glass','lantern-roof','lantern-vent','lantern-handle'] },
+  'misc-prop-lantern': { id:'misc-prop-lantern', itemId:'lantern', label:'Deck Lantern', kind:'lantern', dimensions:[.52,.52,1.28], partNames:['lantern-base','lantern-frame','lantern-glass','lantern-roof','lantern-vent','lantern-handle','lantern-burner','lantern-hardware','lantern-guard'] },
   'misc-prop-bollard': { id:'misc-prop-bollard', itemId:'fitting', label:'Mooring Bollard', kind:'fitting', dimensions:[.55,.55,.75], partNames:['bollard-foot','bollard-stem','bollard-head','bollard-collar','mounting-bolts'] }
 });
 
