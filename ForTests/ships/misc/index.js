@@ -78,7 +78,7 @@ export function getMiscModelDefinition(id) {
     const profile=getCannonProfile(entry.variantId);
     if(!profile)return null;
     return {
-      id:key,category:'miscellaneous',itemId:entry.itemId,variantId:entry.variantId,
+      id:key,category:'miscellaneous',itemId:entry.itemId,variantId:entry.variantId,kind:entry.kind,
       label:profile.label,hullLength:profile.barrelLengthMetres,beam:profile.carriageWidthMetres,
       draft:profile.wheelRadiusMetres,freeboard:profile.bodyRadiusMetres*2,masts:[],
       hullProfile:'Standalone non-functional display asset',
@@ -87,7 +87,7 @@ export function getMiscModelDefinition(id) {
     };
   }
   return {
-    id:key,category:'miscellaneous',itemId:entry.itemId,label:entry.label,
+    id:key,category:'miscellaneous',itemId:entry.itemId,label:entry.label,kind:entry.kind,
     hullLength:entry.dimensions[0],beam:entry.dimensions[1],draft:entry.dimensions[2],
     freeboard:entry.dimensions[2]*.55,masts:[],hullProfile:'Independent editable maritime prop',
     reference:'Original Verdant Reach maritime prop generator.',
