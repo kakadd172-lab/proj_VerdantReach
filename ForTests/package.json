@@ -16,7 +16,7 @@
     "visual-audit": "node visual-audit.mjs",
     "audit:barque": "node visual-audit.mjs --ship barque",
     "audit:vessel": "node visual-audit.mjs --ship",
-    "test:core": "node --expose-gc --test --test-concurrency=1 tests/editor-defaults.test.js tests/editor-interface.test.js tests/editor-persistence.test.js tests/ship-redesign.test.js",
+    "test:core": "node --expose-gc --test --test-concurrency=1 tests/editor-defaults.test.js tests/editor-interface.test.js tests/editor-persistence.test.js tests/cannon-generator.test.js tests/ship-redesign.test.js",
     "test:sloop": "npm run test:sloop:reference && npm run test:sloop:geometry && npm run test:sloop:rigging && npm run test:sloop:steering && npm run test:sloop:wind && npm run test:sloop:sails",
     "test:sloop:reference": "node --expose-gc --test --test-concurrency=1 --test-name-pattern=\"Loguivy homardier|Plan-view offsets|Body-plan sections|The 1866 stern|The fine bow\" tests/sloop-reference.test.js",
     "test:sloop:geometry": "node --expose-gc --test --test-concurrency=1 --test-name-pattern=\"central vivier|transom, rudder, anchors|gaff mainsail remains intact\" tests/sloop-reference.test.js",

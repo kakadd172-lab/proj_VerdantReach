@@ -1,24 +1,35 @@
-# Shared ship cannons
+# Shared cannon generator
 
-This directory is the fleet-wide home for reusable cannon models.
+This is the fleet-wide, non-functional visual cannon asset. It is not a simulation of a working weapon.
 
-## Current state
+## Blueprint interpretation
 
-No cannon model is implemented here yet. The ship-specific cannon barrels and carriage assemblies have been removed from the vessel generators. The vessel-specific gunport openings and their framing remain part of each hull/deck fitting layout.
+The supplied sheet contains three barrel size profiles (36-, 18- and 9-pounder) and multiple carriage orthographic views. The generator offers those three selectable exterior profiles from one reusable module. Visible shapes and proportions are reconstructed from the drawings. Unshown carriage dimensions are visual estimates.
 
-## Planned module boundary
+## Part-by-part folders
 
-The next cannon implementation should be built here once and reused by every vessel. Keep model concerns separate:
+- `profiles/`: selectable exterior size profiles.
+- `barrel/body/`: solid turned barrel silhouette.
+- `barrel/muzzle/`: solid sealed face and outer moulding; no bore.
+- `barrel/reinforcement-rings/`: separate decorative bands.
+- `barrel/trunnions/`: separate port and starboard exterior studs.
+- `barrel/cascabel/`: decorative breech finial.
+- `carriage/cheeks/`: shaped port and starboard wooden cheeks.
+- `carriage/bed/`: fixed bed and saddle.
+- `carriage/transoms/`: fore and aft cross timbers.
+- `carriage/axles/`: static display axles.
+- `carriage/wheels/`: four separate detailed wheel components.
+- `carriage/hardware/`: visible decorative strapping and fasteners.
+- `assembly/`: combines the part generators in a stable order.
 
-- **Cannon model:** barrel, muzzle, breech, cascabel, trunnions and fittings.
-- **Carriage:** cheeks, axle, wheels, bed, quoin/elevation support and rope fittings.
-- **Mounting interface:** a stable local origin, barrel direction, elevation pivot and mounting dimensions.
-- **Vessel placement:** each ship may later define its own cannon positions, sizes and deck/battery levels, but must import the shared model rather than generate duplicate cannon geometry.
+Every top-level assembly part is a registered editor component and supports the shared ship-editor transform, hide, detach/relink and reset API.
 
-The shared model must remain an independent editable component when attached to a ship. Do not put vessel-specific geometry back into `generators/deck-equipment/fittings-generator.js`.
+## Coordinates
 
-## Coordinate convention
+Forward / muzzle: `-Z`; aft / breech: `+Z`; port: `-X`; starboard: `+X`; up: `+Y`. The origin is at the centre of the carriage footprint at ground level.
 
-Follow the parent vessel's coordinates: forward `-Z`, aft `+Z`, port `-X`, starboard `+X`, up `+Y`. A cannon's public mounting origin and barrel-forward axis should be documented explicitly when the model is implemented.
+## Use
 
-Keep this directory free of vessel hull, gunport or ship-specific placement code.
+`createCannonModel('18-pounder')` creates the default display model. Supported IDs are `36-pounder`, `18-pounder` and `9-pounder`.
+
+Cannon placement on individual vessels is intentionally separate from this shared asset. That fleet-wide placement pass can import this generator later.
