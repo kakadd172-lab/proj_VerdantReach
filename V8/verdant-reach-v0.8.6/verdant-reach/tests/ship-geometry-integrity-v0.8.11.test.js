@@ -39,6 +39,14 @@ test('all 16 runtime ships generate finite geometry and real registered stern co
     try {
       assert.equal(ship.userData.shipType, vesselId);
       const names = ship.userData.partNames;
+      assert.ok(names.includes('deck-fittings'), vesselId + ': deck fittings remain available');
+      assert.ok(!names.some(name => /cannon|deck-gun|gun-carriage/i.test(name)),
+        vesselId + ': vessel generator must not register embedded cannon components');
+      const embeddedCannons = [];
+      ship.traverse((object) => {
+        if (/cannon|deck-gun|gun-carriage-wheel/i.test(object.name)) embeddedCannons.push(object.name);
+      });
+      assert.deepEqual(embeddedCannons, [], vesselId + ': no embedded cannon geometry is allowed');
       assert.ok(Array.isArray(names) && names.length > 10);
       assert.equal(new Set(names).size, names.length, vesselId + ': component names must be unique');
 

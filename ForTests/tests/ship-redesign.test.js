@@ -148,6 +148,14 @@ test('all 16 independent ForTests generators build separate editable models', ()
       assert.ok(ship.userData.getPart('hull'), id + ' hull');
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
+      assert.ok(ship.userData.getPart('deck-fittings'), id + ' deck fittings');
+      assert.ok(!ship.userData.partNames.some(name => /cannon|deck-gun|gun-carriage/i.test(name)),
+        id + ' must not embed vessel-specific cannon components');
+      const embeddedCannons = [];
+      ship.traverse(object => {
+        if (/cannon|deck-gun|gun-carriage-wheel/i.test(object.name)) embeddedCannons.push(object.name);
+      });
+      assert.deepEqual(embeddedCannons, [], id + ' must leave cannon models to the shared vessel module');
       // Conventional standing rigging is articulated where the vessel has it.
       // Chinese junk masts use battened lug sails and are intentionally unstayed;
       // do not invent shrouds merely to satisfy the shared animation test.
