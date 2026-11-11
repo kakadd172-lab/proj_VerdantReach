@@ -125,6 +125,6 @@ test('shipyard exposes a separate miscellaneous category and variant-aware model
     "categorySelector.addEventListener('change'",
     'function effectiveMiscModelConfig(',
     'miscModels',
-    'function createMiscModel(',
+    'createMiscModel,',
   ])assert.ok(preview.includes(symbol),'Missing miscellaneous integration: '+symbol);
 });
