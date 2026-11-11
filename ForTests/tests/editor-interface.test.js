@@ -115,7 +115,7 @@ test('shipyard supports drag-box multi-selection and collective gizmo transforms
 });
 
 test('shipyard exposes a separate miscellaneous category and variant-aware model adapter',()=>{
-  assert.match(html,/<option value="miscellaneous">Miscellaneous<\\/option>/);
+  assert.ok(html.includes('<option value="miscellaneous">Miscellaneous</option>'));
   for(const symbol of [
     "document.querySelector('#model-category')",
     "import('./ships/misc/index.js?v=0.1.0')",
