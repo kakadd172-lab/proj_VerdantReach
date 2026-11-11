@@ -147,8 +147,8 @@ export function createLanternModel(transforms={},savedState={}){
 
   // Upright carrying bail, mounted through paired hinge ears.
   const handle=part('lantern-handle');
-  const bail=mesh(handle,new T.TorusGeometry(.112,.014,8,28,Math.PI),materials.iron,'arched-carrying-bail');
-  bail.position.y=1.255;
+  const bail=mesh(handle,new T.TorusGeometry(.145,.014,8,28,Math.PI),materials.iron,'arched-carrying-bail');
+  bail.position.y=.837;
   for(const x of [-.145,.145]){
     const ear=mesh(handle,new T.BoxGeometry(.055,.075,.025),materials.brass,'bail-hinge-ear');
     ear.position.set(x,.837,0);
