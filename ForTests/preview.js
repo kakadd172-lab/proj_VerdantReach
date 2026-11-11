@@ -387,7 +387,7 @@ function setStatus(message,error=false){
 function updateSaveIndicator(){
   const node=document.querySelector('#save-state');
   if(!node)return;
-  node.textContent=hasUnsavedChanges?'Unsaved edits':'Vessel files saved';
+  node.textContent=hasUnsavedChanges?'Unsaved edits':'Model defaults saved';
   node.classList.toggle('dirty',hasUnsavedChanges);
 }
 function fit(object){
@@ -1081,7 +1081,7 @@ async function saveDesign(){
     let result={};
     try{result=await response.json();}catch{result={};}
     if(!response.ok||!result.saved)throw new Error(result.error||('Local save endpoint returned HTTP '+response.status+'.'));
-    hasUnsavedChanges=false;updateSaveIndicator();setStatus('Saved '+result.vessels+' per-vessel default modules. Reloading from those source files…');window.location.reload();
+    hasUnsavedChanges=false;updateSaveIndicator();setStatus('Saved '+result.vessels+' vessel designs and '+(result.miscModels||0)+' miscellaneous models. Reloading from their source defaults…');window.location.reload();
   }catch(error){setStatus('Save failed. Your edits remain in this editor; use Export backup as an additional copy. '+error.message,true);}
   finally{if(button)button.disabled=false;}
 }
@@ -1093,7 +1093,7 @@ async function restoreGeneratorDefaults(){
     const response=await fetch('/__ship-editor/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shipId:activeShipId})});
     if(!response.ok)throw new Error('Local reset endpoint returned '+response.status);
     const result=await response.json();if(!result.saved)throw new Error(result.error||'The local server did not confirm the reset.');
-    setStatus('Restored '+label+' to the original generator defaults. Reloading…');window.location.reload();
+    setStatus('Restored '+label+' to its original model defaults. Reloading…');window.location.reload();
   }catch(error){setStatus('Could not restore generator defaults: '+error.message,true);}
   finally{if(button)button.disabled=false;}
 }
