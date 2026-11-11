@@ -12,12 +12,12 @@ export function buildTrunnions(ctx, dimensions) {
    new THREE.CylinderGeometry(bodyRadius*.34, bodyRadius*.34, span, 28),
    materials.iron, 'trunnion-'+label+'-solid-stud');
   pin.rotation.z = Math.PI/2;
-  pin.position.set(side*span*.25, mountY, z);
+  pin.position.set(side*(bodyRadius + span*.5), mountY, z);
   const collar = mesh(group,
    new THREE.TorusGeometry(bodyRadius*.36, bodyRadius*.055, 8, 32),
    materials.brass, 'trunnion-'+label+'-collar');
   collar.rotation.y = Math.PI/2;
-  collar.position.set(side*span*.38, mountY, z);
+  collar.position.set(side*(bodyRadius + span*.85), mountY, z);
   created.push(group);
  }
  return created;

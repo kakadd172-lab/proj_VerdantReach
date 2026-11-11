@@ -62,6 +62,11 @@ test('shared cannon generator provides all three blueprint size variants',()=>{
    assert.equal(model.userData.getPart('muzzle-face').userData.noBore,true);
    assert.equal(model.userData.getPart('barrel-body').userData.solidMuzzle,true);
    assert.equal(model.userData.getPart('muzzle-face').getObjectByName('solid-sealed-muzzle-face').userData.solidCap,true);
+   const portPin=model.userData.getPart('trunnion-port').getObjectByName('trunnion-port-solid-stud');
+   const starboardPin=model.userData.getPart('trunnion-starboard').getObjectByName('trunnion-starboard-solid-stud');
+   assert.ok(portPin.position.x<0&&starboardPin.position.x>0,id+' trunnions sit on opposite barrel sides');
+   assert.ok(Math.abs(Math.abs(portPin.position.x)-Math.abs(starboardPin.position.x))<1e-8,
+    id+' port and starboard trunnions are symmetric about the centreline');
    assert.equal(model.userData.getPart('wheel-port-fore').userData.cannonComponent,'fixed-wood-wheel');
   }finally{
    model.userData.dispose();
