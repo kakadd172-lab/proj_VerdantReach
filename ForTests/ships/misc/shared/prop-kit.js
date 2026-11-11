@@ -29,6 +29,8 @@ export function finishPropModel(ctx,id,transforms={},savedState={}) {
   root.name='Verdant Reach · '+ctx.design.label;
   root.userData.shipType='misc-prop';
   root.userData.miscModelId=id;
+  root.userData.miscModelType=id==='misc-prop-bollard'?'fitting':id.replace('misc-prop-','');
+  root.userData.modelCategory='miscellaneous';
   root.userData.propNonFunctional=true;
   root.userData.partNames=[...ctx.registry.keys()];
   root.userData.dispose=()=>disposeShipModel(root);
