@@ -39,7 +39,6 @@ export const SloopV2Definition=defineVesselSpec({
       {label:'User-supplied Pinterest blueprint 1 (page inaccessible to the connected browser)',url:'https://in.pinterest.com/pin/604960162432299596/'},
       {label:'User-supplied Pinterest blueprint 2 (page inaccessible to the connected browser)',url:'https://in.pinterest.com/pin/458522805787729445/'},
       {label:'Herreshoff 1870 sloop Shadow — lines plan (secondary hull-form reference)',url:'https://herreshoff.info/Docs/ES187106_Shadow.htm'},
-      {label:'Musée Maritime de La Rochelle — François Sergent cruising-sloop lines plan, 1950 (secondary reference)',url:'https://www.histoiresmaritimesrochelaises.fr/sloop-de-croisiere-925-m-1950'}
     ],
     hullFormNote:'Sloop V2 has its own authored station and section profile in architecture/hull-geometry.js. Refine those local curves against direct blueprint images once the pin images are available.',
     modelScaleNote:'Dimensions are initial reconstruction estimates; they are not verified measurements from the inaccessible Pinterest plans.',
