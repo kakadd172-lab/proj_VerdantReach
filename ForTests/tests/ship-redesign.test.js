@@ -259,7 +259,21 @@ test('all 17 independent ForTests generators build separate editable models', ()
         const expectedHeadAfter=mast.userData.animationPivot.localToWorld(new Vector3Type(...metadata.mastHeadPivotLocal));
         assert.ok(sample.localToWorld(startAfter).distanceTo(expectedHeadAfter)<.02,id+' '+mastDefinition.id+' stay remains attached to its moving masthead after wind');
       }
-      if (id !== 'pinnace' && id !== 'sloop') {
+      if (id === 'sloop-v2') {
+        const cabin = ship.userData.getPart('stern-tier-1');
+        assert.ok(cabin, 'Maid of Endor should have its compact trunk cabin');
+        let shellCount = 0;
+        let coachroofCount = 0;
+        let portlightCount = 0;
+        cabin.traverse((object) => {
+          if (object.isMesh && object.geometry?.type === 'ExtrudeGeometry') shellCount += 1;
+          if (object.isMesh && object.name === 'coachroof-curved-top') coachroofCount += 1;
+          if (object.isMesh && object.name === 'coachroof-portlight') portlightCount += 1;
+        });
+        assert.ok(shellCount > 0, 'Maid of Endor cabin should have a shaped low trunk shell');
+        assert.ok(coachroofCount > 0, 'Maid of Endor cabin should have its compact coachroof');
+        assert.ok(portlightCount >= 2, 'Maid of Endor cabin should expose separate portlights');
+      } else if (id !== 'pinnace' && id !== 'sloop') {
         const cabin = ship.userData.getPart('stern-tier-1');
         assert.ok(cabin, id + ' should have a proportioned aft cabin');
         let foldedShells = 0;
