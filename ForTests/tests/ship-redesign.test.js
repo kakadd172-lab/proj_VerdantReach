@@ -9,7 +9,7 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.30-reset-frame-registry';
+} from '../ships/index.js?v=0.8.31-sloop-v2';
  
 function disposeAndRelease(ship) {
   if (!ship) return;
@@ -26,11 +26,11 @@ function disposeAndRelease(ship) {
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
-test('the editor uses 16 self-contained ForTests vessel modules', () => {
+test('the editor uses 17 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.30');
-  assert.equal(ids.length, 16);
+  assert.equal(ids.length, 17);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
   for (const id of ids) {
@@ -45,7 +45,7 @@ test('the editor uses 16 self-contained ForTests vessel modules', () => {
 });
 
 
-const modularIds = new Set(["barque","brig","brigantine","caravel","carrack","sloop","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
+const modularIds = new Set(["barque","brig","brigantine","caravel","carrack","sloop","sloop-v2","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
 
 test('each vessel owns its own geometry-generation algorithms', () => {
   const hullAlgorithms = [];
@@ -98,8 +98,8 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     hullAlgorithms.push(hull[1].trim());
     sailAlgorithms.push(sail[0].trim());
   }
-  assert.equal(new Set(hullAlgorithms).size, 16, 'All 16 ships must have different hull breadth algorithms');
-  assert.equal(new Set(sailAlgorithms).size, 16, 'All 16 ships must have their own sail surface profiles');
+  assert.equal(new Set(hullAlgorithms).size, 17, 'All 17 ships must have different hull breadth algorithms');
+  assert.equal(new Set(sailAlgorithms).size, 17, 'All 17 ships must have their own sail surface profiles');
 
   const kit = readFileSync(new URL('../ships/shared/ship-editor-kit.js', import.meta.url), 'utf8');
   for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildCanvasSail(', 'function buildRig(']) {
@@ -126,7 +126,7 @@ test('each vessel has an independent design, structure profile and generator', (
   }
 });
 
-test('all 16 independent ForTests generators build separate editable models', () => {
+test('all 17 independent ForTests generators build separate editable models', () => {
   for (const id of ids) {
     const module = getVesselModule(id);
     const ship = module.createModel();

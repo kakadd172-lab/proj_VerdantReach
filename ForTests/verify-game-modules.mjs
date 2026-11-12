@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 const here=dirname(fileURLToPath(import.meta.url));
 const shipRoot=join(here,'ships');
-const ids=['sloop','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','fluyt','xebec','junk','first-rate','pinnace'];
-const modularIds=new Set(["barque","brig","brigantine","caravel","carrack","sloop","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
+const ids=['sloop','sloop-v2','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','fluyt','xebec','junk','first-rate','pinnace'];
+const modularIds=new Set(["barque","brig","brigantine","caravel","carrack","sloop","sloop-v2","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
 const pascal=id=>id.split('-').map(p=>p[0].toUpperCase()+p.slice(1)).join('');
 const registry=readFileSync(join(shipRoot,'index.js'),'utf8');
 const definitions=readFileSync(join(shipRoot,'shared','vessel-definition.js'),'utf8');
@@ -70,7 +70,7 @@ for(const id of ids){
   assert.ok(source.includes('./architecture/layout.js'),id+' assembler must import its architecture.');
   assert.ok(source.includes('ARCHITECTURE.assemblyOrder'),id+' must follow its architecture assembly order.');
   assert.ok(source.includes('shipArchitecture') && source.includes('ARCHITECTURE'),id+' should expose its architecture to the editor.');
-  const mastNames=[...readFileSync(join(vesselDir,'architecture','layout.js'),'utf8').matchAll(/id:\s*"([^"]+)",\s*foreAftStation/g)].map(m=>m[1]);
+  const mastNames=[...readFileSync(join(vesselDir,'architecture','layout.js'),'utf8').matchAll(/id:\s*["\']([^"\']+)["\'],\s*foreAftStation/g)].map(m=>m[1]);
   for(const mastId of mastNames)assert.ok(existsSync(join(vesselDir,'generators','masts',mastId+'mast-generator.js')),id+' missing individual '+mastId+' mast generator.');
   assert.ok(!existsSync(join(shipRoot,'vessels',id+'.js')),id+' legacy flat generator should be removed.');
  }else{
@@ -88,11 +88,11 @@ for(const id of ids){
  hullFingerprints.add(hull[1].trim());
  sailFingerprints.add(sail[0].trim());
 }
-assert.equal(hullFingerprints.size,16,'Each vessel must implement a distinct hull breadth function.');
-assert.equal(sailFingerprints.size,16,'Each vessel must implement its own sail surface profile.');
+assert.equal(hullFingerprints.size,17,'Each vessel must implement a distinct hull breadth function.');
+assert.equal(sailFingerprints.size,17,'Each vessel must implement its own sail surface profile.');
 
 const preview=readFileSync(join(here,'preview.js'),'utf8');
-assert.ok(preview.includes("./ships/index.js?v=0.8.30-reset-frame-registry"),'Preview must load the persistent authoring registry.');
+assert.ok(preview.includes("./ships/index.js?v=0.8.31-sloop-v2"),'Preview must load the persistent authoring registry.');
 assert.ok(preview.includes('VESSEL_EDITOR_DEFAULTS'),'Preview must load saved defaults for all vessels.');
 for(const legacy of ['ship-model-builder.js','hull-math.js','./ship-designs.js','./ship-structures.js','./ship-hull-parameterization.js','./ship-models.js']){
  assert.ok(!preview.includes(legacy),'Preview still references obsolete module '+legacy);
@@ -105,4 +105,4 @@ assert.ok(!pkg.scripts.postinstall,'Standalone ForTests must not install main-ga
 const vite=readFileSync(join(here,'vite.config.js'),'utf8');
 assert.ok(/fs:\s*\{\s*allow:\s*\[forTestsDir\]\s*\}/.test(vite),'Vite should serve only the ForTests workspace.');
 assert.ok(vite.includes('/__ship-editor/save')&&vite.includes('/__ship-editor/reset'),'Vite must expose validated save and reset handlers.');
-console.log('Verified all 16 ship generators use independent component-first vessel folders.');
+console.log('Verified all 17 ship generators use independent component-first vessel folders.');

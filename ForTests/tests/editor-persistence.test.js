@@ -69,3 +69,18 @@ test('save and reset persist each independent maritime prop defaults module',asy
   }
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+
+test('save and reset persist the independent Sloop V2 defaults module',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'verdant-sloop-v2-'));try{
+  const h=attach(root),saved=await request(h.get('/__ship-editor/save'),'POST',{ships:{'sloop-v2':{
+   design:{beam:5.4},componentState:{transformFrameVersion:2,rudderAngle:0,partTransforms:{hull:{x:.3,y:0,z:0,rx:0,ry:0,rz:0,sx:1,sy:1,sz:1}},hiddenParts:{},unlinkedParts:[],sailTrim:{},sailDeployment:{},mastLean:{}}
+  }}});
+  assert.equal(saved.status,200);assert.equal(saved.body.saved,true);assert.equal(saved.body.vessels,1);
+  const file=join(root,'ships','vessels','sloop-v2','editor-defaults.js');
+  const contents=await readFile(file,'utf8');assert.ok(contents.includes('sloop-v2'));assert.ok(contents.includes('"beam": 5.4'));
+  const reset=await request(h.get('/__ship-editor/reset'),'POST',{shipId:'sloop-v2'});
+  assert.equal(reset.status,200);assert.equal(reset.body.saved,true);
+  assert.ok((await readFile(file,'utf8')).includes('"partTransforms": {}'));
+ }finally{await rm(root,{recursive:true,force:true});}
+});

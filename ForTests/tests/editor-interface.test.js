@@ -128,3 +128,9 @@ test('shipyard exposes a separate miscellaneous category and variant-aware model
     'createMiscModel,',
   ])assert.ok(preview.includes(symbol),'Missing miscellaneous integration: '+symbol);
 });
+
+
+test('shipyard exposes the independent Sloop V2 vessel entry and module version',()=>{
+  assert.ok(html.includes('<option value="sloop-v2">Coastal trading sloop · V2</option>'));
+  assert.ok(preview.includes("./ships/index.js?v=0.8.31-sloop-v2"));
+});

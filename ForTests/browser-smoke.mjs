@@ -46,11 +46,11 @@ try{
   await page.waitForFunction(()=>{
     const selector=document.querySelector('#ship-select');
     const status=document.querySelector('#status')?.textContent||'';
-    return (selector&&selector.options.length>=16)||status.startsWith('Editor startup failed:');
+    return (selector&&selector.options.length>=17)||status.startsWith('Editor startup failed:');
   },{timeout:30000});
 
   const optionCount=await page.locator('#ship-select option').count();
-  assert.equal(optionCount,16,'Expected all 16 vessel choices in the dropdown.');
+  assert.equal(optionCount,17,'Expected all 17 vessel choices in the dropdown.');
   await page.waitForFunction(()=>{
     const status=document.querySelector('#status')?.textContent||'';
     const parts=Number(document.querySelector('#parts')?.textContent||0);
@@ -95,6 +95,11 @@ try{
   await page.waitForFunction(()=>document.querySelector('#description')?.textContent?.toLowerCase().includes('galleon'));
   const galleonStatus=await page.locator('#status').innerText();
   assert.ok(galleonStatus.startsWith('Loaded '),'Galleon did not load: '+galleonStatus);
+  await page.locator('#ship-select').selectOption('sloop');
+  await page.locator('#ship-select').selectOption('sloop-v2');
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('Coastal trading sloop'));
+  assert.ok(Number(await page.locator('#parts').innerText())>30,'Sloop V2 should load its independently editable component assembly.');
+  assert.ok(await page.locator('#part-select option').count()>30,'Sloop V2 should expose the new model parts in the selector.');
   await page.locator('#ship-select').selectOption('sloop');
 
   await page.locator('[data-mode="rotate"]').click();
@@ -251,7 +256,7 @@ try{
     assert.ok(Number(await page.locator('#parts').innerText())>=5,id+' did not build its component hierarchy.');
   }
   await page.locator('#model-category').selectOption('vessels');
-  assert.equal(await page.locator('#ship-select option').count(),16,'Switching back should restore all 16 vessel designs.');
+  assert.equal(await page.locator('#ship-select option').count(),17,'Switching back should restore all 17 vessel designs.');
   assert.equal(await page.locator('#ship-select').inputValue(),'sloop','Returning to Sailing vessels should select the Sloop again.');
   assert.ok(!(await page.locator('#ship-caption').innerText()).toLowerCase().includes('cannon'),'The editor did not return to a sailing vessel.');
 
