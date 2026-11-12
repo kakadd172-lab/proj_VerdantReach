@@ -1,7 +1,7 @@
 import { deckY,stationZ,V } from '../../architecture/hull-geometry.js';
 export function buildHelm(d,ctx){
  const {THREE,part,beam,mesh,materials}=ctx,helm=part('helm'),wheel=part('helm-wheel',helm);
- wheel.userData.steeringControl={axis:'z',ratio:4.1,rotationSign:-1};
+ wheel.userData.steeringControl={axis:'z',ratio:4.1,rotationSign:1};
  const z=stationZ(d,.84,1),y=deckY(d,.84)+.42,radius=Math.max(.34,d.beamUnits*.072);
  const ring=mesh(wheel,new THREE.TorusGeometry(radius,.045,10,48),materials.trim,'helm-wheel-ring');ring.position.set(0,y,z);
  const hub=mesh(wheel,new THREE.CylinderGeometry(.10,.10,.14,16),materials.iron,'helm-wheel-hub');hub.rotation.x=Math.PI/2;hub.position.set(0,y,z);
