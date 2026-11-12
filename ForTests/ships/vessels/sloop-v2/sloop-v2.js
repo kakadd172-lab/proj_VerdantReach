@@ -151,7 +151,7 @@ export function createSloopV2Model(componentTransforms={},savedState={}){
 }
 export function generateSloopV2(componentTransforms={},savedState={}){return createSloopV2Model(componentTransforms,savedState);}
 export const SloopV2=Object.freeze({
- id:SloopV2Definition.id,editorDefaults:EDITOR_DEFAULTS,definition:SloopV2Definition,
+ id:SloopV2Definition.id,editorDefaults: EDITOR_DEFAULTS,definition:SloopV2Definition,
  design:SloopV2Definition.design,structure:SloopV2Definition.structure,
  editorModulePath:SloopV2Definition.editorModulePath,architecture:SLOOP_V2_ARCHITECTURE,
  createModel:createSloopV2Model,generate:generateSloopV2
