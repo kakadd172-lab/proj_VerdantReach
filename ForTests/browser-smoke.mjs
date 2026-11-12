@@ -97,7 +97,7 @@ try{
   assert.ok(galleonStatus.startsWith('Loaded '),'Galleon did not load: '+galleonStatus);
   await page.locator('#ship-select').selectOption('sloop');
   await page.locator('#ship-select').selectOption('sloop-v2');
-  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('Coastal trading sloop'));
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('Maid of Endor'));
   assert.ok(Number(await page.locator('#parts').innerText())>30,'Sloop V2 should load its independently editable component assembly.');
   assert.ok(await page.locator('#part-select option').count()>30,'Sloop V2 should expose the new model parts in the selector.');
   await page.locator('#ship-select').selectOption('sloop');

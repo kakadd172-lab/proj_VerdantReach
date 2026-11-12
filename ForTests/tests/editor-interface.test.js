@@ -130,7 +130,7 @@ test('shipyard exposes a separate miscellaneous category and variant-aware model
 });
 
 
-test('shipyard exposes the independent Sloop V2 vessel entry and module version',()=>{
-  assert.ok(html.includes('<option value="sloop-v2">Coastal trading sloop · V2</option>'));
-  assert.ok(preview.includes("./ships/index.js?v=0.8.31-sloop-v2"));
+test('shipyard exposes the Maid of Endor V2 vessel entry and module version',()=>{
+  assert.ok(html.includes('<option value="sloop-v2">Maid of Endor · Sloop V2</option>'));
+  assert.ok(preview.includes("./ships/index.js?v=0.8.32-maid-of-endor"));
 });

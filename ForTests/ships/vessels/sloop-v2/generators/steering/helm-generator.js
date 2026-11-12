@@ -1,10 +1,14 @@
 import { deckY,stationZ,V } from '../../architecture/hull-geometry.js';
 export function buildHelm(d,ctx){
- const {THREE,part,beam,mesh,materials}=ctx,helm=part('helm'),wheel=part('helm-wheel',helm);
- wheel.userData.steeringControl={axis:'z',ratio:4.1,rotationSign:1};
- const z=stationZ(d,.84,1),y=deckY(d,.84)+.42,radius=Math.max(.34,d.beamUnits*.072);
- const ring=mesh(wheel,new THREE.TorusGeometry(radius,.045,10,48),materials.trim,'helm-wheel-ring');ring.position.set(0,y,z);
- const hub=mesh(wheel,new THREE.CylinderGeometry(.10,.10,.14,16),materials.iron,'helm-wheel-hub');hub.rotation.x=Math.PI/2;hub.position.set(0,y,z);
- for(let i=0;i<8;i++){const a=i*Math.PI/4;beam(wheel,V(0,y,z),V(Math.cos(a)*radius,y+Math.sin(a)*radius,z),.024,materials.trim,'helm-wheel-spoke-'+i,8);}
- const pedestal=part('helm-pedestal',helm);beam(pedestal,V(0,deckY(d,.84)+.04,z),V(0,y-.09,z),.095,materials.trim,'helm-pedestal-post',10);
+ const {THREE,part,beam,materials}=ctx,helm=part('helm');
+ // The plan uses a tiller, not a helm wheel. Its pivot is vertical and the
+ // component retains the historic helm-wheel key for the shared steering API.
+ const station=.94,z=stationZ(d,station,1)+.10,y=deckY(d,station)+.12;
+ const tiller=part('helm-wheel',helm);tiller.position.set(0,y,z);
+ const pivot=new THREE.Group();pivot.name='tiller-stock-pivot';tiller.add(pivot);
+ beam(pivot,V(0,0,0),V(0,0,-.82),.038,materials.trim,'tiller-bar',10);
+ beam(pivot,V(-.085,0,-.79),V(.085,0,-.79),.027,materials.trim,'tiller-hand-grip',8);
+ beam(pivot,V(0,-.02,-.06),V(0,-.02,.06),.055,materials.brass,'tiller-stock-head',10);
+ tiller.userData.steeringControl={axis:'z',ratio:4.1,rotationSign:1,pivotGroup:pivot};
+ tiller.userData.helmType='aft-tiller';
 }

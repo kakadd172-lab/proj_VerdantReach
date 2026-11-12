@@ -60,7 +60,7 @@ for(const id of ids){
    'generators/hull/hull-generator.js','generators/hull/keel-generator.js','generators/hull/stem-generator.js',
    'generators/decks/deck-generator.js','generators/decks/deck-planking-generator.js',
    'generators/hull-structure/frame-generator.js','generators/hull-structure/hull-planking-generator.js',
-   'generators/stern/stern-generator.js','generators/cabins/aft-cabin-generator.js',
+   'generators/stern/stern-generator.js','generators/cabins/aft-cabin-generator.js','generators/cockpit/cockpit-generator.js',
    'generators/bow/bow-generator.js','generators/steering/rudder-generator.js','generators/steering/helm-generator.js',
    'generators/deck-equipment/railing-generator.js','generators/deck-equipment/fittings-generator.js',
    'generators/anchors/anchor-generator.js','generators/sails/sail-cloth-generator.js',
@@ -92,7 +92,7 @@ assert.equal(hullFingerprints.size,17,'Each vessel must implement a distinct hul
 assert.equal(sailFingerprints.size,17,'Each vessel must implement its own sail surface profile.');
 
 const preview=readFileSync(join(here,'preview.js'),'utf8');
-assert.ok(preview.includes("./ships/index.js?v=0.8.31-sloop-v2"),'Preview must load the persistent authoring registry.');
+assert.ok(preview.includes("./ships/index.js?v=0.8.32-maid-of-endor"),'Preview must load the persistent authoring registry.');
 assert.ok(preview.includes('VESSEL_EDITOR_DEFAULTS'),'Preview must load saved defaults for all vessels.');
 for(const legacy of ['ship-model-builder.js','hull-math.js','./ship-designs.js','./ship-structures.js','./ship-hull-parameterization.js','./ship-models.js']){
  assert.ok(!preview.includes(legacy),'Preview still references obsolete module '+legacy);

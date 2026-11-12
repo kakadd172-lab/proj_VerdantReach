@@ -9,7 +9,7 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.31-sloop-v2';
+} from '../ships/index.js?v=0.8.32-maid-of-endor';
  
 function disposeAndRelease(ship) {
   if (!ship) return;
@@ -44,6 +44,24 @@ test('the editor uses 17 self-contained ForTests vessel modules', () => {
   }
 });
 
+
+test('Sloop V2 follows the supplied Maid of Endor pocket-cruiser specification',()=>{
+  const design=getShipDesign('sloop-v2');
+  assert.equal(design.hullLength,6.18);
+  assert.equal(design.waterlineLength,5.64);
+  assert.equal(design.beam,2.34);
+  assert.equal(design.draft,1.02);
+  assert.equal(design.sailAreaSquareFeet,333);
+  assert.deepEqual(design.sailPlan,{mainsail:214,outerJib:60.5,innerStaysail:58.5});
+  const ship=createShipModel('sloop-v2');
+  try{
+    assert.ok(ship.userData.getPart('cockpit-well'),'Maid of Endor has a separate aft cockpit well');
+    assert.ok(ship.userData.getPart('stern-tier-1'),'Maid of Endor has its low trunk cabin');
+    assert.ok(ship.userData.getPart('running-backstays-single'),'Maid of Endor cutter rig has running backstays');
+    assert.equal(ship.userData.getPart('helm-wheel').userData.helmType,'aft-tiller');
+    assert.equal(ship.userData.vesselProvenance.designName,'Maid of Endor');
+  }finally{disposeAndRelease(ship);}
+});
 
 const modularIds = new Set(["barque","brig","brigantine","caravel","carrack","sloop","sloop-v2","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
 
