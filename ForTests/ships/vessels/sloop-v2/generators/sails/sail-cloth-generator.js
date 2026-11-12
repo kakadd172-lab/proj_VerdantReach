@@ -51,7 +51,7 @@ export function buildCanvasSail(ctx,name,mastId,corners,fullness=.10,parent=ctx.
  if(triangular){
   edge('luff',t=>pointAt(0,t));
   edge('leech',t=>pointAt(t,1));
-  edge('foot',t=>pointAt(t,t));
+  edge('foot',t=>pointAt(1,t));
  }else{
   edge('luff',t=>pointAt(0,t));edge('leech',t=>pointAt(1,t));
   edge('head',t=>pointAt(t,1));edge('foot',t=>pointAt(t,0));
