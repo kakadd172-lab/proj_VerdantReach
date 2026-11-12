@@ -60,7 +60,7 @@ for(const id of ids){
    'generators/hull/hull-generator.js','generators/hull/keel-generator.js','generators/hull/stem-generator.js',
    'generators/decks/deck-generator.js','generators/decks/deck-planking-generator.js',
    'generators/hull-structure/frame-generator.js','generators/hull-structure/hull-planking-generator.js',
-   'generators/stern/stern-generator.js','generators/cabins/aft-cabin-generator.js','generators/cockpit/cockpit-generator.js',
+   'generators/stern/stern-generator.js','generators/cabins/aft-cabin-generator.js',
    'generators/bow/bow-generator.js','generators/steering/rudder-generator.js','generators/steering/helm-generator.js',
    'generators/deck-equipment/railing-generator.js','generators/deck-equipment/fittings-generator.js',
    'generators/anchors/anchor-generator.js','generators/sails/sail-cloth-generator.js',
@@ -68,6 +68,7 @@ for(const id of ids){
    'generators/rigging/standing-rigging-generator.js'
   ])assert.ok(existsSync(join(vesselDir,path)),id+' missing component generator '+path);
   assert.ok(source.includes('./architecture/layout.js'),id+' assembler must import its architecture.');
+  if(id==='sloop-v2')assert.ok(existsSync(join(vesselDir,'generators','cockpit','cockpit-generator.js')),'sloop-v2 requires its dedicated cockpit generator.');
   assert.ok(source.includes('ARCHITECTURE.assemblyOrder'),id+' must follow its architecture assembly order.');
   assert.ok(source.includes('shipArchitecture') && source.includes('ARCHITECTURE'),id+' should expose its architecture to the editor.');
   const mastNames=[...readFileSync(join(vesselDir,'architecture','layout.js'),'utf8').matchAll(/id:\s*["\']([^"\']+)["\'],\s*foreAftStation/g)].map(m=>m[1]);
