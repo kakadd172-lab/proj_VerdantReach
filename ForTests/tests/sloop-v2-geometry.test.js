@@ -6,7 +6,7 @@ import { SloopV2Definition } from '../ships/vessels/sloop-v2/sloop-v2.js';
 import { SLOOP_V2_ARCHITECTURE } from '../ships/vessels/sloop-v2/architecture/layout.js';
 import { resolveVesselForGeneration } from '../ships/shared/vessel-definition.js';
 import { disposeShipModel } from '../ships/shared/ship-editor-kit.js';
-import { deckY,halfBreadth,hullPoint,keelY,sectionBreadth,stationZ } from '../ships/vessels/sloop-v2/architecture/hull-geometry.js';
+import { deckY,halfBreadth,hullPoint,keelY,sectionBreadth,stationZ,rudderStockPosition } from '../ships/vessels/sloop-v2/architecture/hull-geometry.js';
 
 const DESIGN=resolveVesselForGeneration(SloopV2Definition).design;
 
@@ -191,32 +191,60 @@ test('Sloop V2 jib and staysail geometry matches the specified sail areas',()=>{
  }finally{disposeShipModel(ship);}
 });
 
-test('Sloop V2 rudder is an external flat plate aligned with the tiller stock',()=>{
+test('Sloop V2 rudder is a longitudinal foil with separate fixed transom gudgeons',()=>{
  const ship=createShipModel('sloop-v2');
  try{
-  const rudder=ship.userData.getPart('rudder'),tiller=ship.userData.getPart('helm-wheel');
-  assert.ok(rudder&&tiller,'rudder and tiller editor components exist');
+  const rudder=ship.userData.getPart('rudder');
+  const tiller=ship.userData.getPart('helm-wheel');
+  const fittings=ship.userData.getPart('rudder-gudgeons');
+  assert.ok(rudder&&tiller&&fittings,'rudder, tiller and fixed gudgeon components exist');
+
   const plate=firstMesh(rudder);
-  assert.equal(plate?.name,'outboard-rudder-flat-plate','rudder blade is a dedicated flat plate mesh');
-  assert.equal(plate.geometry.type,'ExtrudeGeometry','rudder is not a rounded capsule primitive');
+  assert.equal(plate?.name,'outboard-rudder-foil','rudder blade has its own foil mesh');
+  assert.equal(plate.geometry.type,'ExtrudeGeometry','rudder foil is a shaped extruded surface');
   plate.geometry.computeBoundingBox();
-  const local=plate.geometry.boundingBox;
-  assert.ok(local.max.y-local.min.y>(local.max.x-local.min.x)*1.8,
-   'rudder blade is a tall tapered plate, not a stubby capsule');
-  assert.ok(local.max.z-local.min.z<(local.max.x-local.min.x)*.25,
-   'rudder plate has a thin fore-aft thickness');
-  const transomZ=stationZ(DESIGN,1,1);
+  const size=plate.geometry.boundingBox.getSize(new THREE.Vector3());
+  assert.ok(size.y>size.z*1.8,'rudder blade is tall relative to its fore-and-aft chord');
+  assert.ok(size.x<size.z*.18,'rudder foil is thin across the beam');
+  assert.ok(size.z>.45,'rudder has a meaningful fore-and-aft chord');
+
+  const stock=rudderStockPosition(DESIGN);
+  const rudderMount=rudder.userData.rudderMount;
+  assert.equal(rudderMount.pivotAxis,'vertical-y');
+  assert.ok(new THREE.Vector3(...rudderMount.pivot).distanceTo(stock)<1e-8,
+   'rudder mounting metadata uses the shared stock position');
   ship.updateMatrixWorld(true);
   const plateBounds=new THREE.Box3().setFromObject(plate);
-  assert.ok(plateBounds.min.z>transomZ+.05,'rudder blade hangs outside and aft of the transom');
-  assert.ok(plateBounds.min.y<keelY(DESIGN,1),'rudder blade extends below the keel line');
+  assert.ok(plateBounds.min.z>stationZ(DESIGN,1,1)+.05,
+   'rudder blade remains clear of and aft of the transom');
+  assert.ok(plateBounds.min.y<keelY(DESIGN,1),
+   'rudder blade extends slightly below the keel line');
+
+  assert.equal(fittings.parent,ship,'fixed gudgeons are not nested under the rotating rudder');
+  assert.equal(fittings.userData.rudderFittingsType,'fixed-transom-gudgeons');
+  assert.equal(fittings.userData.gudgeonMounts.length,2,
+   'two vertically spaced bearings carry the rudder stock');
+  for(let index=1;index<=2;index++){
+   const support=fittings.getObjectByName('gudgeon-support-arm-'+index);
+   const sleeve=fittings.getObjectByName('gudgeon-bearing-sleeve-'+index);
+   assert.ok(support?.isMesh,'each gudgeon is braced back to the transom');
+   assert.ok(sleeve?.isMesh&&sleeve.geometry.parameters.openEnded,
+    'each fixed gudgeon is a hollow bearing sleeve');
+  }
+
   const rudderPivot=rudder.userData.steeringControl.pivotGroup;
   const tillerPivot=tiller.userData.steeringControl.pivotGroup;
   const rudderWorld=new THREE.Vector3(),tillerWorld=new THREE.Vector3();
   rudderPivot.getWorldPosition(rudderWorld);
   tillerPivot.getWorldPosition(tillerWorld);
   assert.ok(rudderWorld.distanceTo(tillerWorld)<1e-6,
-   'tiller and rudder rotate around the same transom stock point');
+   'tiller and rudder rotate around the same vertical transom stock');
+  assert.equal(ship.userData.setRudderAngle(.30),true);
+  assert.ok(Math.abs(rudderPivot.rotation.y-.30)<1e-7,
+   'the longitudinal foil turns about the vertical stock');
+  assert.ok(Math.abs(tillerPivot.rotation.y-.30)<1e-7,
+   'the tiller moves with the rudder stock');
+  assert.equal(fittings.rotation.y,0,'fixed gudgeons remain attached to the transom when steering');
  }finally{disposeShipModel(ship);}
 });
 
