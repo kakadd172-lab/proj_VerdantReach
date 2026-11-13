@@ -22,7 +22,7 @@ export function ensureSternTierComponents(d, ctx) {
     const width = d.beamUnits * tier.w;
     const depth = d.hullLengthUnits * tier.d;
     const height = tier.h * (4 / 3);
-    const baseY = deckY(d, 0.94);
+    const baseY = deckSurfaceY(d, 0.94);
     const aftZ = d.hullLengthUnits * 0.455;
     const z0 = aftZ - depth * 0.5;
     // Separate curved roof framing is kept editable as named structural parts.
