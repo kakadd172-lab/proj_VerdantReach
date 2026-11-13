@@ -1,5 +1,8 @@
 import test from 'node:test';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { SLOOP_ROCKING_VERSION } from '../ships/vessels/sloop/animation/rocking-animation.js';
@@ -10,7 +13,7 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.40';
+} from '../ships/index.js?v=0.8.41';
  
 function disposeAndRelease(ship) {
   if (!ship) return;
@@ -26,6 +29,30 @@ function disposeAndRelease(ship) {
 
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
+
+function collectWargalionJavaScript(directory) {
+  const files = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const fullPath = join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...collectWargalionJavaScript(fullPath));
+    else if (entry.isFile() && entry.name.endsWith('.js')) files.push(fullPath);
+  }
+  return files;
+}
+
+test('every Wargalion JavaScript module passes Node syntax validation', () => {
+  const moduleDirectory = fileURLToPath(new URL('../ships/vessels/wargalion/', import.meta.url));
+  const files = collectWargalionJavaScript(moduleDirectory);
+  assert.ok(files.length >= 20, 'Wargalion syntax audit includes its complete generator folder');
+  for (const file of files) {
+    assert.doesNotThrow(
+      () => execFileSync(process.execPath, ['--check', file], { stdio: 'pipe' }),
+      undefined,
+      'Wargalion module parses: ' + file
+    );
+  }
+});
+
 
 test('Wargalion hull follows separate fore, master and after station profiles', () => {
   const design = getShipDesign('wargalion');

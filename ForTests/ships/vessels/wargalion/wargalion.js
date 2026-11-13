@@ -33,7 +33,7 @@ export const WargalionDefinition = defineVesselSpec({
     rig: 'Three masts: square-rigged fore and main, lateen mizzen, bowsprit and headsails.',
     hullProfile: 'Station-faired Iberian galleon hull with a broad flat-floored master frame, circular futtock run, tumblehome, raked transom, raised forecastle, quarterdeck and stepped aftercastle.',
     hullFormNote: 'Plan-led reconstruction using the San Martín 1580 sheet profile and fore/aft section families. The master section uses a flat floor, a circular futtock arc and a separate upper tumblehome; the bow and stern tail frames are progressively faired. Intermediate offsets and dimensions not stated by the sheet are reconstruction estimates, not surveyed offsets.',
-    modelScaleNote: '39.0 m length and 11.7 m beam are the dimensions reported for the San Martín by the Spanish Navy's Revista General de Marina (2007). Draft, freeboard, rig heights and intermediate station offsets remain interpreted reconstruction values, not surveyed offsets from the plan sheet.',
+    modelScaleNote: "39.0 m length and 11.7 m beam are the dimensions reported for the San Martín by the Spanish Navy's Revista General de Marina (2007). Draft, freeboard, rig heights and intermediate station offsets remain interpreted reconstruction values, not surveyed offsets from the plan sheet.",
     reference: 'Historical reconstruction guided by the Galleon San Martín (1580) plan set. The plan set informs the general hull and profile; Wargalion dimensions and unshown construction details are reconstruction estimates, not claimed San Martín measurements.',
     sources: [
       { label: 'Shipmodell — Free Plans: Tall Ships (San Martín 1580 plan set)', url: 'https://www.shipmodell.com/index_files/0PLAN1B.html' },
