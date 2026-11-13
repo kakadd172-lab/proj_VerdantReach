@@ -14,6 +14,7 @@ import { buildStern } from './generators/stern/stern-generator.js';
 import { buildAftCabin } from './generators/cabins/aft-cabin-generator.js';
 import { buildCockpit } from './generators/cockpit/cockpit-generator.js';
 import { buildBow } from './generators/bow/bow-generator.js';
+import { buildRudderFittings } from './generators/steering/rudder-fittings-generator.js';
 import { buildRudder } from './generators/steering/rudder-generator.js';
 import { buildHelm } from './generators/steering/helm-generator.js';
 import { buildRailings } from './generators/deck-equipment/railing-generator.js';
@@ -128,6 +129,7 @@ function assembleSloopV2(vessel,componentTransforms={},savedState={}){
   'hull-planking':()=>buildHullPlanking(design,ctx),
   'deck-planking':()=>buildDeckPlanking(design,ctx),
   stern:()=>buildStern(design,ctx),
+  'rudder-fittings':()=>buildRudderFittings(design,ctx),
   'aft-cabins':()=>buildAftCabin(design,ctx),
   cockpit:()=>buildCockpit(design,ctx),
   bow:()=>buildBow(design,ctx),
