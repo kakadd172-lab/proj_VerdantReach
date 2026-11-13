@@ -6,7 +6,7 @@ import { SloopV2Definition } from '../ships/vessels/sloop-v2/sloop-v2.js';
 import { SLOOP_V2_ARCHITECTURE } from '../ships/vessels/sloop-v2/architecture/layout.js';
 import { resolveVesselForGeneration } from '../ships/shared/vessel-definition.js';
 import { disposeShipModel } from '../ships/shared/ship-editor-kit.js';
-import { deckY,halfBreadth,hullPoint,sectionBreadth,stationZ } from '../ships/vessels/sloop-v2/architecture/hull-geometry.js';
+import { deckY,halfBreadth,hullPoint,keelY,sectionBreadth,stationZ } from '../ships/vessels/sloop-v2/architecture/hull-geometry.js';
 
 const DESIGN=resolveVesselForGeneration(SloopV2Definition).design;
 
