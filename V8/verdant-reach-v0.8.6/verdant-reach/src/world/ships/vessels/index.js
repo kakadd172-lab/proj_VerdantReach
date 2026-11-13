@@ -9,7 +9,6 @@ import Barque from './barque/barque.js';
 import Caravel from './caravel/caravel.js';
 import Carrack from './carrack/carrack.js';
 import Galleon from './galleon/galleon.js';
-import WarGalleon2 from './war-galleon-2/war-galleon-2.js';
 import Fluyt from './fluyt/fluyt.js';
 import Xebec from './xebec/xebec.js';
 import Junk from './junk/junk.js';
@@ -28,7 +27,6 @@ export const VESSEL_SPECS = Object.freeze({
   'caravel': Caravel,
   'carrack': Carrack,
   'galleon': Galleon,
-  'war-galleon-2': WarGalleon2,
   'fluyt': Fluyt,
   'xebec': Xebec,
   'junk': Junk,
