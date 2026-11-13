@@ -43,9 +43,13 @@ export function buildHeadSails(d,ctx){
   const stayPoints=[plan.head,plan.tack];
   const stay=straightRiggingPath(ctx,stayGroup,stayPoints,.010,materials.rope,stayName,36);
   stay.userData.rigRole=plan.id;
+  // All articulated stays use the same mast-component reference frame.
+  // Convert both authored endpoints into that frame; the lower fitting is
+  // still resolved into hull-local coordinates by the shared rigging API.
+  const mastFramePoints=stayPoints.map(point=>mastPart.worldToLocal(point.clone()).toArray());
   stay.userData.dynamicMastStay={
-   mastId:mast.id,coordinateSpace:'parent',points:stayPoints.map(p=>p.toArray()),
-   fixedEndIndex:1,fixedPoint:plan.tack.toArray(),radius:.010,segments:36,radialSegments:7
+   mastId:mast.id,coordinateSpace:'mast-group',points:mastFramePoints,
+   fixedEndIndex:1,fixedPoint:mastFramePoints[1],radius:.010,segments:36,radialSegments:7
   };
 
   const halyards=part('head-halyards-'+plan.id,group);
