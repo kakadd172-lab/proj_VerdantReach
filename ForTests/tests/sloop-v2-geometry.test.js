@@ -69,6 +69,23 @@ test('Sloop V2 hull stations and deck sheer remain finite and smooth',()=>{
  }finally{disposeShipModel(ship);}
 });
 
+test('Sloop V2 transverse frames remain inside the outer hull shell',()=>{
+ const ship=createShipModel('sloop-v2');
+ try{
+  const hull=firstMesh(ship.userData.getPart('hull'));
+  const frameGroup=ship.userData.getPart('frame-15');
+  const frame=firstMesh(frameGroup);
+  assert.ok(frameGroup&&frame,'a midbody structural frame is generated');
+  assert.equal(frameGroup.userData.structuralPlacement,'inside-hull');
+  hull.geometry.computeBoundingBox();frame.geometry.computeBoundingBox();
+  const outer=hull.geometry.boundingBox,inner=frame.geometry.boundingBox;
+  assert.ok(inner.max.x<outer.max.x-.02,'frame does not protrude through the starboard planking');
+  assert.ok(inner.min.x>outer.min.x+.02,'frame does not protrude through the port planking');
+  assert.ok(inner.max.y<outer.max.y-.02,'frame remains beneath the external deck sheer');
+  assert.ok(inner.min.y>outer.min.y+.02,'frame remains above the external keel envelope');
+ }finally{disposeShipModel(ship);}
+});
+
 test('Sloop V2 aft transom follows the hull from keel to deck',()=>{
  const ship=createShipModel('sloop-v2');
  try{
