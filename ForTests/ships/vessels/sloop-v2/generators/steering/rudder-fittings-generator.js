@@ -30,9 +30,12 @@ export function buildRudderFittings(d,ctx){
    bolt.position.set(side*.066,y,plateZ+.018);
   }
 
-  // A short forged arm bridges the curved transom face to the pintle axis.
-  beam(fittings,V(0,y,transomZ+.025),V(0,y,stock.z-.045),
-   .026,materials.iron,'gudgeon-support-arm-'+(index+1),10);
+  // Paired forged brackets carry the bearing sleeve back into the transom.
+  for(const side of [-1,1]){
+   beam(fittings,V(side*.082,y,plateZ+.018),
+    V(side*.038,y,stock.z-.045),.020,materials.iron,
+    'gudgeon-support-arm-'+(index+1)+'-'+side,10);
+  }
 
   // Open bearing sleeve leaves the rudder's vertical pintle visible through it.
   const sleeve=mesh(fittings,
