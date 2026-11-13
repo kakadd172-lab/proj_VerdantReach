@@ -83,7 +83,9 @@ export function buildStern(d,ctx){
     beam(sideWindows,V(fx,y-halfY,z-halfZ),V(fx,y+halfY,z-halfZ),.018,materials.trim,'gallery-window-jamb');
     beam(sideWindows,V(fx,y-halfY,z+halfZ),V(fx,y+halfY,z+halfZ),.018,materials.trim,'gallery-window-jamb');
    }
-   const galleryDeck=box(tierGroup,.18,.075,depth*1.12,materials.deck,'galleon-side-gallery-walkway');
+   const galleryDeck=box(tierGroup,.18,.075,depth*1.12,materials.deck,d.id+'-side-gallery-walkway');
+   galleryDeck.userData.side=side<0?'port':'starboard';
+   galleryDeck.userData.componentRole='stern-side-gallery-walkway';
    galleryDeck.position.set(side*width*.50,baseY+height*.30,centerZ+depth*.05);
    const railX=side*width*.59,railY=baseY+height*.36;
    beam(gallery,V(railX,railY,centerZ-depth*.55),V(railX,railY,centerZ+depth*.55),.032,materials.trim,'side-gallery-top-rail');
