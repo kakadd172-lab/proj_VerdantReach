@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { CivilizationSystem } from '../src/systems/civilization.js';
-import { createShipModel, disposeShipModel } from '../src/world/ships/core/ship-model-builder.js?v=0.8.10';
+import { createShipModel, disposeShipModel } from '../src/world/ships/core/ship-model-builder.js?v=0.8.11';
 
 const root = path.resolve(import.meta.dirname, '..');
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8');
