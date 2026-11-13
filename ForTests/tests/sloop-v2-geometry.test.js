@@ -250,6 +250,60 @@ test('Sloop V2 rudder is a longitudinal foil with separate fixed transom gudgeon
  }finally{disposeShipModel(ship);}
 });
 
+test('Sloop V2 sea controls drive smooth roll, pitch and heave',()=>{
+ const ship=createShipModel('sloop-v2');
+ try{
+  const motion=ship.userData.sloopV2Rocking;
+  assert.ok(motion,'Sloop V2 attaches its own sea-rocking controller');
+  assert.equal(ship.userData.sloopRocking,motion,
+   'the existing editor telemetry can read V2 sea-motion state');
+  assert.equal(motion.vesselId,'sloop-v2');
+  assert.equal(motion.pivot,'design-waterline-at-amidships');
+
+  const basePosition=ship.position.clone();
+  const baseRotation=ship.rotation.clone();
+  let maximumRoll=0,maximumHeave=0;
+  for(let frame=0;frame<90;frame++){
+   ship.userData.animateShip(.05,{
+    enabled:false,directionDeg:90,speedKnots:0,
+    sea:{enabled:true,heightMeters:1.5,periodSeconds:6,directionDeg:90}
+   });
+   maximumRoll=Math.max(maximumRoll,Math.abs(motion.rollRadians));
+   maximumHeave=Math.max(maximumHeave,Math.abs(motion.heaveMeters));
+  }
+  assert.ok(maximumRoll>THREE.MathUtils.degToRad(2.4),
+   'a moderate beam sea produces visible side-to-side roll');
+  assert.ok(maximumHeave>.10,
+   'wave height produces a measurable vertical heave response');
+  assert.ok(Math.abs(ship.rotation.z-baseRotation.z)>THREE.MathUtils.degToRad(1),
+   'the complete vessel root responds to beam-sea roll');
+
+  let maximumPitch=0;
+  for(let frame=0;frame<90;frame++){
+   ship.userData.animateShip(.05,{
+    enabled:false,directionDeg:0,speedKnots:0,
+    sea:{enabled:true,heightMeters:1.5,periodSeconds:6,directionDeg:0}
+   });
+   maximumPitch=Math.max(maximumPitch,Math.abs(motion.pitchRadians));
+  }
+  assert.ok(maximumPitch>THREE.MathUtils.degToRad(1.2),
+   'a head sea produces a measurable bow-and-stern pitch response');
+
+  for(let frame=0;frame<180;frame++){
+   ship.userData.animateShip(.05,{
+    enabled:false,directionDeg:0,speedKnots:0,
+    sea:{enabled:false,heightMeters:0,periodSeconds:6,directionDeg:0}
+   });
+  }
+  assert.ok(motion.seaBlend<.01,'disabling waves smoothly damps sea motion to neutral');
+  assert.ok(ship.position.distanceTo(basePosition)<1e-5,
+   'the vessel returns to its original root position after sea motion settles');
+  assert.ok(Math.abs(ship.rotation.x-baseRotation.x)<1e-5&&
+   Math.abs(ship.rotation.z-baseRotation.z)<1e-5,
+   'the vessel returns to its original root attitude after sea motion settles');
+ }finally{disposeShipModel(ship);}
+});
+
 test('Sloop V2 deck and hull plank seams are flush ribbon meshes, not raised tubes',()=>{
  const ship=createShipModel('sloop-v2');
  try{

@@ -1,6 +1,7 @@
 import EDITOR_DEFAULTS from './editor-defaults.js';
 import { defineVesselSpec,resolveVesselForGeneration } from '../../shared/vessel-definition.js';
 import { createShipContext,finishShipModel } from '../../shared/ship-editor-kit.js';
+import { attachSloopV2Rocking } from './animation/rocking-animation.js';
 import { SLOOP_V2_ARCHITECTURE } from './architecture/layout.js';
 const ARCHITECTURE=SLOOP_V2_ARCHITECTURE;
 import { buildHull } from './generators/hull/hull-generator.js';
@@ -148,6 +149,7 @@ function assembleSloopV2(vessel,componentTransforms={},savedState={}){
   generate();
  }
  const root=finishShipModel(ctx,componentTransforms,savedState);
+ attachSloopV2Rocking(root);
  root.userData.shipArchitecture=ARCHITECTURE;
  root.userData.shipAssemblyOrder=[...ARCHITECTURE.assemblyOrder];
  root.userData.vesselProvenance={designer:'John Atkin',designYear:1953,designName:'Maid of Endor',

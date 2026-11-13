@@ -317,7 +317,7 @@ function updateSloopRockingTelemetry(){
  if(!status&&!roll&&!pitch&&!heave)return;
  const motion=ship?.userData?.sloopRocking;
  if(!motion){
-  if(status)status.textContent='Sloop only · select Sloop';
+  if(status)status.textContent='Sloop sea motion · select Sloop or Sloop V2';
   if(roll)roll.textContent='0.0°';
   if(pitch)pitch.textContent='0.0°';
   if(heave)heave.textContent='0.00 m';
