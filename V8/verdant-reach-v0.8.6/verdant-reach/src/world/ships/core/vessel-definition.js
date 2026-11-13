@@ -2,7 +2,7 @@
  * Common APIs for the independent runtime vessel definitions.
  * No vessel catalogue is stored here; the definitions live in vessels/<id>/<id>.js.
  */
-export const SHIP_CATALOGUE_VERSION='0.8.10';
+export const SHIP_CATALOGUE_VERSION='0.8.11';
 export const SHIP_DESIGN_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
 export const SHIP_STRUCTURE_MODULE_VERSION=SHIP_CATALOGUE_VERSION;
 export const WORLD_UNITS_PER_METRE=4/3;

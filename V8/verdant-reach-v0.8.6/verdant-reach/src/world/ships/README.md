@@ -2,7 +2,7 @@
 
 ## Runtime layout
 
-All 16 vessels now have an independent folder under `src/world/ships/vessels/<id>/`.
+All 17 vessels now have an independent folder under `src/world/ships/vessels/<id>/`.
 Each folder owns:
 - `<id>.js`: vessel definition, public generator entry point, and architecture-driven assembly.
 - `editor-defaults.js`: per-vessel baseline editor data, loaded by the generator.

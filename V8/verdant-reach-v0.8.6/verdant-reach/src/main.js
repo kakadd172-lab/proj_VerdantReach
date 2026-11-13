@@ -22,8 +22,8 @@ import { WorldNeedsSystem } from './systems/world-needs.js';
 import { WorldEditSystem } from './systems/world-editing.js';
 import { MaritimeSystem } from './systems/maritime.js';
 import { resolveGameMode } from './systems/game-mode.js';
-import { createCreativeEntity, disposeCreativeEntity, getCreativeEntityColliders } from './world/creative-entities.js?v=0.8.6';
-import { getShipTypeFromCreativeKind, getShipDesign, WORLD_UNITS_PER_METRE } from './world/ship-designs.js?v=0.8.6';
+import { createCreativeEntity, disposeCreativeEntity, getCreativeEntityColliders } from './world/creative-entities.js?v=0.8.7';
+import { getShipTypeFromCreativeKind, getShipDesign, WORLD_UNITS_PER_METRE } from './world/ship-designs.js?v=0.8.7';
 
 const $ = (selector) => document.querySelector(selector);
 const canvas = $('#world-canvas');

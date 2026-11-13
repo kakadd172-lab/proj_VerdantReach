@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SHIP_DESIGNS, getShipDesign } from '../src/world/ship-designs.js?v=0.8.10';
-import { SHIP_STRUCTURE_BLUEPRINTS, getShipStructureBlueprint } from '../src/world/ship-structures.js?v=0.8.10';
-import { VESSEL_SPECS, VESSEL_IDS, createShip, getShipGenerator } from '../src/world/ships/index.js?v=0.8.10';
-import { disposeShipModel } from '../src/world/ship-models.js?v=0.8.10';
+import { SHIP_DESIGNS, getShipDesign } from '../src/world/ship-designs.js?v=0.8.11';
+import { SHIP_STRUCTURE_BLUEPRINTS, getShipStructureBlueprint } from '../src/world/ship-structures.js?v=0.8.11';
+import { VESSEL_SPECS, VESSEL_IDS, createShip, getShipGenerator } from '../src/world/ships/index.js?v=0.8.11';
+import { disposeShipModel } from '../src/world/ship-models.js?v=0.8.11';
 
-test('all 16 vessels have independent specification and generator modules',()=>{
-  const expected=['sloop','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','fluyt','xebec','junk','first-rate','pinnace'].sort();
+test('all 17 vessels have independent specification and generator modules',()=>{
+  const expected=['sloop','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','war-galleon-2','fluyt','xebec','junk','first-rate','pinnace'].sort();
   assert.deepEqual([...VESSEL_IDS].sort(),expected);
   assert.deepEqual(Object.keys(SHIP_DESIGNS).sort(),expected);
   assert.deepEqual(Object.keys(SHIP_STRUCTURE_BLUEPRINTS).sort(),expected);

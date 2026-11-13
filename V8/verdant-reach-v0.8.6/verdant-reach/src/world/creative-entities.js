@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { boxCollider, circleCollider } from './collision.js';
-import { getShipTypeFromCreativeKind, getShipDesign } from './ship-designs.js?v=0.8.6';
-import { createShip, disposeShipModel } from './ships/index.js?v=0.8.6';
+import { getShipTypeFromCreativeKind, getShipDesign } from './ship-designs.js?v=0.8.7';
+import { createShip, disposeShipModel } from './ships/index.js?v=0.8.7';
 
 const COLORS = {
   stone: 0x858b84, darkStone: 0x555f59, wood: 0x765538, darkWood: 0x493a2f,

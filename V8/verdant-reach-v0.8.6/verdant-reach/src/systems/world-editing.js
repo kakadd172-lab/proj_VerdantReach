@@ -1,5 +1,5 @@
 import { BIOMES } from '../world/biomes.js';
-import { HISTORICAL_SHIP_KINDS } from '../world/ship-designs.js';
+import { HISTORICAL_SHIP_KINDS } from '../world/ship-designs.js?v=0.8.7';
 
 export const CREATIVE_ENTITY_TYPES = Object.freeze([
   'rock', 'boulder', 'crystal', 'tree', 'pine-tree', 'ancient-tree', 'tree-grove', 'flower-patch',

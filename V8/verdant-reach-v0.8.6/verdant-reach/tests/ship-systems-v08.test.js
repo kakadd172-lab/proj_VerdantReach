@@ -9,7 +9,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8');
 
 test('each vessel has a distinct, documented structural blueprint', () => {
-  assert.equal(HISTORICAL_SHIP_KINDS.length, 16);
+  assert.equal(HISTORICAL_SHIP_KINDS.length, 17);
   for (const id of Object.keys(SHIP_DESIGNS)) {
     const design = getShipDesign(id);
     assert.ok(design.structure.frameCount >= 12);
@@ -72,7 +72,7 @@ test('stern tiers are individual curved structures and match each design tier co
     'xebec-platform': 1, 'open-boat': 0,
   };
   for (const design of Object.values(SHIP_DESIGNS)) {
-    const expected = counts[design.sternwork] ?? 1;
+    const expected = counts[design.sternwork] ?? design.sternTiers.length;
     const actual = design.partNames.filter((name) => /^stern-tier-\d+$/.test(name)).length;
     assert.equal(actual, expected, design.id);
   }
@@ -112,7 +112,7 @@ test('Creative Shipyard retains local transform, mast and deployment controls', 
   assert.ok(css.includes('.creative-grid-two'));
 });
 
-test('v0.8.6 game shell and v0.8.10 component-first ship modules use consistent cache revisions', () => {
+test('v0.8.6 game shell and v0.8.11 component-first ship modules use consistent cache revisions', () => {
   const html = read('index.html');
   const main = read('src/main.js');
   const ui = read('src/ui/interface.js');
@@ -126,18 +126,18 @@ test('v0.8.6 game shell and v0.8.10 component-first ship modules use consistent 
   const definition = read('src/world/ships/core/vessel-definition.js');
   const kit = read('src/world/ships/core/ship-editor-kit.js');
   assert.ok(html.includes('styles.css?v=0.8.6'));
-  assert.ok(html.includes('main.js?v=0.8.6'));
-  assert.ok(main.includes('creative-entities.js?v=0.8.6'));
-  assert.ok(main.includes('ship-designs.js?v=0.8.6'));
-  assert.ok(ui.includes('ship-designs.js?v=0.8.6'));
-  assert.ok(entities.includes('ships/index.js?v=0.8.6'));
-  assert.ok(designs.includes('vessel-definition.js?v=0.8.10'));
-  assert.ok(designs.includes('vessels/index.js?v=0.8.10'));
-  assert.ok(structures.includes('ship-hull-parameterization.js?v=0.8.10'));
-  assert.ok(structures.includes('vessel-definition.js?v=0.8.10'));
-  assert.ok(models.includes('../index.js?v=0.8.10'));
-  assert.ok(models.includes('ship-editor-kit.js?v=0.8.10'));
-  assert.ok(definition.includes("SHIP_CATALOGUE_VERSION='0.8.10'"));
+  assert.ok(html.includes('main.js?v=0.8.7'));
+  assert.ok(main.includes('creative-entities.js?v=0.8.7'));
+  assert.ok(main.includes('ship-designs.js?v=0.8.7'));
+  assert.ok(ui.includes('ship-designs.js?v=0.8.7'));
+  assert.ok(entities.includes('ships/index.js?v=0.8.7'));
+  assert.ok(designs.includes('vessel-definition.js?v=0.8.11'));
+  assert.ok(designs.includes('vessels/index.js?v=0.8.11'));
+  assert.ok(structures.includes('ship-hull-parameterization.js?v=0.8.11'));
+  assert.ok(structures.includes('vessel-definition.js?v=0.8.11'));
+  assert.ok(models.includes('../index.js?v=0.8.11'));
+  assert.ok(models.includes('ship-editor-kit.js?v=0.8.11'));
+  assert.ok(definition.includes("SHIP_CATALOGUE_VERSION='0.8.11'"));
   assert.ok(kit.includes("SHIP_EDITOR_KIT_VERSION='0.8.10'"));
   assert.ok(hullMath.includes('getLongitudinalHalfBeamRatio'));
   assert.ok(hullMath.includes('getCrossSectionHalfBreadthRatio'));
@@ -147,7 +147,7 @@ test('v0.8.6 game shell and v0.8.10 component-first ship modules use consistent 
   assert.ok(registry.includes('vessel.createModel(transforms, savedState)'));
   assert.ok(vessels.includes("./sloop/sloop.js"));
   assert.ok(registry.includes('getShipGenerator(type)'));
-  assert.ok(registry.includes('createShip(type)'));
+  assert.ok(registry.includes('createShip(type, transforms'));
   assert.ok(structures.includes('getHullHalfBeam'));
 });
 

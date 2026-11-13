@@ -113,6 +113,10 @@ jobs:
           if (productionBundle.includes('Caribbean merchant sloop')) {
             throw new Error('The production JavaScript bundle still contains the retired Sloop.');
           }
+          if (!productionBundle.includes('Late-16th-century War Galleon II') ||
+              !productionBundle.includes('war-galleon-2')) {
+            throw new Error('The production JavaScript bundle does not contain War Galleon II.');
+          }
 
           console.log(`Verified Verdant Reach v${version}: ${references.length} asset references resolved, including the current Sloop revision.`);
           NODE

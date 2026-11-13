@@ -16,10 +16,10 @@ import { WorldIntelligence } from '../src/world/world-intelligence.js';
 const root = path.resolve(import.meta.dirname, '..');
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8');
 
-test('v0.8.6 catalogue contains 16 distinct sailing-vessel families', () => {
+test('v0.8.6 catalogue contains 17 distinct sailing-vessel families', () => {
   const expected = [
     'sloop', 'schooner', 'brigantine', 'brig', 'snow', 'cutter', 'frigate', 'barque',
-    'caravel', 'carrack', 'galleon', 'fluyt', 'xebec', 'junk', 'first-rate', 'pinnace',
+    'caravel', 'carrack', 'galleon', 'war-galleon-2', 'fluyt', 'xebec', 'junk', 'first-rate', 'pinnace',
   ];
   assert.deepEqual(Object.keys(SHIP_DESIGNS), expected);
   assert.deepEqual(HISTORICAL_SHIP_KINDS, expected.map((id) => 'ship-' + id));
@@ -179,7 +179,7 @@ test('the component-first ship runtime uses high-resolution hull lofts and edita
   const firstRate = read('src/world/ships/vessels/first-rate/first-rate.js');
   const junk = read('src/world/ships/vessels/junk/junk.js');
 
-  assert.ok(source.includes("import { createShip } from '../index.js?v=0.8.10'"));
+  assert.ok(source.includes("import { createShip } from '../index.js?v=0.8.11'"));
   assert.ok(source.includes('return createShip(type, componentTransforms, savedState);'));
   for (const token of ['createShipContext', 'finishShipModel', 'setupPartApi', 'ownedGeometries', 'ownedMaterials', 'disposeShipModel']) {
     assert.ok(kit.includes(token), 'missing editor/runtime feature: ' + token);
@@ -215,7 +215,7 @@ test('version metadata and browser entry identify v0.8.6', () => {
   const html = read('index.html');
   assert.equal(pkg.version, '0.8.6');
   assert.match(html, /styles\.css\?v=0\.8\.6/);
-  assert.match(html, /main\.js\?v=0\.8\.6/);
+  assert.match(html, /main\.js\?v=0\.8\.7/);
   assert.match(read('src/main.js'), /version: '0\.8\.6'/);
   assert.match(read('src/ui/interface.js'), /v0\.8\.6/);
 });

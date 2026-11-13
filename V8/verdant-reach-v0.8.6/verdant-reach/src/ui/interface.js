@@ -1,6 +1,6 @@
 import { BIOMES } from '../world/biomes.js';
 import { CREATIVE_ENTITY_TYPES } from '../systems/world-editing.js';
-import { SHIP_DESIGNS, getShipTypeFromCreativeKind, describeShipDimensions, WORLD_UNITS_PER_METRE } from '../world/ship-designs.js?v=0.8.6';
+import { SHIP_DESIGNS, getShipTypeFromCreativeKind, describeShipDimensions, WORLD_UNITS_PER_METRE } from '../world/ship-designs.js?v=0.8.7';
 
 const $ = (selector) => document.querySelector(selector);
 

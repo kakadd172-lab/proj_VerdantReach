@@ -3,16 +3,20 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SHIP_DESIGNS } from '../src/world/ship-designs.js?v=0.8.10';
-import { SHIP_STRUCTURE_BLUEPRINTS } from '../src/world/ship-structures.js?v=0.8.10';
-import { VESSEL_SPECS, VESSEL_IDS, createShip, createShipModel, getShipGenerator } from '../src/world/ships/index.js?v=0.8.10';
-import { disposeShipModel } from '../src/world/ship-models.js?v=0.8.10';
+import { SHIP_DESIGNS } from '../src/world/ship-designs.js?v=0.8.11';
+import { SHIP_STRUCTURE_BLUEPRINTS } from '../src/world/ship-structures.js?v=0.8.11';
+import { VESSEL_SPECS, VESSEL_IDS, createShip, createShipModel, getShipGenerator } from '../src/world/ships/index.js?v=0.8.11';
+import { disposeShipModel } from '../src/world/ship-models.js?v=0.8.11';
+import { CREATIVE_ENTITY_TYPES } from '../src/systems/world-editing.js?v=0.8.7';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src/world/ships/vessels');
-const expected = ['sloop','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','fluyt','xebec','junk','first-rate','pinnace'].sort();
+const expected = ['sloop','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','war-galleon-2','fluyt','xebec','junk','first-rate','pinnace'].sort();
 
-test('all 16 vessels own component-first runtime folders and generator entry points', () => {
+test('all 17 vessels own component-first runtime folders and generator entry points', () => {
   assert.deepEqual([...VESSEL_IDS].sort(), expected);
+  assert.ok(CREATIVE_ENTITY_TYPES.includes('ship-war-galleon-2'));
+  assert.equal(SHIP_DESIGNS['war-galleon-2'].label, 'Late-16th-century War Galleon II');
+  assert.equal(SHIP_DESIGNS['war-galleon-2'].hullLength, 38);
   assert.deepEqual(Object.keys(SHIP_DESIGNS).sort(), expected);
   assert.deepEqual(Object.keys(SHIP_STRUCTURE_BLUEPRINTS).sort(), expected);
   for (const id of expected) {
