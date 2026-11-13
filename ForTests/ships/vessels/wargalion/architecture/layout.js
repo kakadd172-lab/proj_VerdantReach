@@ -27,7 +27,9 @@ export const WARGALION_ARCHITECTURE = Object.freeze({
     helm: { generator: './generators/steering/helm-generator.js', mount: 'quarterdeck' },
     railings: { generator: './generators/deck-equipment/railing-generator.js', mount: 'deck-edge' },
     'deck-equipment': { generator: './generators/deck-equipment/fittings-generator.js', mount: 'open-deck-plan' },
-    anchors: { generator: './generators/anchors/anchor-generator.js', mount: 'bow-quarters-with-independent-port-and-starboard-rodes' },
+    anchors: { generator: './generators/anchors/anchor-generator.js', mount: 'bow-quarters' },
+    'anchor-chain-port': { generator: './generators/anchors/anchor-generator.js', mount: 'port-bow-chain-lead' },
+    'anchor-chain-starboard': { generator: './generators/anchors/anchor-generator.js', mount: 'starboard-bow-chain-lead' },
     masts: { generator: './generators/masts/mast-frame-generator.js', mount: 'keel-and-deck-mast-stations' },
     'head-sails': { generator: './generators/sails/head-sails-generator.js', mount: 'bowsprit-and-foremast' },
     'standing-rigging': { generator: './generators/rigging/standing-rigging-generator.js', mount: 'mastheads-to-hull-rail' }
