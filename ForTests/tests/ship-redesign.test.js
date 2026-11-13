@@ -3,13 +3,14 @@ import { existsSync, readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { SLOOP_ROCKING_VERSION } from '../ships/vessels/sloop/animation/rocking-animation.js';
+import { deckPoint, getWargalionStationProfile, hullPoint } from '../ships/vessels/wargalion/architecture/hull-geometry.js';
 
 import {
   SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,resetShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.36';
+} from '../ships/index.js?v=0.8.39';
  
 function disposeAndRelease(ship) {
   if (!ship) return;
@@ -25,6 +26,40 @@ function disposeAndRelease(ship) {
 
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
+
+test('Wargalion hull follows separate fore, master and after station profiles', () => {
+  const design = getShipDesign('wargalion');
+  const bow = getWargalionStationProfile(design, 0.08);
+  const master = getWargalionStationProfile(design, 0.50);
+  const stern = getWargalionStationProfile(design, 0.925);
+
+  assert.ok(master.halfBreadthUnits > bow.halfBreadthUnits * 2,
+    'Wargalion master station is substantially fuller than the fine bow entry');
+  assert.ok(master.halfBreadthUnits > stern.halfBreadthUnits * 1.35,
+    'Wargalion master station is broader than the narrowing afterbody');
+  assert.ok(master.floorRatio > 0.15 && master.floorRatio < 0.30,
+    'Wargalion master frame retains a measurable flat floor');
+  assert.ok(master.maxBreadthHeight > master.floorHeight,
+    'Wargalion maximum breadth sits above the floor/turn-of-bilge point');
+
+  const floor = hullPoint(design, 0.50, master.floorHeight, 1);
+  const maximum = hullPoint(design, 0.50, master.maxBreadthHeight, 1);
+  const upper = hullPoint(design, 0.50, 1, 1);
+  const port = hullPoint(design, 0.50, master.maxBreadthHeight, -1);
+  const hullEdge = hullPoint(design, 0.50, 1, 1);
+  const deckEdge = deckPoint(design, 0.50, 1, 0);
+  assert.ok(hullEdge.distanceTo(deckEdge) < 0.02,
+    'Wargalion upper hull and main deck share the same sheer edge');
+  assert.ok(maximum.x > floor.x * 3,
+    'Wargalion circular futtock run expands clearly from the floor to maximum breadth');
+  assert.ok(maximum.x > upper.x * 1.04,
+    'Wargalion upper side returns inward through the tumblehome');
+  assert.ok(Math.abs(maximum.x + port.x) < 1e-6,
+    'Wargalion port and starboard section profiles remain symmetrical');
+  assert.ok(Math.abs(maximum.y - port.y) < 1e-6 && Math.abs(maximum.z - port.z) < 1e-6,
+    'Wargalion opposing hull surfaces share the same section station');
+});
+
 
 test('the editor uses 18 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.9');
@@ -165,6 +200,26 @@ test('all 18 independent ForTests generators build separate editable models', ()
       assert.equal(ship.userData.shipGameDefinitionPath, 'src/world/ships/vessels/' + id + '.js');
       assert.equal(ship.userData.shipSourceVersion, 'ForTests-native');
       assert.ok(ship.userData.getPart('hull'), id + ' hull');
+      if (id === 'wargalion') {
+        const hull = ship.userData.getPart('hull');
+        const portSkin = ship.userData.getPart('hull-skin-port');
+        const starboardSkin = ship.userData.getPart('hull-skin-starboard');
+        assert.ok(portSkin && starboardSkin, 'wargalion has separate editable port and starboard hull skins');
+        assert.equal(portSkin.parent, hull, 'wargalion port skin is nested in the hull assembly');
+        assert.equal(starboardSkin.parent, hull, 'wargalion starboard skin is nested in the hull assembly');
+        const closureNames = [];
+        hull.traverse(object => {
+          if (object.isMesh && /wargalion-(?:bow-hull-closure|stern-transom-shell)/.test(object.name)) {
+            closureNames.push(object.name);
+          }
+        });
+        assert.ok(closureNames.some(name => name.includes('bow-hull-closure')),
+          'wargalion bow skin is closed at the forefoot');
+        assert.ok(closureNames.some(name => name.includes('stern-transom-shell')),
+          'wargalion has a complete stern transom skin');
+        assert.ok(ship.userData.getPart('deck-quarter'), 'wargalion quarterdeck is independently editable');
+        assert.ok(ship.userData.getPart('deck-poop'), 'wargalion poop deck is independently editable');
+      }
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
       assert.ok(ship.userData.getPart('deck-fittings'), id + ' deck fittings');
@@ -260,7 +315,52 @@ test('all 18 independent ForTests generators build separate editable models', ()
         const expectedHeadAfter=mast.userData.animationPivot.localToWorld(new Vector3Type(...metadata.mastHeadPivotLocal));
         assert.ok(sample.localToWorld(startAfter).distanceTo(expectedHeadAfter)<.02,id+' '+mastDefinition.id+' stay remains attached to its moving masthead after wind');
       }
-      if (id === 'sloop-v2') {
+      if (id === 'wargalion') {
+        const stern = ship.userData.getPart('sternworks');
+        const firstTier = ship.userData.getPart('stern-tier-1');
+        const secondTier = ship.userData.getPart('stern-tier-2');
+        const thirdTier = ship.userData.getPart('stern-tier-3');
+        assert.ok(stern && firstTier && secondTier && thirdTier,
+          'wargalion has three registered sections of one continuous aftercastle');
+        let sideWallCount = 0;
+        let sideWindowCount = 0;
+        let quarterGalleryCount = 0;
+        let roofFrameCount = 0;
+        let endWallCount = 0;
+        stern.traverse(object => {
+          if (!object.isMesh) return;
+          if (object.name.includes('continuous-wall')) sideWallCount += 1;
+          if (object.name === 'quarter-gallery-side-window') sideWindowCount += 1;
+          if (object.name === 'quarter-gallery-walkway-edge'
+            || object.name === 'quarter-gallery-handrail') quarterGalleryCount += 1;
+          if (object.name === 'sterncastle-forward-bulkhead'
+            || object.name === 'sterncastle-after-transom-wall') endWallCount += 1;
+        });
+        const roof = ship.userData.getPart('sterncastle-roof');
+        assert.ok(roof, 'wargalion has a continuous crowned roof/deck over the aftercastle');
+        let roofSurfaceCount = 0;
+        roof.traverse(object => {
+          if (object.isMesh && object.name === 'continuous-sterncastle-roof-deck') roofSurfaceCount += 1;
+        });
+        assert.equal(roofSurfaceCount, 1, 'wargalion aftercastle roof is one continuous lofted surface');
+        firstTier.traverse(object => {
+          if (object.isMesh && (object.name === 'folded-cabin-side-rib'
+            || object.name === 'folded-cabin-cross-rib')) roofFrameCount += 1;
+        });
+        assert.ok(sideWallCount >= 6,
+          'wargalion aftercastle has port and starboard station-lofted side walls in all three adjoining sections');
+        assert.ok(sideWindowCount >= 8,
+          'wargalion aftercastle has separate side-gallery windows');
+        assert.ok(quarterGalleryCount >= 4,
+          'wargalion quarter galleries have projecting walkways and handrails on both sides');
+        assert.ok(roofFrameCount >= 8,
+          'wargalion aftercastle retains editable transverse roof framing');
+        assert.ok(endWallCount >= 2,
+          'wargalion aftercastle has forward and aft closure walls above the hull transom');
+        assert.equal(firstTier.parent, stern, 'wargalion lower aftercastle section joins the common stern assembly');
+        assert.equal(secondTier.parent, stern, 'wargalion middle aftercastle section joins the common stern assembly');
+        assert.equal(thirdTier.parent, stern, 'wargalion upper aftercastle section joins the common stern assembly');
+      } else if (id === 'sloop-v2') {
         const cabin = ship.userData.getPart('stern-tier-1');
         assert.ok(cabin, 'Maid of Endor should have its compact trunk cabin');
         let shellCount = 0;

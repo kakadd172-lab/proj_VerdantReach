@@ -29,25 +29,29 @@ export const WargalionDefinition = defineVesselSpec({
     id: 'wargalion',
     label: 'Wargalion',
     era: 'Late 16th-century Iberian war galleon reconstruction',
-    hullLength: 39.0, beam: 12.2, draft: 5.0, freeboard: 2.8,
+    hullLength: 39.0, beam: 11.7, draft: 5.2, freeboard: 3.8,
     rig: 'Three masts: square-rigged fore and main, lateen mizzen, bowsprit and headsails.',
-    hullProfile: 'Full ocean-going lower hull, fine rising bow, strong sheer, high stepped sterncastle and raised forecastle.',
+    hullProfile: 'Station-faired Iberian galleon hull with a broad flat-floored master frame, circular futtock run, tumblehome, raked transom, raised forecastle, quarterdeck and stepped aftercastle.',
+    hullFormNote: 'Plan-led reconstruction using the San Martín 1580 sheet profile and fore/aft section families. The master section uses a flat floor, a circular futtock arc and a separate upper tumblehome; the bow and stern tail frames are progressively faired. Intermediate offsets and dimensions not stated by the sheet are reconstruction estimates, not surveyed offsets.',
+    modelScaleNote: '39.0 m length and 11.7 m beam are the dimensions reported for the San Martín by the Spanish Navy's Revista General de Marina (2007). Draft, freeboard, rig heights and intermediate station offsets remain interpreted reconstruction values, not surveyed offsets from the plan sheet.',
     reference: 'Historical reconstruction guided by the Galleon San Martín (1580) plan set. The plan set informs the general hull and profile; Wargalion dimensions and unshown construction details are reconstruction estimates, not claimed San Martín measurements.',
     sources: [
       { label: 'Shipmodell — Free Plans: Tall Ships (San Martín 1580 plan set)', url: 'https://www.shipmodell.com/index_files/0PLAN1B.html' },
       { label: 'Deutsches Historisches Museum — Galleon', url: 'https://www.dhm.de/mediathek/en/ship-types/milestones-in-the-history-of-european-shipbuilding/08-galleon/' },
-      { label: 'The Mariners’ Museum — Galleon development and rig', url: 'https://exploration.marinersmuseum.org/watercraft/galleon/' }
+      { label: 'The Mariners’ Museum — Galleon development and rig', url: 'https://exploration.marinersmuseum.org/watercraft/galleon/' },
+      { label: 'R. Visiers Bañón — Virtual Reconstruction of a 400-ton Iberian Vessel (1587 methodology)', url: 'https://oa.upm.es/38264/7/nautica_reconstruction_R03.pdf' },
+      { label: 'Spanish Navy Revista General de Marina — San Martín model dimensions (2007)', url: 'https://armada.defensa.gob.es/archivo/rgm/2007/200707.pdf' }
     ],
     hull: {
       fullness: 0.86, entry: 0.52, stern: 'transom', sternWidth: 0.44,
-      tumblehome: 0.13, sheer: 0.18, bowRise: 0.38, sternRise: 0.53,
-      keelDepth: 0.16, deckCamber: 0.13, forecastleRise: 0.72, quarterdeckRise: 0.96
+      tumblehome: 0.13, sheer: 0.12, bowRise: 0.34, sternRise: 0.49,
+      keelDepth: 0.13, deckCamber: 0.075, forecastleRise: 0.55, quarterdeckRise: 0.82, poopRise: 0.38
     },
     sternwork: 'high-stepped-galleon-aftercastle-with-quarter-galleries',
     sternTiers: [
-      { w: 0.64, d: 0.18, h: 2.15 },
-      { w: 0.49, d: 0.145, h: 1.58 },
-      { w: 0.35, d: 0.115, h: 1.20 }
+      { w: 0.64, d: 0.205, h: 2.10, start: 0.735, rise: 0.00 },
+      { w: 0.49, d: 0.148, h: 1.62, start: 0.820, rise: 1.42 },
+      { w: 0.35, d: 0.105, h: 1.26, start: 0.890, rise: 2.75 }
     ],
     bowwork: 'raked-stem-beakhead-and-raised-forecastle',
     keelDetails: { pointOffset: 0.08, minimumRadius: 0.09, radiusFactor: 0.016, label: 'wargalion-keel-and-keelson' },
@@ -61,7 +65,7 @@ export const WargalionDefinition = defineVesselSpec({
     sailingSpeed: 5.8, handling: 0.48
   },
   structure: {
-    frameCount: 42, beamStation: 0.52, forebody: 0.84, aftbody: 0.92,
+    frameCount: 44, beamStation: 0.52, forebody: 0.84, aftbody: 0.92,
     foreTip: 0.004, aftTip: 0.14, bottomFlat: 0.36, bilge: 0.26,
     flare: 0.13, tumble: 0.13, sheer: 1.15, lowerMastRatio: 0.66,
     shroudPairs: 3, ratlines: 12, yardSpread: 1.06

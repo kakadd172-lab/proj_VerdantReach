@@ -12,7 +12,7 @@ export function buildHeadSails(d, ctx) {
   const totalHeight = fore.height * (4 / 3);
 
   // The bowsprit tip uses the same endpoint as the bowsprit generator.
-  const bowspritRootY = deckY(d, 0.035) + 0.30;
+  const bowspritRootY = deckY(d, 0.035) + 0.34;
   const bowspritTip = V(
     0,
     bowspritRootY + d.deckHeightUnits * 0.44,

@@ -1,22 +1,28 @@
 import { hullPoint } from '../../architecture/hull-geometry.js';
 
 export function buildHullPlanking(d, ctx) {
-  const { part, tube, materials } = ctx;
-  const strakes = part('hull-strakes');
-  const rows = 10;
+  const { part, tube, materials, registry } = ctx;
+  const hull = registry.get('hull');
+  if (!hull) throw new Error('Wargalion hull skin must be generated before its strakes.');
+  const strakes = part('hull-strakes', hull);
+  const rows = 14;
+
   for (const side of [-1, 1]) {
     for (let row = 0; row < rows; row++) {
-      const v = 0.105 + row * 0.083;
+      const v = 0.075 + row * 0.061;
       const line = [];
-      for (let i = 0; i <= 92; i++) {
-        const t = 0.018 + 0.968 * i / 92;
-        const p = hullPoint(d, t, v, side, 1.006);
-        p.y += 0.012;
+      for (let i = 0; i <= 116; i++) {
+        const t = 0.012 + 0.976 * i / 116;
+        const p = hullPoint(d, t, v, side, 1.004);
+        p.y += 0.010;
         line.push(p);
       }
-      const material = row === 0 ? materials.lower : (row % 2 ? materials.plank : materials.hull);
-      tube(strakes, line, Math.max(0.012, d.beamUnits * 0.0018), material,
-        'longitudinal-hull-strake-' + side + '-' + row, 100);
+      const material = row === 0 || row === rows - 1
+        ? materials.lower
+        : (row % 2 ? materials.plank : materials.hull);
+      tube(strakes, line,
+        Math.max(0.010, d.beamUnits * (row % 3 === 0 ? 0.0019 : 0.00145)),
+        material, 'longitudinal-hull-strake-' + side + '-' + row, 124);
     }
   }
 }

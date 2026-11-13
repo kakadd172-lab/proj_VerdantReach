@@ -24,10 +24,19 @@ export function buildStandingRigging(d, ctx, mast, mastGroup, z, baseY, totalHei
     }
   }
 
-  for (let r = 0; r < (d.structure.ratlines ?? 10); r++) {
-    const y = lowerHeight * (r + 1) / ((d.structure.ratlines ?? 10) + 1);
-    const half = railX * 0.46;
-    beam(ratlines, V(-half, y, 0), V(half, y, 0), 0.012, materials.rope, 'ratline-' + r);
+  // Ratlines are individual steps between matching port/starboard shrouds,
+  // not transverse lines gathered at the mast centreline.
+  for (let pair = 0; pair < pairs; pair++) {
+    const spread = pairs <= 1 ? 0 : pair / (pairs - 1) - 0.5;
+    const attachZ = spread * d.beamUnits * 0.25;
+    for (let r = 0; r < (d.structure.ratlines ?? 10); r++) {
+      const y = lowerHeight * (r + 1) / ((d.structure.ratlines ?? 10) + 1);
+      const half = railX * (0.40 + 0.035 * r / Math.max(1, d.structure.ratlines ?? 10));
+      beam(ratlines,
+        V(-half, y, attachZ),
+        V(half, y, attachZ),
+        0.012, materials.rope, 'ratline-' + pair + '-' + r);
+    }
   }
 
   tube(stays, [

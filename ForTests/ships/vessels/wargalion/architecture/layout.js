@@ -12,14 +12,14 @@ export const WARGALION_ARCHITECTURE = Object.freeze({
     'railings', 'deck-equipment', 'anchors', 'masts', 'head-sails'
   ]),
   components: Object.freeze({
-    hull: { generator: './generators/hull/hull-generator.js', mount: 'keel-midships' },
+    hull: { generator: './generators/hull/hull-generator.js', mount: 'station-faired-port-starboard-skins-with-bow-and-transom-closures' },
     keel: { generator: './generators/hull/keel-generator.js', mount: 'bottom-centreline' },
     stem: { generator: './generators/hull/stem-generator.js', mount: 'fore-and-aft-posts' },
     deck: { generator: './generators/decks/deck-generator.js', mount: 'sheer-line' },
-    frames: { generator: './generators/hull-structure/frame-generator.js', mount: 'internal-hull-stations' },
+    frames: { generator: './generators/hull-structure/frame-generator.js', mount: '44-independent-master-and-tail-frame-stations' },
     'hull-planking': { generator: './generators/hull-structure/hull-planking-generator.js', mount: 'outer-hull-surface' },
     'deck-planking': { generator: './generators/decks/deck-planking-generator.js', mount: 'deck-surface' },
-    stern: { generator: './generators/stern/stern-generator.js', mount: 'aft-transom-and-sterncastle' },
+    stern: { generator: './generators/stern/stern-generator.js', mount: 'three-contiguous-station-lofted-sidewall-sections-with-forward-and-aft-bulkheads-roof-and-quarter-galleries' },
     'aft-cabins': { generator: './generators/cabins/aft-cabin-generator.js', mount: 'sterncastle-roof-and-galleries' },
     bow: { generator: './generators/bow/bow-generator.js', mount: 'fore-stem-and-forecastle' },
     bowsprit: { generator: './generators/bow/bow-generator.js', mount: 'beakhead-and-outer-bow' },
