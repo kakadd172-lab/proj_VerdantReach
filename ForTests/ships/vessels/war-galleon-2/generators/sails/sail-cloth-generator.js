@@ -4,7 +4,7 @@ export function buildCanvasSail(ctx,name,mastId,corners,fullness=.09,parent=ctx.
  const control=part(name,parent);control.userData.sailControl={mastId,clothPart:'cloth-'+name};
  const cloth=part('cloth-'+name,control),points=corners.map(point=>point?.isVector3?point.clone():V(...point));
  const span=(points[0].distanceTo(points[3])+points[1].distanceTo(points[2]))*.5,height=(points[0].distanceTo(points[1])+points[3].distanceTo(points[2]))*.5;
- const sailProfile={camberScale:1.04,chordPower:1.16,verticalPower:0.89,leechBias:0.12,twistFactor:0.021};
+ const sailProfile={camberScale:1.075,chordPower:1.12,verticalPower:0.93,leechBias:0.16,twistFactor:0.024};
  const reference=Math.max(.35,span,height*.52),camber=reference*THREE.MathUtils.clamp(fullness,.035,.15)*sailProfile.camberScale;
  const rows=18,columns=24,positions=[],indices=[];
  for(let row=0;row<=rows;row++){const v=row/rows;for(let col=0;col<=columns;col++){
