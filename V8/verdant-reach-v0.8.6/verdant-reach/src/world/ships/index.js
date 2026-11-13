@@ -1,15 +1,15 @@
-import { VESSEL_SPECS, VESSEL_IDS, getVesselSpec } from './vessels/index.js?v=0.8.10';
+import { VESSEL_SPECS, VESSEL_IDS, getVesselSpec } from './vessels/index.js?v=0.8.11';
 import {
   SHIP_DESIGNS, HISTORICAL_SHIP_KINDS, WORLD_UNITS_PER_METRE, SHIP_PART_BASE_NAMES,
   SHIP_DESIGN_MODULE_VERSION, getShipDesign, setShipDesignOverrides, resetShipDesignOverrides,
   getShipTypeFromCreativeKind, describeShipDimensions, getShipDesignPartNames, getShipRigMastNames
-} from './core/ship-designs.js?v=0.8.10';
+} from './core/ship-designs.js?v=0.8.11';
 import {
   SHIP_STRUCTURE_BLUEPRINTS, SHIP_STRUCTURE_MODULE_VERSION, getShipStructureBlueprint,
   setShipStructureOverrides, resetShipStructureOverrides, getHullHalfBeam, getHullSectionWidth,
   getHullKeelY, getDeckSheer, getHullFrameCount
-} from './core/ship-structures.js?v=0.8.10';
-import { SHIP_EDITOR_KIT_VERSION, disposeShipModel, shipModelSummary as summariseShipDesign } from './core/ship-editor-kit.js?v=0.8.10';
+} from './core/ship-structures.js?v=0.8.11';
+import { SHIP_EDITOR_KIT_VERSION, disposeShipModel, shipModelSummary as summariseShipDesign } from './core/ship-editor-kit.js?v=0.8.11';
 
 export { VESSEL_SPECS, VESSEL_IDS, getVesselSpec };
 export {

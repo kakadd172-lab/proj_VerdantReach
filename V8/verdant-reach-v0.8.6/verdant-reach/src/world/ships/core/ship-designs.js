@@ -2,11 +2,11 @@
  * Compatibility catalogue for game systems that still import ship-designs.js.
  * Actual vessel data lives in each independent vessels/<id>/<id>.js module.
  */
-import { VESSEL_SPECS } from '../vessels/index.js?v=0.8.10';
+import { VESSEL_SPECS } from '../vessels/index.js?v=0.8.11';
 import {
   SHIP_PART_BASE_NAMES, SHIP_DESIGN_MODULE_VERSION, WORLD_UNITS_PER_METRE,
   getShipDesignFromSpec, setDesignOverrideForSpec, resetDesignOverrideForSpec
-} from './vessel-definition.js?v=0.8.10';
+} from './vessel-definition.js?v=0.8.11';
 
 const vesselSpec = (type) => {
   const id = String(type ?? '').replace(/^ship-/, '');
