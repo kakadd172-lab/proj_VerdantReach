@@ -71,7 +71,7 @@ for(const id of ids){
   if(id==='sloop-v2')assert.ok(existsSync(join(vesselDir,'generators','cockpit','cockpit-generator.js')),'sloop-v2 requires its dedicated cockpit generator.');
   assert.ok(source.includes('ARCHITECTURE.assemblyOrder'),id+' must follow its architecture assembly order.');
   assert.ok(source.includes('shipArchitecture') && source.includes('ARCHITECTURE'),id+' should expose its architecture to the editor.');
-  const mastNames=[...readFileSync(join(vesselDir,'architecture','layout.js'),'utf8').matchAll(/id:\s*["\']([^"\']+)["\'],\s*foreAftStation/g)].map(m=>m[1]);
+  const mastNames=[...readFileSync(join(vesselDir,'architecture','layout.js'),'utf8').matchAll(/id:\s*["\']([^"\']+)["\'],\s*longitudinalOffset/g)].map(m=>m[1]);
   for(const mastId of mastNames)assert.ok(existsSync(join(vesselDir,'generators','masts',mastId+'mast-generator.js')),id+' missing individual '+mastId+' mast generator.');
   assert.ok(!existsSync(join(shipRoot,'vessels',id+'.js')),id+' legacy flat generator should be removed.');
  }else{
