@@ -9,7 +9,7 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.35';
+} from '../ships/index.js?v=0.8.36';
  
 function disposeAndRelease(ship) {
   if (!ship) return;
@@ -410,6 +410,42 @@ test('all 18 independent ForTests generators build separate editable models', ()
             assert.ok(Array.isArray(stayMesh.userData.dynamicMastStay.fixedPoint)
               && stayMesh.userData.dynamicMastStay.fixedPoint.length === 3,
               'wargalion headsail ' + index + ' forestay retains a fixed lower fitting');
+            const stayData = stayMesh.userData.dynamicMastStay;
+            assert.equal(stayData.anchorFrame, 'hull',
+              'wargalion headsail ' + index + ' lower fitting resolves into the hull frame');
+            assert.ok(Array.isArray(stayData.fixedHullLocal) && stayData.fixedHullLocal.length === 3,
+              'wargalion headsail ' + index + ' stores its resolved hull anchor');
+            assert.ok(Array.isArray(stayData.mastHeadPivotLocal) && stayData.mastHeadPivotLocal.length === 3,
+              'wargalion headsail ' + index + ' stores its moving masthead anchor');
+
+            const attribute = stayMesh.geometry.attributes.position;
+            const radialSegments = stayData.radialSegments;
+            const segments = stayData.segments;
+            const ringCenter = ring => {
+              const center = new THREE.Vector3();
+              const stride = radialSegments + 1;
+              for (let radial = 0; radial <= radialSegments; radial++) {
+                center.add(new THREE.Vector3().fromBufferAttribute(
+                  attribute, ring * stride + radial
+                ));
+              }
+              return center.multiplyScalar(1 / stride);
+            };
+            ship.updateMatrixWorld(true);
+            const mastPivot = ship.userData.getPart('mast-fore').userData.animationPivot;
+            const hullPart = ship.userData.getPart('hull');
+            const movingAnchor = mastPivot.localToWorld(
+              new THREE.Vector3(...stayData.mastHeadPivotLocal)
+            );
+            const fixedAnchor = hullPart.localToWorld(
+              new THREE.Vector3(...stayData.fixedHullLocal)
+            );
+            const generatedMastEnd = stayMesh.localToWorld(ringCenter(0));
+            const generatedHullEnd = stayMesh.localToWorld(ringCenter(segments));
+            assert.ok(generatedMastEnd.distanceTo(movingAnchor) < 1e-3,
+              'wargalion headsail ' + index + ' forestay meets the foremast pivot');
+            assert.ok(generatedHullEnd.distanceTo(fixedAnchor) < 1e-3,
+              'wargalion headsail ' + index + ' forestay meets its fixed hull fitting');
           }
         }
       }
