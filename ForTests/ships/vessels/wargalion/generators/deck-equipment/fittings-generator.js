@@ -1,4 +1,4 @@
-import { deckY, halfBreadth, V } from '../../architecture/hull-geometry.js';
+import { deckSurfaceY, halfBreadth, V } from '../../architecture/hull-geometry.js';
 
 export function buildFittings(d, ctx) {
   const { part, beam, box, materials } = ctx;
@@ -6,7 +6,7 @@ export function buildFittings(d, ctx) {
   for (const [index, t] of [0.16, 0.34, 0.56, 0.72].entries()) {
     const width = halfBreadth(d, t) * 0.72;
     const z = (t - 0.5) * d.hullLengthUnits;
-    const y = deckY(d, t) + 0.14;
+    const y = deckSurfaceY(d, t) + 0.14;
     for (const side of [-1, 1]) {
       const bitt = box(fittings, 0.13, 0.54, 0.13, materials.trim, 'mooring-bitt');
       bitt.position.set(side * width * 0.76, y + 0.27, z);
