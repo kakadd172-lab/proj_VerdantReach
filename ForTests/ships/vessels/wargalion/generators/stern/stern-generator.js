@@ -1,4 +1,4 @@
-import { deckY, halfBreadth, V } from '../../architecture/hull-geometry.js';
+import { deckY, deckSurfaceY, halfBreadth, V } from '../../architecture/hull-geometry.js';
 
 export function buildStern(d, ctx) {
   const { THREE, part, mesh, box, beam, tube, materials } = ctx;
@@ -12,7 +12,7 @@ export function buildStern(d, ctx) {
     const width = d.beamUnits * tier.w;
     const depth = d.hullLengthUnits * tier.d;
     const height = tier.h * (4 / 3);
-    const baseY = deckY(d, 0.94) + tiers.slice(0, index).reduce((sum, item) => sum + item.h * (4 / 3) + 0.10, 0);
+    const baseY = deckSurfaceY(d, 0.94) + tiers.slice(0, index).reduce((sum, item) => sum + item.h * (4 / 3) + 0.10, 0);
     const z0 = aftZ - depth * 0.5 + index * depth * 0.13;
     const shape = new THREE.Shape();
     shape.moveTo(-width * 0.5, 0);
@@ -64,7 +64,7 @@ export function buildStern(d, ctx) {
   const transomLine = [];
   for (let i = 0; i <= 20; i++) {
     const u = -1 + 2 * i / 20;
-    transomLine.push(V(u * halfBreadth(d, 0.99) * 0.95, deckY(d, 0.99) + 0.10, aftZ + 0.12));
+    transomLine.push(V(u * halfBreadth(d, 0.99) * 0.95, deckSurfaceY(d, 0.99) + 0.10, aftZ + 0.12));
   }
   tube(transom, transomLine, 0.07, materials.trim, 'heavy-transom-beam', 24);
 }
