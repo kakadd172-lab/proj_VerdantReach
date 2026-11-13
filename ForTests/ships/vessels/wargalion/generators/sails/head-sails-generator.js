@@ -1,5 +1,5 @@
 import { deckY, V } from '../../architecture/hull-geometry.js';
-import { buildSail } from './sail-cloth-generator.js';
+import { buildCanvasSail } from './sail-cloth-generator.js';
 
 export function buildHeadSails(d, ctx) {
   const { part, beam, tube, materials } = ctx;
@@ -14,14 +14,11 @@ export function buildHeadSails(d, ctx) {
   const stay = part('forestay', root);
   tube(stay, [bow, head], 0.018, materials.rope, 'forestay-line', 36);
   for (let i = 0; i < d.headsails; i++) {
-    const f0 = 0.04 + i * 0.035;
-    const f1 = 0.96 - i * 0.10;
-    const f2 = 0.54 - i * 0.08;
-    const tack = bow.clone().lerp(head, f0);
-    const peak = bow.clone().lerp(head, f1);
-    const clew = bow.clone().lerp(head, f2);
-    buildSail(ctx, 'sail-head-' + (i + 1), fore.id, [tack, peak, clew, tack],
-      0.07, root, 'x');
+    const tack = bow.clone().lerp(head, 0.035 + i * 0.035);
+    const peak = bow.clone().lerp(head, 0.96 - i * 0.10);
+    const clew = bow.clone().lerp(head, 0.54 - i * 0.08);
+    buildCanvasSail(ctx, 'sail-head-' + (i + 1), fore.id,
+      [tack, peak, clew, tack], 0.075 - i * 0.006, root, 'x');
     beam(root, tack, clew, 0.012, materials.rope, 'headsail-sheet');
   }
 }
