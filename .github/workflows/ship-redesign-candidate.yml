@@ -29,7 +29,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Verify the standalone ForTests vessel definitions and shared geometry engine
         run: npm run check:modules
-      - name: Run standalone editor, persistence and 16-vessel generator tests
+      - name: Run standalone editor, persistence and 19-vessel generator tests
         run: npm run test:core
       - name: Run Sloop hull reference tests
         run: npm run test:sloop:reference
@@ -49,7 +49,7 @@ jobs:
         run: npm run build
       - name: Install Chromium for the browser smoke test
         run: npx playwright install --with-deps chromium
-      - name: Verify all 16 standalone vessel generators load in the editor
+      - name: Verify all 19 standalone vessel generators load in the editor
         run: npm run smoke
       - name: Capture Sloop V2 side, bow, stern and top browser views
         run: npm run audit:vessel -- sloop-v2
