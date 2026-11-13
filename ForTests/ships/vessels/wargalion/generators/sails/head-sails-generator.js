@@ -10,7 +10,6 @@ export function buildHeadSails(d, ctx) {
 
   root.updateMatrixWorld(true);
   const totalHeight = fore.height * (4 / 3);
-  const mastStation = 0.5 + fore.z;
 
   // The bowsprit tip uses the same endpoint as the bowsprit generator.
   const bowspritRootY = deckSurfaceY(d, 0.035) + 0.30;
