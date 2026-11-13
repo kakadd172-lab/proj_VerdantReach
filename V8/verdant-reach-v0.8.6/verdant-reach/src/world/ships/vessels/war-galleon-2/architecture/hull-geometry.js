@@ -23,17 +23,15 @@ export function keelY(design, station) {
   return -design.draftUnits * 0.49 - design.hull.keelDepth * design.draftUnits * mid;
 }
 
-/** Fuller midbody, fine entrance and a supported square transom run. */
+/** Fuller midbody with a finer entrance and a broad, buoyant transom run. */
 export function halfBreadth(design, station) {
   const t = clamp01(station);
   const sine = Math.max(0, Math.sin(Math.PI * t));
   const midbody = Math.pow(sine, 0.58);
-  const transomSupport = 0.38 * smooth(0.86, 1, t);
-  const breadthShape = Math.max(midbody, transomSupport);
   const bowEntry = 0.66 + 0.34 * smooth(0.04, 0.42, t);
   const sternRun = 0.82 + 0.18 * smooth(0.56, 0.98, t);
   const shoulder = 0.96 + 0.055 * Math.sin(Math.PI * t * 0.92);
-  return design.beamUnits * 0.5 * breadthShape * bowEntry * sternRun * shoulder;
+  return design.beamUnits * 0.5 * midbody * bowEntry * sternRun * shoulder;
 }
 
 export function hullPoint(design, station, angle) {
