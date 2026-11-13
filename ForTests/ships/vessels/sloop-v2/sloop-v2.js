@@ -93,7 +93,10 @@ export const SloopV2Definition=defineVesselSpec({
   sheer:1.0,
   lowerMastRatio:0.68,
   shroudPairs:2,
-  ratlines:6,
+  // Maid of Endor is a 20-foot pocket cruiser; it uses shrouds and stays,
+  // not a tall-ship ratline ladder. Keeping this at zero avoids false deck
+  // clutter and matches the compact rig shown in the supplied drawing.
+  ratlines:0,
   yardSpread:0.70
  }
 },EDITOR_DEFAULTS);

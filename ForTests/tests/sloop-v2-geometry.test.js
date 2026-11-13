@@ -82,6 +82,21 @@ test('Sloop V2 tiller and rudder use the same Y-axis steering control and persis
  }
 });
 
+test('Sloop V2 breadth stations use a fair curve instead of flat-tangent scallops',()=>{
+ const stations=[.025,.06,.11,.18,.27,.37,.47,.63,.72,.81,.89,.95];
+ const epsilon=.0002;
+ for(const station of stations){
+  const derivative=(halfBreadth(DESIGN,station+epsilon)-halfBreadth(DESIGN,station-epsilon))/(2*epsilon);
+  const expectedSign=station<.54?1:-1;
+  assert.ok(Math.sign(derivative)===expectedSign&&Math.abs(derivative)>.05,
+   'breadth curve must carry a fair non-zero tangent through station '+station+'; got '+derivative);
+ }
+ const samples=Array.from({length:201},(_,i)=>halfBreadth(DESIGN,i/200));
+ for(let i=1;i<samples.length;i++)assert.ok(samples[i]>.0,'breadth stays positive at every sample');
+ assert.ok(samples[108]>=samples[107]&&samples[108]>=samples[109],
+  'maximum beam occurs smoothly near the specified midbody station');
+});
+
 test('Sloop V2 port and starboard sheer edges seat directly on the deck',()=>{
  const ship=createShipModel('sloop-v2');
  try{
@@ -249,6 +264,8 @@ test('Sloop V2 standing stays are taut and all three sails share natural canvas'
   const innerForestay=ship.getObjectByName('inner-staysail-forestay');
   assert.ok(shroud?.geometry?.attributes?.position,'forward shroud mesh exists');
   assert.ok(backstay?.geometry?.attributes?.position,'running backstay mesh exists');
+  assert.equal(ship.userData.getPart('ratlines-single')?.children.length,0,
+   '20-foot pocket cruiser has no tall-ship ratline ladder');
   assert.ok(outerForestay?.geometry?.attributes?.position,'outer jib forestay exists');
   assert.ok(innerForestay?.geometry?.attributes?.position,'inner staysail forestay exists');
   assert.equal(ship.getObjectByName('standing-backstay--1'),undefined,

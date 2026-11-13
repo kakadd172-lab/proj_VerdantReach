@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 export const V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 const clamp01=value=>Math.max(0,Math.min(1,Number(value)||0));
-const smooth=value=>{const t=clamp01(value);return t*t*(3-2*t);};
 const UNITS_PER_METRE=4/3;
 
 // t=0 is the fine bow; t=1 is the rounded transom. These stations were
@@ -11,11 +10,50 @@ const BREADTH_STATIONS=Object.freeze([
  [.37,.83],[.47,.94],[.54,1],[.63,.99],[.72,.96],[.81,.89],
  [.89,.79],[.95,.68],[1,.56]
 ]);
-function sample(profile,t){
+/**
+ * Shape-preserving cubic interpolation for station offsets. The previous
+ * per-interval smoothstep forced the tangent to zero at EVERY station; that
+ * made the beam outline scallop and made every longitudinal deck seam inherit
+ * the same repeated wiggle. PCHIP-style harmonic slopes keep a fair curve
+ * through the measured/reconstructed stations without overshoot.
+ */
+function monotoneStationSlopes(profile){
+ const count=profile.length,intervals=[],secants=[];
+ for(let i=0;i<count-1;i++){
+  const h=profile[i+1][0]-profile[i][0];
+  intervals.push(h);secants.push((profile[i+1][1]-profile[i][1])/h);
+ }
+ const slopes=new Array(count);
+ const endpoint=(h0,h1,d0,d1)=>{
+  let value=((2*h0+h1)*d0-h0*d1)/(h0+h1);
+  if(Math.sign(value)!==Math.sign(d0))value=0;
+  else if(Math.sign(d0)!==Math.sign(d1)&&Math.abs(value)>3*Math.abs(d0))value=3*d0;
+  return value;
+ };
+ slopes[0]=endpoint(intervals[0],intervals[1],secants[0],secants[1]);
+ slopes[count-1]=endpoint(intervals[count-2],intervals[count-3],
+  secants[count-2],secants[count-3]);
+ for(let i=1;i<count-1;i++){
+  const before=secants[i-1],after=secants[i];
+  if(before===0||after===0||Math.sign(before)!==Math.sign(after)){
+   slopes[i]=0;continue;
+  }
+  const hBefore=intervals[i-1],hAfter=intervals[i];
+  const w1=2*hAfter+hBefore,w2=hAfter+2*hBefore;
+  slopes[i]=(w1+w2)/(w1/before+w2/after);
+ }
+ return slopes;
+}
+const BREADTH_SLOPES=monotoneStationSlopes(BREADTH_STATIONS);
+function sample(profile,t,slopes=BREADTH_SLOPES){
  const x=clamp01(t);
  for(let i=0;i<profile.length-1;i++){
   const a=profile[i],b=profile[i+1];
-  if(x<=b[0]){const u=smooth((x-a[0])/(b[0]-a[0]));return THREE.MathUtils.lerp(a[1],b[1],u);}
+  if(x<=b[0]){
+   const h=b[0]-a[0],u=(x-a[0])/h,u2=u*u,u3=u2*u;
+   return (2*u3-3*u2+1)*a[1]+(u3-2*u2+u)*h*slopes[i]+
+    (-2*u3+3*u2)*b[1]+(u3-u2)*h*slopes[i+1];
+  }
  }
  return profile[profile.length-1][1];
 }
