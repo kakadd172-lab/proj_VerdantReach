@@ -30,7 +30,7 @@ test('the editor uses 19 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.30');
-  assert.equal(ids.length, 17);
+  assert.equal(ids.length, 18);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
   for (const id of ids) {
@@ -64,7 +64,7 @@ test('Sloop V2 follows the supplied Maid of Endor pocket-cruiser specification',
 });
 
  
-const modularIds = new Set(["barque","brig","brigantine","caravel","carrack","sloop","sloop-v2","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
+const modularIds = new Set(["barque","brig","brigantine","caravel","carrack","sloop","sloop-v2","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace","wargalion"]);
 
 test('each vessel owns its own geometry-generation algorithms', () => {
   const hullAlgorithms = [];
@@ -117,8 +117,8 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     hullAlgorithms.push(hull[1].trim());
     sailAlgorithms.push(sail[0].trim());
   }
-  assert.equal(new Set(hullAlgorithms).size, 17, 'All 17 ships must have different hull breadth algorithms');
-  assert.equal(new Set(sailAlgorithms).size, 17, 'All 17 ships must have their own sail surface profiles');
+  assert.equal(new Set(hullAlgorithms).size, 18, 'All 18 ships must have different hull breadth algorithms');
+  assert.equal(new Set(sailAlgorithms).size, 18, 'All 18 ships must have their own sail surface profiles');
 
   const kit = readFileSync(new URL('../ships/shared/ship-editor-kit.js', import.meta.url), 'utf8');
   for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildCanvasSail(', 'function buildRig(']) {
@@ -145,7 +145,7 @@ test('each vessel has an independent design, structure profile and generator', (
   }
 });
 
-test('all 17 independent ForTests generators build separate editable models', () => {
+test('all 18 independent ForTests generators build separate editable models', () => {
   for (const id of ids) {
     const module = getVesselModule(id);
     const ship = module.createModel();
