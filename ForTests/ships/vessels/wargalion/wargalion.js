@@ -6,10 +6,11 @@ import { buildHull } from './generators/hull/hull-generator.js';
 import { buildKeel } from './generators/hull/keel-generator.js';
 import { buildStem } from './generators/hull/stem-generator.js';
 import { buildFrames } from './generators/hull-structure/frame-generator.js';
-import { buildHullPlanking } from './generators/hull-structure/planking-generator.js';
+import { buildHullPlanking } from './generators/hull-structure/hull-planking-generator.js';
 import { buildDeck } from './generators/decks/deck-generator.js';
 import { buildDeckPlanking } from './generators/decks/deck-planking-generator.js';
 import { buildStern } from './generators/stern/stern-generator.js';
+import { ensureSternTierComponents } from './generators/cabins/aft-cabin-generator.js';
 import { buildBow } from './generators/bow/bow-generator.js';
 import { buildRudder } from './generators/steering/rudder-generator.js';
 import { buildHelm } from './generators/steering/helm-generator.js';
@@ -31,7 +32,7 @@ export const WargalionDefinition = defineVesselSpec({
     hullLength: 39.0, beam: 12.2, draft: 5.0, freeboard: 2.8,
     rig: 'Three masts: square-rigged fore and main, lateen mizzen, bowsprit and headsails.',
     hullProfile: 'Full ocean-going lower hull, fine rising bow, strong sheer, high stepped sterncastle and raised forecastle.',
-    reference: 'Historical reconstruction guided by the Galleon San Martín (1580) plan set. The selected plan sheet informs silhouette and sectional form; Wargalion dimensions are design estimates, not claimed San Martín measurements.',
+    reference: 'Historical reconstruction guided by the Galleon San Martín (1580) plan set. The plan set informs the general hull and profile; Wargalion dimensions and unshown construction details are reconstruction estimates, not claimed San Martín measurements.',
     sources: [
       { label: 'Shipmodell — Free Plans: Tall Ships (San Martín 1580 plan set)', url: 'https://www.shipmodell.com/index_files/0PLAN1B.html' },
       { label: 'Deutsches Historisches Museum — Galleon', url: 'https://www.dhm.de/mediathek/en/ship-types/milestones-in-the-history-of-european-shipbuilding/08-galleon/' },
@@ -81,10 +82,11 @@ function applyMastArchitecture(design) {
       const station = stations.get(mast.id);
       if (!station) throw new Error('Wargalion architecture is missing mast station: ' + mast.id);
       return {
-        ...mast, z: station.foreAftStation,
+        ...mast,
+        z: station.foreAftStation,
         height: mast.height * (station.heightScale ?? 1),
-        radiusScale: station.radiusScale ?? 1,
-        yardScale: station.yardScale ?? 1
+        radiusScale: (mast.radiusScale ?? 1) * (station.radiusScale ?? 1),
+        yardScale: (mast.yardScale ?? 1) * (station.yardScale ?? 1)
       };
     })
   };
@@ -96,22 +98,24 @@ function assembleWargalion(vessel, componentTransforms = {}, savedState = {}) {
   const ctx = createShipContext(resolved, {
     hull: 0x49352b, lower: 0x302a25, plank: 0x876344,
     deck: 0xb99a6c, trim: 0x49372b, sail: 0xe4dbc7,
-    sailShade: 0xb9ad94, brass: 0xb28a4c
+    sailShade: 0xb9ad94, brass: 0xb28a4c, iron: 0x59605d,
+    glass: 0x769b9b, rope: 0x6a5540
   });
   const generators = {
     hull: () => buildHull(design, ctx),
     keel: () => buildKeel(design, ctx),
     stem: () => buildStem(design, ctx),
+    deck: () => buildDeck(design, ctx),
     frames: () => buildFrames(design, ctx),
     'hull-planking': () => buildHullPlanking(design, ctx),
-    'main-deck': () => buildDeck(design, ctx),
     'deck-planking': () => buildDeckPlanking(design, ctx),
-    sternworks: () => buildStern(design, ctx),
-    bowworks: () => buildBow(design, ctx),
+    stern: () => buildStern(design, ctx),
+    'aft-cabins': () => ensureSternTierComponents(design, ctx),
+    bow: () => buildBow(design, ctx),
     rudder: () => buildRudder(design, ctx),
     helm: () => buildHelm(design, ctx),
     railings: () => buildRailings(design, ctx),
-    'deck-fittings': () => buildFittings(design, ctx),
+    'deck-equipment': () => buildFittings(design, ctx),
     anchors: () => buildAnchors(design, ctx),
     masts: () => {
       for (const mast of design.masts) {
@@ -140,12 +144,15 @@ export function generateWargalion(componentTransforms = {}, savedState = {}) {
   return createWargalionModel(componentTransforms, savedState);
 }
 export const Wargalion = Object.freeze({
-  id: WargalionDefinition.id, editorDefaults: EDITOR_DEFAULTS,
-  definition: WargalionDefinition, design: WargalionDefinition.design,
+  id: WargalionDefinition.id,
+  editorDefaults: EDITOR_DEFAULTS,
+  definition: WargalionDefinition,
+  design: WargalionDefinition.design,
   structure: WargalionDefinition.structure,
   editorModulePath: WargalionDefinition.editorModulePath,
   architecture: WARGALION_ARCHITECTURE,
-  createModel: createWargalionModel, generate: generateWargalion
+  createModel: createWargalionModel,
+  generate: generateWargalion
 });
 export const id = Wargalion.id, design = Wargalion.design,
   structure = Wargalion.structure, createModel = Wargalion.createModel,
