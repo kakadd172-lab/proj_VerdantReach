@@ -1,10 +1,10 @@
-import { deckY, V } from '../../architecture/hull-geometry.js';
+import { deckSurfaceY, V } from '../../architecture/hull-geometry.js';
 
 export function buildHelm(d, ctx) {
   const { part, beam, materials, THREE, mesh } = ctx;
   const group = part('helm');
   const z = d.hullLengthUnits * 0.29;
-  const y = deckY(d, 0.83) + 0.62;
+  const y = deckSurfaceY(d, 0.83) + 0.62;
   const wheel = part('helm-wheel', group);
   const radius = d.beamUnits * 0.042;
   const ring = mesh(wheel, new THREE.TorusGeometry(radius, 0.035, 8, 28),
