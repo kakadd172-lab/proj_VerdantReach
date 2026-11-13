@@ -5,7 +5,7 @@ export const SLOOP_V2_ARCHITECTURE=Object.freeze({
  id:'sloop-v2',schemaVersion:2,
  referenceDrawing:'Maid of Endor specification and lines drawing supplied by the user; Atkin & Co. design profile cross-checked.',
  coordinateSystem:Object.freeze({forward:'-z',aft:'+z',port:'-x',starboard:'+x',up:'+y',origin:'keel-midships'}),
- assemblyOrder:Object.freeze(['hull','keel','stem','deck','frames','hull-planking','deck-planking','stern','aft-cabins','cockpit','bow','rudder','helm','railings','deck-equipment','anchors','masts','standing-rigging','head-sails']),
+ assemblyOrder:Object.freeze(['hull','keel','stem','deck','frames','hull-planking','deck-planking','stern','rudder-fittings','aft-cabins','cockpit','bow','rudder','helm','railings','deck-equipment','anchors','masts','standing-rigging','head-sails']),
  components:Object.freeze({
   hull:{generator:'./generators/hull/hull-generator.js',mount:'full-bodied-pocket-cruiser-loft'},
   keel:{generator:'./generators/hull/keel-generator.js',mount:'long-nearly-straight-keel-line'},
@@ -15,6 +15,7 @@ export const SLOOP_V2_ARCHITECTURE=Object.freeze({
   'hull-planking':{generator:'./generators/hull-structure/hull-planking-generator.js',mount:'fine-carvel-planking-strakes'},
   'deck-planking':{generator:'./generators/decks/deck-planking-generator.js',mount:'longitudinal-deck-seams'},
   stern:{generator:'./generators/stern/stern-generator.js',mount:'compact-transom-and-outboard-rudder-seat'},
+  'rudder-fittings':{generator:'./generators/steering/rudder-fittings-generator.js',mount:'fixed-transom-gudgeons-and-pintle-bearings'},
   'aft-cabins':{generator:'./generators/cabins/aft-cabin-generator.js',mount:'small-central-trunk-cabin'},
   cockpit:{generator:'./generators/cockpit/cockpit-generator.js',mount:'aft-open-well-with-coamings-and-seats'},
   bow:{generator:'./generators/bow/bow-generator.js',mount:'graceful-projecting-bowsprit'},
@@ -33,8 +34,8 @@ export const SLOOP_V2_ARCHITECTURE=Object.freeze({
  dependencyGraph:Object.freeze({
   hull:[],keel:['hull'],stem:['hull'],deck:['hull'],frames:['hull'],
   'hull-planking':['hull'],'deck-planking':['deck'],
-  stern:['hull','deck'],'aft-cabins':['deck'],'cockpit':['deck','stern'],
-  bow:['hull','deck'],rudder:['hull','stern'],helm:['cockpit','rudder'],
+  stern:['hull','deck'],'rudder-fittings':['hull','stern'],'aft-cabins':['deck'],'cockpit':['deck','stern'],
+  bow:['hull','deck'],rudder:['hull','stern','rudder-fittings'],helm:['cockpit','rudder'],
   railings:['deck'],'deck-equipment':['deck'],'anchors':['hull','bow'],
   masts:['hull','deck'],'standing-rigging':['masts','hull','deck'],
   'head-sails':['masts','bow']
