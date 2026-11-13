@@ -50,7 +50,7 @@ async function bootShipStudio(){
     if(SHIP_STRUCTURE_MODULE_VERSION!=='0.8.9')apiProblems.push('ships/index.js structure API version '+String(SHIP_STRUCTURE_MODULE_VERSION));
     if(SHIP_MODEL_MODULE_VERSION!=='0.8.30')apiProblems.push('ships/shared/ship-editor-kit.js version '+String(SHIP_MODEL_MODULE_VERSION));
     if(Object.keys(SHIP_DESIGNS||{}).length!==19)apiProblems.push('ship catalogue count '+Object.keys(SHIP_DESIGNS||{}).length);
-    if(Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length!==18)apiProblems.push('per-vessel editor defaults count '+Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length);
+    if(Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length!==19)apiProblems.push('per-vessel editor defaults count '+Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length);
     if(typeof createMiscModel!=='function'||typeof getMiscModelDefinition!=='function'||typeof getMiscModelDefaults!=='function')apiProblems.push('ships/misc/index.js miscellaneous model API');
     if(!Array.isArray(MISC_MODEL_IDS)||MISC_MODEL_IDS.length!==8)apiProblems.push('miscellaneous model catalogue count '+(MISC_MODEL_IDS||[]).length);
     if(apiProblems.length){
