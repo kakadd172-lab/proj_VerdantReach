@@ -46,6 +46,8 @@ export const WARGALION_ARCHITECTURE = Object.freeze({
     rudder: ['hull', 'stern'], helm: ['deck', 'stern'],
     railings: ['deck', 'stern', 'bow'], 'deck-equipment': ['deck'],
     anchors: ['hull', 'bow'], masts: ['hull', 'deck'],
-    'head-sails': ['masts', 'bow'], 'standing-rigging': ['masts', 'deck']
+    bowsprit: ['bow'],
+    'anchor-chain-port': ['anchors'], 'anchor-chain-starboard': ['anchors'],
+    'head-sails': ['masts', 'bow', 'bowsprit'], 'standing-rigging': ['masts', 'deck']
   })
 });
