@@ -3,7 +3,7 @@
 This workspace is deliberately isolated under `ForTests/`. The main game and
 its ship implementation are not changed by this refactor.
 
-All 16 vessel types generate their geometry independently and now use
+All 17 vessel modules generate their geometry independently and now use
 component-first folders under `ships/vessels/<id>/`. Each vessel has its own
 definition, architecture blueprint, saved editor-defaults module, and separate
 ship-local component generators. No vessel passes its specification into a
@@ -25,6 +25,8 @@ ForTests/
 │   └── vessels/
 │       ├── sloop/
 │       │   ├── sloop.js
+│       ├── sloop-v2/
+│       │   ├── sloop-v2.js
 │       │   ├── editor-defaults.js
 │       │   ├── architecture/
 │       │   └── generators/
@@ -65,11 +67,11 @@ The shared directory is intentionally limited to support code:
 
 The old `ship-model-builder.js` and `hull-math.js` shared geometry engine files
 have been removed. The ship registry in `ships/index.js` only registers the
-sixteen generator modules and exposes the editor API.
+seventeen independent vessel modules and exposes the editor API.
 
 ## Editor capabilities
 
-- Preview all 16 independently generated vessel models.
+- Preview all 17 independently generated vessel models, including Sloop V2.
 - Inspect editable components, mesh counts, materials, transformed bounds,
   hull dimensions and model metadata.
 - Move, rotate and scale parts with TransformControls or numeric inputs.
@@ -85,8 +87,8 @@ sixteen generator modules and exposes the editor API.
   changing saved vessel defaults.
 - Watch every mast's live heel/rake around its mast-step pivot; mast-supporting
   stays adjust while deck ends remain fixed.
-- Steer the rudder with the test slider and see the helm wheel follow its axle
-  pivot through the configured steering ratio.
+- Steer the rudder with the test slider and see each vessel's tiller or helm wheel
+  follow its own configured steering axis and linkage ratio.
 - Set all sails full, reefed or furled; canvas, panel seams and boltropes gather
   together towards each sail's tack.
 
@@ -122,6 +124,7 @@ Run the quick checks before opening the editor:
 
 ```powershell
 npm run check:modules
+npm run test:sloop-v2
 npm test
 npm run build
 npx playwright install chromium
@@ -145,6 +148,8 @@ The preview supports direct-review links:
 - Barque bow: `http://127.0.0.1:5174/?ship=barque&camera=bow`
 - Barque stern: `http://127.0.0.1:5174/?ship=barque&camera=stern`
 - Barque top: `http://127.0.0.1:5174/?ship=barque&camera=top`
+- Sloop V2 side: `http://127.0.0.1:5174/?ship=sloop-v2&camera=side`
+- Sloop V2 bow: `http://127.0.0.1:5174/?ship=sloop-v2&camera=bow`
 
 Add `&part=hull` (or another component name) to preselect a component. Supported
 camera values are `side`, `bow`, `stern`, and `top`.
@@ -160,14 +165,14 @@ npx playwright install chromium
 Stop the manually running preview with `Ctrl+C`, then run:
 
 ```powershell
-npm run audit:barque
+npm run audit:vessel -- sloop-v2
 ```
 
 The script starts its own Vite server and writes screenshots plus
-`visual-audit/report.json` inside `ForTests/`. It captures a front-quarter
-view and side, bow, stern and top views for Barque. To inspect another vessel,
-run `npm run audit:vessel -- brig` (or another vessel id). To audit the whole
-fleet, run `npm run visual-audit`.
+`visual-audit/report.json` inside `ForTests/`. For Sloop V2, it captures side,
+bow, stern and top views. To inspect another vessel, run
+`npm run audit:vessel -- <vessel-id>`. To audit the whole 17-vessel fleet,
+run `npm run visual-audit`.
 
 ### Persistent vessel authoring
 
@@ -211,8 +216,8 @@ Open the **Wind & steering test bench** in the preview editor.
 - Standing shrouds and backstays follow their masthead attachment while their
   lower ends remain fixed at the hull. Their existing tube geometry is updated
   in place; it is not rebuilt on every animation frame.
-- Each rudder rotates about its stock pivot. The helm wheel rotates about its
-  axle and follows the rudder angle using that vessel's configured ratio.
+- Each rudder rotates about its stock pivot. The helm wheel or tiller follows the
+  rudder angle using its declared rotation axis and linkage ratio.
 - **Set full**, **Reef sails**, and **Furl sails** act on every mast in the
   selected vessel. The canvas, panel seams and boltropes share one deployment
   group and gather around the sail tack. Sail deployment is stored as
@@ -249,9 +254,9 @@ seams and boltropes collapse together without moving the tack.
 ## Sailing articulation and rigging refinement — 0.8.10
 
 The preview adds wind direction/speed, gusts, pause/resume, and a safe test
-reset. All 16 vessels now receive nested mast-step, rudder-stock and helm-axle
+reset. All 17 vessels receive nested mast-step and rudder-stock controls; each helm wheel or tiller follows its declared steering axis
 pivots through the shared editor lifecycle. Mast heel/rake remains separate
-from saved editor transforms, the helm wheel follows the rudder, and
+from saved editor transforms, each tiller or wheel follows the rudder, and
 mast-supporting rigging adjusts in place while holding its hull attachment.
 
 Sail deployment now has full, reefed and furled modes in the preview. The
@@ -302,7 +307,7 @@ upper cabin; the schooner's low deckhouse uses its own folded profile.
 
 ### Fleet-wide sail proportion pass
 
-All 16 independent rig generators now derive sail cloth fullness from the
+All 17 independent vessel rig generators now derive sail cloth fullness from the
 actual sail span and height, rather than a tiny fixed displacement. Square
 courses, topsails and topgallants are spaced over more of the mast and sized
 from hull length, with a broad lower course and progressively narrower upper
@@ -319,7 +324,7 @@ with each hull.
 
 ## Component-first fleet
 
-All 16 vessels use per-vessel folders under `ships/vessels/<id>/`. Each folder
+All 17 vessels use per-vessel folders under `ships/vessels/<id>/`. Each folder
 owns its ship definition, architecture, individual component generators and
 `editor-defaults.js` file. The registry selects each ship's module; it does not
 provide a common geometry generator.
