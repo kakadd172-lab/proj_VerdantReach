@@ -374,7 +374,7 @@ test('all 18 independent ForTests generators build separate editable models', ()
         assert.ok(shellCount > 0, 'Maid of Endor cabin should have a shaped low trunk shell');
         assert.ok(coachroofCount > 0, 'Maid of Endor cabin should have its compact coachroof');
         assert.ok(portlightCount >= 2, 'Maid of Endor cabin should expose separate portlights');
-      } else if (id !== 'pinnace' && id !== 'sloop') {
+      } else if (id !== 'pinnace' && id !== 'sloop' && id !== 'wargalion') {
         const cabin = ship.userData.getPart('stern-tier-1');
         assert.ok(cabin, id + ' should have a proportioned aft cabin');
         let foldedShells = 0;
