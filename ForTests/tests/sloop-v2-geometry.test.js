@@ -27,7 +27,14 @@ test('Sloop V2 architecture entries, assembly order and mast station stay consis
  try{
   const components=Object.keys(SLOOP_V2_ARCHITECTURE.components).sort();
   const order=[...SLOOP_V2_ARCHITECTURE.assemblyOrder].sort();
+  const dependencyNames=Object.keys(SLOOP_V2_ARCHITECTURE.dependencyGraph).sort();
   assert.deepEqual(order,components,'every architecture component is assembled exactly once');
+  assert.deepEqual(dependencyNames,components,'every architecture component has a dependency declaration');
+  for(const [component,dependencies] of Object.entries(SLOOP_V2_ARCHITECTURE.dependencyGraph)){
+   assert.ok(Array.isArray(dependencies),'dependencies for '+component+' must be an array');
+   for(const dependency of dependencies)assert.ok(components.includes(dependency),
+    component+' references unknown dependency '+dependency);
+  }
   assert.deepEqual(ship.userData.shipAssemblyOrder,SLOOP_V2_ARCHITECTURE.assemblyOrder,
    'runtime assembly order matches the architecture document');
   const mast=ship.userData.getPart('mast-single');
@@ -37,6 +44,8 @@ test('Sloop V2 architecture entries, assembly order and mast station stay consis
   assert.ok(mast&&standing&&hull&&chainplates,'mast, standing rigging, hull and chainplates all exist');
   assert.equal(standing.parent,ship,'standing rigging is migrated to the hull/root frame');
   assert.equal(chainplates.parent,hull,'mast chainplates are hull-anchored after assembly');
+  assert.ok(SLOOP_V2_ARCHITECTURE.dependencyGraph['standing-rigging'].includes('hull'),
+   'standing rigging declares its hull-anchor dependency');
   assert.ok(Math.abs(mast.position.z-DESIGN.hullLengthUnits*SLOOP_V2_ARCHITECTURE.mastInstances[0].longitudinalOffset)<1e-5,
    'mast uses the architecture station offset');
  }finally{disposeShipModel(ship);}

@@ -31,10 +31,12 @@ export const SLOOP_V2_ARCHITECTURE=Object.freeze({
   Object.freeze({id:'single',longitudinalOffset:0.02,heightScale:1,radiusScale:1,yardScale:1,generator:'./generators/masts/singlemast-generator.js'})
  ]),
  dependencyGraph:Object.freeze({
-  deck:['hull'],frames:['hull'],'hull-planking':['hull'],'deck-planking':['deck'],
+  hull:[],keel:['hull'],stem:['hull'],deck:['hull'],frames:['hull'],
+  'hull-planking':['hull'],'deck-planking':['deck'],
   stern:['hull','deck'],'aft-cabins':['deck'],'cockpit':['deck','stern'],
   bow:['hull','deck'],rudder:['hull','stern'],helm:['cockpit','rudder'],
-  railings:['deck'], 'deck-equipment':['deck'],'anchors':['hull','bow'],
-  masts:['hull','deck'],'standing-rigging':['masts','deck'],'head-sails':['masts','bow']
+  railings:['deck'],'deck-equipment':['deck'],'anchors':['hull','bow'],
+  masts:['hull','deck'],'standing-rigging':['masts','hull','deck'],
+  'head-sails':['masts','bow']
  })
 });

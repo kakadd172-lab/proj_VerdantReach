@@ -624,7 +624,7 @@ function setupPartApi(root,registry,design){
      const wheelPose={rx:0,ry:0,rz:0};
      wheelPose[rotationKey]=state.rudderAngle*(wc.ratio??4.5)*(wc.rotationSign??1);
      setRuntimeRotation('helm-wheel',wheelPose);
-    }}
+    }
     return true;
    },
   setSailTrim(id,a){const targets=sailParts.filter(p=>p.userData.sailControl.mastId===id);if(!targets.length)return false;state.sailTrim[id]=clamp(a,-1.1,1.1);for(const p of targets)setRuntimeRotation(p.name,{ry:state.sailTrim[id]});return true;},
