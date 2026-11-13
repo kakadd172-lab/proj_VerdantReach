@@ -213,12 +213,18 @@ function setupPartApi(root,registry,design){
   const point=metadata.fixedPoint||
    (Array.isArray(metadata.points)?metadata.points[metadata.fixedEndIndex??metadata.points.length-1]:null);
   if(!Array.isArray(point))return null;
-  // The points are authored in the standing group frame. Applying its saved
-  // transform first lets us find the actual chainplate position after edits.
-  const sourceFrame=metadata.coordinateSpace==='mast-group'?(standing||mast):(stay.mesh.parent||mast);
+  // "mast-group" is literally the mast component's local coordinate frame.
+  // Standing rigging is moved out of the mast component before this resolver
+  // runs, so using the reparented standing group here shifts the cable foot
+  // and can draw diagonal lines across the deck. Always resolve against the
+  // original authored frame, then express the final anchor in hull-local space.
+  const sourceFrame=metadata.coordinateSpace==='mast-group'?mast:(stay.mesh.parent||mast);
   const target=sourceFrame.localToWorld(new THREE.Vector3(...point));
   let best=null;
-  for(const fitting of fittings){
+  // Forestays and sheets terminate at their own bow/fairlead fittings, not at
+  // mast chainplates. Vessels can explicitly disable nearest-chainplate snap.
+  const candidateFittings=metadata.resolveAgainstChainplates===false?[]:fittings;
+  for(const fitting of candidateFittings){
    if(fitting.parent===unlinked)continue;
    fitting.updateWorldMatrix(true,true);
    fitting.traverse(object=>{

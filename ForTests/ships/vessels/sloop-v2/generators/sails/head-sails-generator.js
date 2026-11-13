@@ -67,7 +67,9 @@ export function buildHeadSails(d,ctx){
   const mastFramePoints=stayPoints.map(point=>mastPart.worldToLocal(point.clone()).toArray());
   stay.userData.dynamicMastStay={
    mastId:mast.id,coordinateSpace:'mast-group',points:mastFramePoints,
-   fixedEndIndex:1,fixedPoint:mastFramePoints[1],radius:.010,segments:36,radialSegments:7
+   fixedEndIndex:1,fixedPoint:mastFramePoints[1],resolveAgainstChainplates:false,
+   anchorRole:plan.id==='outer-jib'?'bowsprit-tack':'inner-forestay-hull-fitting',
+   radius:.010,segments:36,radialSegments:7
   };
 
   const halyards=part('head-halyards-'+plan.id,group);

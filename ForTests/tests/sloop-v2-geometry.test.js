@@ -268,6 +268,22 @@ test('Sloop V2 standing stays are taut and all three sails share natural canvas'
    '20-foot pocket cruiser has no tall-ship ratline ladder');
   assert.ok(outerForestay?.geometry?.attributes?.position,'outer jib forestay exists');
   assert.ok(innerForestay?.geometry?.attributes?.position,'inner staysail forestay exists');
+  for(const stay of [outerForestay,innerForestay]){
+   const metadata=stay.userData.dynamicMastStay;
+   assert.equal(metadata.coordinateSpace,'mast-group','forestay uses mast component coordinates');
+   assert.equal(metadata.resolveAgainstChainplates,false,'forestay must retain its own bow/forestay fitting');
+   const mast=ship.userData.getPart('mast-single'),hull=ship.userData.getPart('hull');
+   ship.updateMatrixWorld(true);
+   const expectedWorld=mast.localToWorld(new THREE.Vector3(...metadata.fixedPoint));
+   const fixedHull=new THREE.Vector3(...metadata.fixedPointHull);
+   const actualWorld=hull.localToWorld(fixedHull);
+   assert.ok(actualWorld.distanceTo(expectedWorld)<.02,
+    stay.name+' remains attached to its own hull/bowsprit end after rigging migration');
+   const attribute=stay.geometry.attributes.position,segments=metadata.segments,radial=metadata.radialSegments??7;
+   const actualEnd=ringCenter(attribute,segments,segments,radial);
+   assert.ok(stay.localToWorld(actualEnd).distanceTo(expectedWorld)<.02,
+    stay.name+' tube end meets its declared hull fitting');
+  }
   assert.equal(ship.getObjectByName('standing-backstay--1'),undefined,
    'duplicate fixed backstay is not generated beside the running backstay');
   for(const stay of [shroud,backstay,outerForestay,innerForestay]){
