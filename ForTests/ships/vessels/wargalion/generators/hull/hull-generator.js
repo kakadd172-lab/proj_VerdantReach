@@ -1,4 +1,4 @@
-import { hullPoint, keelY, deckY, halfBreadth, sectionBreadthRatio, V } from '../../architecture/hull-geometry.js';
+import { hullPoint, keelY, deckSurfaceY, halfBreadth, sectionBreadthRatio, V } from '../../architecture/hull-geometry.js';
 
 function finishGeometry(geometry) {
   geometry.computeVertexNormals();
@@ -52,7 +52,7 @@ function buildEndClosure(d, ctx, hullRoot, station, name, outwardSign) {
   for (let row = 0; row <= vertical; row++) {
     const v = row / vertical;
     const bottom = keelY(d, station);
-    const top = deckY(d, station);
+    const top = deckSurfaceY(d, station);
     const y = bottom + (top - bottom) * v;
     const half = halfBreadth(d, station) * sectionBreadthRatio(d, station, v);
     for (let col = 0; col <= breadth; col++) {

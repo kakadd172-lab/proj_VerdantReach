@@ -49,14 +49,20 @@ test('Wargalion hull follows separate fore, master and after station profiles', 
   const maximum = hullPoint(design, 0.50, master.bilgeEnd, 1);
   const upper = hullPoint(design, 0.50, 1, 1);
   const port = hullPoint(design, 0.50, master.bilgeEnd, -1);
-  const hullEdge = hullPoint(design, 0.50, 1, 1);
-  const deckEdge = deckPoint(design, 0.50, 1, 0);
+  const deckEdgeChecks = [0.14, 0.50, 0.82, 0.92].map(station => {
+    const hullEdge = hullPoint(design, station, 1, 1);
+    const deckLift = deckSurfaceY(design, station) - deckY(design, station);
+    const deckEdge = deckPoint(design, station, 1, deckLift);
+    return { station, gap: hullEdge.distanceTo(deckEdge) };
+  });
   assert.ok(floor.x > keelCentre.x,
     'Wargalion floor extends outboard from the keel centreline');
   assert.ok(Math.abs(floor.y - keelCentre.y) < 1e-6,
     'Wargalion floor is geometrically level from the centreline to the turn of the bilge');
-  assert.ok(hullEdge.distanceTo(deckEdge) < 0.02,
-    'Wargalion upper hull and main deck share the same sheer edge');
+  for (const edge of deckEdgeChecks) {
+    assert.ok(edge.gap < 0.02,
+      'Wargalion upper hull and stepped deck share their sheer edge at station ' + edge.station);
+  }
   assert.ok(maximum.x > floor.x * 3,
     'Wargalion circular futtock run expands clearly from the floor to maximum breadth');
   assert.ok(maximum.x > upper.x * 1.04,

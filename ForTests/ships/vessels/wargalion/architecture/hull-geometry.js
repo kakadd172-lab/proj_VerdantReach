@@ -160,7 +160,7 @@ export function hullPoint(d, t, v, side = 1, inset = 1) {
   const station = clamp(t);
   const section = clamp(v);
   const bottom = keelY(d, station);
-  const top = deckY(d, station);
+  const top = deckSurfaceY(d, station);
   const heightFraction = sectionHeightFraction(station, section);
   const y = lerp(bottom, top, heightFraction);
   const x = side * halfBreadth(d, station) *
