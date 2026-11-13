@@ -11,5 +11,8 @@ const fittings=part('deck-fittings');
   beam(fittings,V(frameX,y+halfH,z-halfL),V(frameX,y+halfH,z+halfL),.026,materials.trim,'gunport-lintel');
   beam(fittings,V(frameX,y-halfH,z-halfL),V(frameX,y+halfH,z-halfL),.026,materials.trim,'gunport-jamb');
   beam(fittings,V(frameX,y-halfH,z+halfL),V(frameX,y+halfH,z+halfL),.026,materials.trim,'gunport-jamb');
+  const cannon=part('deck-gun-'+level+'-'+side+'-'+i,fittings);
+  beam(cannon,V(frameX+side*.015,y,z),V(frameX+side*.62,y,z),.078,materials.iron,'cannon-barrel',12);
+  for(let wheel=0;wheel<2;wheel++){const w=ctx.mesh(cannon,new ctx.THREE.CylinderGeometry(.095,.095,.06,10),materials.trim,'gun-carriage-wheel');w.rotation.z=Math.PI/2;w.position.set(frameX+side*.17,y-.15,z+(wheel-.5)*.3);}
  }}
 }

@@ -105,7 +105,7 @@ function applyMastArchitecture(design) {
       if (!station) throw new Error('war-galleon-2: missing mast station ' + mast.id);
       return {
         ...mast,
-        z: station.longitudinalOffset,
+        z: station.foreAftStation,
         height: mast.height * (station.heightScale ?? 1),
         radiusScale: (mast.radiusScale ?? 1) * (station.radiusScale ?? 1),
         yardScale: (mast.yardScale ?? 1) * (station.yardScale ?? 1)
@@ -118,9 +118,10 @@ function assembleWarGalleon2(vessel, componentTransforms = {}, savedState = {}) 
   const design = applyMastArchitecture(vessel.design);
   const resolved = { ...vessel, design };
   const context = createShipContext(resolved, {
-    hull: 0x65412c, lower: 0x3e2a20, plank: 0x98704b, deck: 0xc8a978,
-    trim: 0x563521, sail: 0xd8c59c, sailShade: 0xb49b70, rope: 0x514538,
-    iron: 0x45413b, brass: 0xb28a43, glass: 0x425654, flag: 0x883d35
+    hull: 0x4f382d,
+    plank: 0x805a3e,
+    deck: 0xb79a6c,
+    sail: 0xe0d0ae
   });
   const generators = {
     hull: () => buildHull(design, context),
@@ -159,10 +160,6 @@ function assembleWarGalleon2(vessel, componentTransforms = {}, savedState = {}) 
   const root = finishShipModel(context, componentTransforms, savedState);
   root.userData.shipArchitecture = ARCHITECTURE;
   root.userData.shipAssemblyOrder = [...ARCHITECTURE.assemblyOrder];
-  root.userData.vesselProvenance = {
-    designName: 'Late-16th-century War Galleon II',
-    referenceStatus: 'composite reconstruction; not a traced surviving lines plan'
-  };
   return root;
 }
 

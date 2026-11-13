@@ -6,13 +6,7 @@ export default Object.freeze({
   design: {},
   structure: {},
   componentState: {
-    transformFrameVersion: 2,
-    rudderAngle: 0,
-    sailTrim: {},
-    sailDeployment: {},
-    mastLean: {},
-    hiddenParts: {},
-    unlinkedParts: [],
-    partTransforms: {}
+    rudderAngle: 0, sailTrim: {}, sailDeployment: {}, mastLean: {},
+    hiddenParts: {}, unlinkedParts: [], partTransforms: {}
   }
 });

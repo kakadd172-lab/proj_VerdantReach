@@ -2,7 +2,7 @@ import { deckY, keelY, halfBreadth, hullPoint, V } from "../../architecture/hull
 export function buildBow(d,ctx){
  const {part,beam,box,tube,materials,V}=ctx,bow=part('bowworks'),bowsprit=part('bowsprit');
  const base=deckY(d,.045)+d.deckHeightUnits*.18,tip=-d.hullLengthUnits*.5;
- const forecastle=part('war-galleon-2-forecastle',bow),forecastleDeck=part('war-galleon-2-forecastle-deck',forecastle);
+ const forecastle=part('galleon-forecastle',bow),forecastleDeck=part('galleon-forecastle-deck',forecastle);
  const along=24,across=20,positions=[],indices=[];
  for(let i=0;i<=along;i++){
   const t=.045+.175*i/along,half=halfBreadth(d,t)*.86,z=(t-.5)*d.hullLengthUnits;
