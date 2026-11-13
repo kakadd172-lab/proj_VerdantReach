@@ -160,6 +160,10 @@ function assembleWarGalleon2(vessel, componentTransforms = {}, savedState = {}) 
   const root = finishShipModel(context, componentTransforms, savedState);
   root.userData.shipArchitecture = ARCHITECTURE;
   root.userData.shipAssemblyOrder = [...ARCHITECTURE.assemblyOrder];
+  root.userData.vesselProvenance = {
+    designName: 'Late-16th-century War Galleon II',
+    referenceStatus: 'composite reconstruction; not a traced surviving lines plan'
+  };
   return root;
 }
 

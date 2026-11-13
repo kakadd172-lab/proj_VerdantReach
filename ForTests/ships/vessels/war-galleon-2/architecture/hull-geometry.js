@@ -24,14 +24,14 @@ export function keelY(design, station) {
 }
 
 /** Fuller midbody with a finer entrance and a broad, buoyant transom run. */
-export function halfBreadth(design, station) {
-  const t = clamp01(station);
+export function halfBreadth(d,t) {
+  t = clamp01(t);
   const sine = Math.max(0, Math.sin(Math.PI * t));
   const midbody = Math.pow(sine, 0.58);
   const bowEntry = 0.66 + 0.34 * smooth(0.04, 0.42, t);
   const sternRun = 0.82 + 0.18 * smooth(0.56, 0.98, t);
   const shoulder = 0.96 + 0.055 * Math.sin(Math.PI * t * 0.92);
-  return design.beamUnits * 0.5 * midbody * bowEntry * sternRun * shoulder;
+  return d.beamUnits * 0.5 * midbody * bowEntry * sternRun * shoulder;
 }
 
 export function hullPoint(design, station, angle) {
