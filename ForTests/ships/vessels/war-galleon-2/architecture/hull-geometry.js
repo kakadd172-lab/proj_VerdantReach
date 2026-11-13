@@ -37,14 +37,14 @@ export function halfBreadth(d,t) {
 export function hullPoint(d,t,a) {
   t = clamp01(t);
   const vertical = (Math.sin(a) + 1) * 0.5;
-  const deck = deckY(design, t);
-  const keel = keelY(design, t);
+  const deck = deckY(d, t);
+  const keel = keelY(d, t);
   const bottomFullness = 0.74 + 0.26 * Math.sqrt(Math.max(0, vertical));
   const upper = Math.max(0, (vertical - 0.52) / 0.48);
   const tumblehome = 1 - d.hull.tumblehome * Math.pow(upper, 1.22);
   const flare = 1 + d.structure.flare * Math.max(0, vertical - 0.32);
   return V(
-    Math.cos(a) * halfBreadth(design, t) * bottomFullness * tumblehome * flare,
+    Math.cos(a) * halfBreadth(d, t) * bottomFullness * tumblehome * flare,
     keel + (deck - keel) * vertical,
     (t - 0.5) * d.hullLengthUnits
   );

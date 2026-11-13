@@ -9,7 +9,7 @@ export const WAR_GALLEON_2_ARCHITECTURE = Object.freeze({
   assemblyOrder: Object.freeze([
     'hull', 'keel', 'stem', 'deck', 'frames', 'hull-planking',
     'deck-planking', 'stern', 'aft-cabins', 'bow', 'rudder', 'helm',
-    'railings', 'deck-equipment', 'anchors', 'masts', 'standing-rigging', 'head-sails'
+    'railings', 'deck-equipment', 'anchors', 'masts', 'head-sails'
   ]),
   components: Object.freeze({
     hull: { generator: './generators/hull/hull-generator.js', mount: 'keel-midships' },
@@ -28,13 +28,11 @@ export const WAR_GALLEON_2_ARCHITECTURE = Object.freeze({
     'deck-equipment': { generator: './generators/deck-equipment/fittings-generator.js', mount: 'deck-plan' },
     anchors: { generator: './generators/anchors/anchor-generator.js', mount: 'forward-hawse-area' },
     masts: { generator: './generators/masts/mast-frame-generator.js', mount: 'keel-and-deck-stepped-mast-stations' },
-    'head-sails': { generator: './generators/sails/head-sails-generator.js', mount: 'bowsprit-and-foremast' },
-    'standing-rigging': { generator: './generators/rigging/standing-rigging-generator.js', mount: 'mast-partners-and-hull-rails' }
-  }),
+    'head-sails': { generator: './generators/sails/head-sails-generator.js', mount: 'bowsprit-and-foremast' },}),
   mastInstances: Object.freeze([
     Object.freeze({ id: 'fore', longitudinalOffset: -0.305, heightScale: 1.02, radiusScale: 1.02, yardScale: 1.04 }),
-    Object.freeze({ id: 'main', foreAftStation: -0.018, heightScale: 1.05, radiusScale: 1.04, yardScale: 1.06 }),
-    Object.freeze({ id: 'mizzen', foreAftStation: 0.315, heightScale: 1.02, radiusScale: 0.98, yardScale: 1.02 })
+    Object.freeze({ id: 'main', longitudinalOffset: -0.018, heightScale: 1.05, radiusScale: 1.04, yardScale: 1.06 }),
+    Object.freeze({ id: 'mizzen', longitudinalOffset: 0.315, heightScale: 1.02, radiusScale: 0.98, yardScale: 1.02 })
   ]),
   dependencyGraph: Object.freeze({
     deck: ['hull'], frames: ['hull'], 'hull-planking': ['hull'],
@@ -42,7 +40,6 @@ export const WAR_GALLEON_2_ARCHITECTURE = Object.freeze({
     'aft-cabins': ['stern', 'deck'], bow: ['hull', 'deck'],
     rudder: ['hull', 'stern'], helm: ['deck'], railings: ['deck'],
     'deck-equipment': ['deck'], anchors: ['hull', 'bow'],
-    masts: ['hull', 'deck'], 'head-sails': ['masts', 'bow'],
-    'standing-rigging': ['masts', 'deck']
+    masts: ['hull', 'deck'], 'head-sails': ['masts', 'bow']
   })
 });
