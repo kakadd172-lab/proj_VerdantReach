@@ -3,7 +3,7 @@
 This workspace is deliberately isolated under `ForTests/`. The main game and
 its ship implementation are not changed by this refactor.
 
-All 17 vessel modules generate their geometry independently and now use
+All 18 vessel modules generate their geometry independently and now use
 component-first folders under `ships/vessels/<id>/`. Each vessel has its own
 definition, architecture blueprint, saved editor-defaults module, and separate
 ship-local component generators. No vessel passes its specification into a
@@ -171,7 +171,7 @@ npm run audit:vessel -- sloop-v2
 The script starts its own Vite server and writes screenshots plus
 `visual-audit/report.json` inside `ForTests/`. For Sloop V2, it captures side,
 bow, stern and top views. To inspect another vessel, run
-`npm run audit:vessel -- <vessel-id>`. To audit the whole 17-vessel fleet,
+`npm run audit:vessel -- <vessel-id>`. To audit the whole 18-vessel fleet,
 run `npm run visual-audit`.
 
 ### Persistent vessel authoring
@@ -254,7 +254,7 @@ seams and boltropes collapse together without moving the tack.
 ## Sailing articulation and rigging refinement — 0.8.10
 
 The preview adds wind direction/speed, gusts, pause/resume, and a safe test
-reset. All 17 vessels receive nested mast-step and rudder-stock controls; each helm wheel or tiller follows its declared steering axis
+reset. All 18 vessels receive nested mast-step and rudder-stock controls; each helm wheel or tiller follows its declared steering axis
 pivots through the shared editor lifecycle. Mast heel/rake remains separate
 from saved editor transforms, each tiller or wheel follows the rudder, and
 mast-supporting rigging adjusts in place while holding its hull attachment.
@@ -307,7 +307,7 @@ upper cabin; the schooner's low deckhouse uses its own folded profile.
 
 ### Fleet-wide sail proportion pass
 
-All 17 independent vessel rig generators now derive sail cloth fullness from the
+All 18 independent vessel rig generators now derive sail cloth fullness from the
 actual sail span and height, rather than a tiny fixed displacement. Square
 courses, topsails and topgallants are spaced over more of the mast and sized
 from hull length, with a broad lower course and progressively narrower upper
@@ -324,7 +324,7 @@ with each hull.
 
 ## Component-first fleet
 
-All 17 vessels use per-vessel folders under `ships/vessels/<id>/`. Each folder
+All 18 vessels use per-vessel folders under `ships/vessels/<id>/`. Each folder
 owns its ship definition, architecture, individual component generators and
 `editor-defaults.js` file. The registry selects each ship's module; it does not
 provide a common geometry generator.
