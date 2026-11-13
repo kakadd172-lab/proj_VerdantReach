@@ -9,7 +9,7 @@ export function buildHullPlanking(d, ctx) {
 
   for (const side of [-1, 1]) {
     for (let row = 0; row < rows; row++) {
-      const v = 0.075 + row * 0.061;
+      const v = 0.16 + row * 0.053;
       const line = [];
       for (let i = 0; i <= 116; i++) {
         const t = 0.012 + 0.976 * i / 116;

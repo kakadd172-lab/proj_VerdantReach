@@ -10,7 +10,7 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.39';
+} from '../ships/index.js?v=0.8.40';
  
 function disposeAndRelease(ship) {
   if (!ship) return;
@@ -29,6 +29,8 @@ const ids = Object.keys(SHIP_DESIGNS).sort();
 
 test('Wargalion hull follows separate fore, master and after station profiles', () => {
   const design = getShipDesign('wargalion');
+  assert.equal(design.hullLength, 39.0, 'Wargalion length matches the San Martín reference dimension');
+  assert.equal(design.beam, 11.7, 'Wargalion beam matches the San Martín reference dimension');
   const bow = getWargalionStationProfile(design, 0.08);
   const master = getWargalionStationProfile(design, 0.50);
   const stern = getWargalionStationProfile(design, 0.925);
@@ -42,12 +44,17 @@ test('Wargalion hull follows separate fore, master and after station profiles', 
   assert.ok(master.maxBreadthHeight > master.floorHeight,
     'Wargalion maximum breadth sits above the floor/turn-of-bilge point');
 
-  const floor = hullPoint(design, 0.50, master.floorHeight, 1);
-  const maximum = hullPoint(design, 0.50, master.maxBreadthHeight, 1);
+  const keelCentre = hullPoint(design, 0.50, 0, 1);
+  const floor = hullPoint(design, 0.50, master.floorBand, 1);
+  const maximum = hullPoint(design, 0.50, master.bilgeEnd, 1);
   const upper = hullPoint(design, 0.50, 1, 1);
-  const port = hullPoint(design, 0.50, master.maxBreadthHeight, -1);
+  const port = hullPoint(design, 0.50, master.bilgeEnd, -1);
   const hullEdge = hullPoint(design, 0.50, 1, 1);
   const deckEdge = deckPoint(design, 0.50, 1, 0);
+  assert.ok(floor.x > keelCentre.x,
+    'Wargalion floor extends outboard from the keel centreline');
+  assert.ok(Math.abs(floor.y - keelCentre.y) < 1e-6,
+    'Wargalion floor is geometrically level from the centreline to the turn of the bilge');
   assert.ok(hullEdge.distanceTo(deckEdge) < 0.02,
     'Wargalion upper hull and main deck share the same sheer edge');
   assert.ok(maximum.x > floor.x * 3,
