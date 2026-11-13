@@ -65,3 +65,14 @@ export function buildStandingRigging(d,ctx,mast,mastGroup,z,baseY,totalHeight,lo
  standing.userData.backstayCount=2;
  standing.userData.runningBackstays=true;
 }
+
+/**
+ * Explicit architecture-stage entry point. Masts are built first; this stage
+ * attaches the vessel-specific standing and running rigging to that mast.
+ */
+export function buildStandingRiggingForMast(d,ctx,mast){
+ const mastGroup=ctx.registry.get('mast-'+mast.id);
+ const config=mastGroup?.userData.mastRiggingConfig;
+ if(!mastGroup||!config)throw new Error('sloop-v2: mast rigging requires a completed mast assembly for '+mast.id);
+ return buildStandingRigging(d,ctx,mast,mastGroup,config.z,config.baseY,config.totalHeight,config.lowerHeight);
+}

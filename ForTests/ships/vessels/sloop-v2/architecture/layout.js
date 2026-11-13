@@ -5,7 +5,7 @@ export const SLOOP_V2_ARCHITECTURE=Object.freeze({
  id:'sloop-v2',schemaVersion:2,
  referenceDrawing:'Maid of Endor specification and lines drawing supplied by the user; Atkin & Co. design profile cross-checked.',
  coordinateSystem:Object.freeze({forward:'-z',aft:'+z',port:'-x',starboard:'+x',up:'+y',origin:'keel-midships'}),
- assemblyOrder:Object.freeze(['hull','keel','stem','deck','frames','hull-planking','deck-planking','stern','aft-cabins','cockpit','bow','rudder','helm','railings','deck-equipment','anchors','masts','head-sails']),
+ assemblyOrder:Object.freeze(['hull','keel','stem','deck','frames','hull-planking','deck-planking','stern','aft-cabins','cockpit','bow','rudder','helm','railings','deck-equipment','anchors','masts','standing-rigging','head-sails']),
  components:Object.freeze({
   hull:{generator:'./generators/hull/hull-generator.js',mount:'full-bodied-pocket-cruiser-loft'},
   keel:{generator:'./generators/hull/keel-generator.js',mount:'long-nearly-straight-keel-line'},
@@ -24,16 +24,17 @@ export const SLOOP_V2_ARCHITECTURE=Object.freeze({
   'deck-equipment':{generator:'./generators/deck-equipment/fittings-generator.js',mount:'sparse-pocket-cruiser-deck-fittings'},
   anchors:{generator:'./generators/anchors/anchor-generator.js',mount:'modest-bow-stowed-anchor'},
   masts:{generator:'./generators/masts/singlemast-generator.js',mount:'single-raked-gaff-cutter-mast'},
+  'standing-rigging':{generator:'./generators/rigging/standing-rigging-generator.js',mount:'separate hull-anchored shrouds, stays and running backstays'},
   'head-sails':{generator:'./generators/sails/head-sails-generator.js',mount:'outer-jib-and-inner-staysail'}
  }),
  mastInstances:Object.freeze([
-  Object.freeze({id:'single',foreAftStation:0.02,heightScale:1,radiusScale:1,yardScale:1,generator:'./generators/masts/singlemast-generator.js'})
+  Object.freeze({id:'single',longitudinalOffset:0.02,heightScale:1,radiusScale:1,yardScale:1,generator:'./generators/masts/singlemast-generator.js'})
  ]),
  dependencyGraph:Object.freeze({
   deck:['hull'],frames:['hull'],'hull-planking':['hull'],'deck-planking':['deck'],
   stern:['hull','deck'],'aft-cabins':['deck'],'cockpit':['deck','stern'],
   bow:['hull','deck'],rudder:['hull','stern'],helm:['cockpit','rudder'],
   railings:['deck'], 'deck-equipment':['deck'],'anchors':['hull','bow'],
-  masts:['hull','deck'],'head-sails':['masts','bow']
+  masts:['hull','deck'],'standing-rigging':['masts','deck'],'head-sails':['masts','bow']
  })
 });

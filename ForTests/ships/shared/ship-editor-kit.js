@@ -613,7 +613,10 @@ function setupPartApi(root,registry,design){
     const p=registry.get('rudder');if(!p)return false;
     const rc=p.userData.steeringControl||{},limit=Math.abs(Number(rc.maxAngle)||.62);
     state.rudderAngle=clamp(a,-limit,limit);
-    setRuntimeRotation('rudder',{ry:state.rudderAngle*(rc.rotationSign??1)});
+    const rudderAxis=rc.axis||'y',rudderKey=({x:'rx',y:'ry',z:'rz'})[rudderAxis]||'ry';
+    const rudderPose={rx:0,ry:0,rz:0};
+    rudderPose[rudderKey]=state.rudderAngle*(rc.rotationSign??1);
+    setRuntimeRotation('rudder',rudderPose);
     const wheel=registry.get('helm-wheel');
     if(wheel){const wc=wheel.userData.steeringControl||{};setRuntimeRotation('helm-wheel',{rz:state.rudderAngle*(wc.ratio??4.5)*(wc.rotationSign??1)});}
     return true;

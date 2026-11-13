@@ -1,5 +1,4 @@
 import { deckY,stationZ,V } from '../../architecture/hull-geometry.js';
-import { buildStandingRigging } from '../rigging/standing-rigging-generator.js';
 import { buildCanvasSail } from '../sails/sail-cloth-generator.js';
 import { straightRiggingPath } from '../../architecture/rigging-geometry.js';
 
@@ -22,6 +21,7 @@ export function buildMast(d,ctx,mast){
  group.position.set(0,baseY,z);
  group.rotation.x=THREE.MathUtils.degToRad(mast.rakeDegrees??4.2);
  group.userData.mastControl={mastId:mast.id,windFlex:{side:.008,foreAft:.003}};
+ group.userData.mastRiggingConfig={z,baseY,totalHeight,lowerHeight};
  const step=part('mast-step-'+mast.id);
  beam(step,V(-.30,baseY-.10,z),V(.30,baseY-.10,z),.065,materials.trim,'mast-step-crosspiece',10);
  const lower=part('mast-lower-'+mast.id,group);
@@ -30,7 +30,6 @@ export function buildMast(d,ctx,mast){
  const topmast=part('mast-topmast-'+mast.id,group),topLength=totalHeight-lowerHeight+.15;
  const upperSpar=mesh(topmast,new THREE.CylinderGeometry(radius*.30,radius*.62,topLength,12,1),materials.trim,'sloop-v2-topmast');
  upperSpar.position.y=lowerHeight+topLength*.5-.15;
- buildStandingRigging(d,ctx,mast,group,z,baseY,totalHeight,lowerHeight);
  const boom=part('boom-'+mast.id,group),gaff=part('gaff-spar-'+mast.id,group);
  const tack=V(0,lowerHeight*.11,0),throat=V(0,lowerHeight*.72,0);
  const peak=V(0,lowerHeight*.91,totalHeight*.18),clew=V(0,lowerHeight*.11,totalHeight*.42);

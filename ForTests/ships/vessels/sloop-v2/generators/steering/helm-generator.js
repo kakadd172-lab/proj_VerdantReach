@@ -9,6 +9,7 @@ export function buildHelm(d,ctx){
  beam(pivot,V(0,0,0),V(0,0,-.82),.038,materials.trim,'tiller-bar',10);
  beam(pivot,V(-.085,0,-.79),V(.085,0,-.79),.027,materials.trim,'tiller-hand-grip',8);
  beam(pivot,V(0,-.02,-.06),V(0,-.02,.06),.055,materials.brass,'tiller-stock-head',10);
- tiller.userData.steeringControl={axis:'z',ratio:4.1,rotationSign:1,pivotGroup:pivot};
+ // The tiller and rudder share the vertical Y steering axis in this model.
+ tiller.userData.steeringControl={axis:'y',ratio:1,rotationSign:1,pivotGroup:pivot};
  tiller.userData.helmType='aft-tiller';
 }

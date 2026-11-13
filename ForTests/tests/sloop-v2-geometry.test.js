@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { createShipModel } from '../ships/index.js';
 import { SloopV2Definition } from '../ships/vessels/sloop-v2/sloop-v2.js';
+import { SLOOP_V2_ARCHITECTURE } from '../ships/vessels/sloop-v2/architecture/layout.js';
 import { resolveVesselForGeneration } from '../ships/shared/vessel-definition.js';
 import { disposeShipModel } from '../ships/shared/ship-editor-kit.js';
 import { deckY,halfBreadth,hullPoint,sectionBreadth,stationZ } from '../ships/vessels/sloop-v2/architecture/hull-geometry.js';
@@ -20,6 +21,57 @@ function ringCenter(attribute,ring,segments,radialSegments){
  }
  return center.multiplyScalar(1/stride);
 }
+
+test('Sloop V2 architecture entries, assembly order and mast station stay consistent',()=>{
+ const ship=createShipModel('sloop-v2');
+ try{
+  const components=Object.keys(SLOOP_V2_ARCHITECTURE.components).sort();
+  const order=[...SLOOP_V2_ARCHITECTURE.assemblyOrder].sort();
+  assert.deepEqual(order,components,'every architecture component is assembled exactly once');
+  assert.deepEqual(ship.userData.shipAssemblyOrder,SLOOP_V2_ARCHITECTURE.assemblyOrder,
+   'runtime assembly order matches the architecture document');
+  const mast=ship.userData.getPart('mast-single');
+  const standing=ship.userData.getPart('standing-rigging-single');
+  const hull=ship.userData.getPart('hull');
+  const chainplates=ship.userData.getPart('chainplates-single');
+  assert.ok(mast&&standing&&hull&&chainplates,'mast, standing rigging, hull and chainplates all exist');
+  assert.equal(standing.parent,ship,'standing rigging is migrated to the hull/root frame');
+  assert.equal(chainplates.parent,hull,'mast chainplates are hull-anchored after assembly');
+  assert.ok(Math.abs(mast.position.z-DESIGN.hullLengthUnits*SLOOP_V2_ARCHITECTURE.mastInstances[0].longitudinalOffset)<1e-5,
+   'mast uses the architecture station offset');
+ }finally{disposeShipModel(ship);}
+});
+
+test('Sloop V2 tiller and rudder use the same Y-axis steering control and persist',()=>{
+ const ship=createShipModel('sloop-v2');
+ let restored=null;
+ try{
+  const rudder=ship.userData.getPart('rudder'),tiller=ship.userData.getPart('helm-wheel');
+  const rudderControl=rudder.userData.steeringControl,tillerControl=tiller.userData.steeringControl;
+  assert.equal(rudderControl.axis,'y');
+  assert.equal(tillerControl.axis,'y');
+  assert.ok(rudderControl.pivotGroup&&tillerControl.pivotGroup,'both controls have explicit pivots');
+  assert.equal(ship.userData.setRudderAngle(.30),true);
+  assert.ok(Math.abs(rudderControl.pivotGroup.rotation.y-.30)<1e-7,'rudder stock rotates around Y');
+  assert.ok(Math.abs(tillerControl.pivotGroup.rotation.y-.30)<1e-7,'tiller follows on the same Y axis');
+  const saved=ship.userData.getShipState();
+  assert.equal(saved.transformFrameVersion,2);
+  restored=createShipModel('sloop-v2',saved.partTransforms,saved);
+  const restoredTiller=restored.userData.getPart('helm-wheel');
+  const restoredRudder=restored.userData.getPart('rudder');
+  assert.ok(Math.abs(restored.userData.getShipState().rudderAngle-.30)<1e-7,'saved steering angle is restored');
+  assert.ok(Math.abs(restoredTiller.userData.steeringControl.pivotGroup.rotation.y-.30)<1e-7,
+   'the tiller pivot restores the Y-axis steering pose');
+  assert.ok(Math.abs(restoredRudder.userData.steeringControl.pivotGroup.rotation.y-.30)<1e-7,
+   'the rudder pivot restores the Y-axis steering pose');
+  assert.equal(restored.userData.resetPartTransform('helm-wheel'),true);
+  assert.ok(Math.abs(restored.userData.getShipState().rudderAngle)<1e-8,
+   'resetting the tiller clears the linked rudder angle');
+ }finally{
+  disposeShipModel(ship);
+  if(restored)disposeShipModel(restored);
+ }
+});
 
 test('Sloop V2 port and starboard sheer edges seat directly on the deck',()=>{
  const ship=createShipModel('sloop-v2');

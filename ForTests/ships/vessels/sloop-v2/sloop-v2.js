@@ -20,6 +20,7 @@ import { buildRailings } from './generators/deck-equipment/railing-generator.js'
 import { buildDeckEquipment } from './generators/deck-equipment/fittings-generator.js';
 import { buildAnchors } from './generators/anchors/anchor-generator.js';
 import { buildSingleMast } from './generators/masts/singlemast-generator.js';
+import { buildStandingRiggingForMast } from './generators/rigging/standing-rigging-generator.js';
 import { buildHeadSails } from './generators/sails/head-sails-generator.js';
 
 export const SloopV2Definition=defineVesselSpec({
@@ -73,7 +74,7 @@ export const SloopV2Definition=defineVesselSpec({
   rudderDetails:{pivotOffset:0.14,yFactor:0.36,breadthFactor:0.10,depthFactor:0.76},
   sailingSpeed:6.2,
   handling:1.08,
-  masts:[{id:'single',z:-0.16,height:6.4,rakeDegrees:4.2,rig:'gaff',span:0.54,squares:0,runningBraces:false}],
+  masts:[{id:'single',z:0.02,height:6.4,rakeDegrees:4.2,rig:'gaff',span:0.54,squares:0,runningBraces:false}],
   headsails:2,
   oars:false,
   runningBackstays:true
@@ -102,7 +103,8 @@ function resolveArchitecture(design){
  return {...design,masts:design.masts.map(mast=>{
   const station=stations.get(mast.id);
   if(!station)throw new Error('sloop-v2: missing architecture station for mast '+mast.id);
-  return {...mast,z:station.foreAftStation,height:mast.height*(station.heightScale??1),
+  if(!Number.isFinite(station.longitudinalOffset))throw new Error('sloop-v2: invalid longitudinal offset for mast '+mast.id);
+  return {...mast,z:station.longitudinalOffset,height:mast.height*(station.heightScale??1),
    radiusScale:(mast.radiusScale??1)*(station.radiusScale??1),yardScale:(mast.yardScale??1)*(station.yardScale??1)};
  })};
 }
@@ -132,6 +134,7 @@ function assembleSloopV2(vessel,componentTransforms={},savedState={}){
   'deck-equipment':()=>buildDeckEquipment(design,ctx),
   anchors:()=>buildAnchors(design,ctx),
   masts:()=>{for(const mast of design.masts)buildSingleMast(design,ctx,mast);},
+  'standing-rigging':()=>{for(const mast of design.masts)buildStandingRiggingForMast(design,ctx,mast);},
   'head-sails':()=>buildHeadSails(design,ctx)
  };
  for(const component of ARCHITECTURE.assemblyOrder){
