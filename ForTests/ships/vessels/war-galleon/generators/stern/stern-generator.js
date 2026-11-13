@@ -11,6 +11,25 @@ export function buildStern(d,ctx){
     for(let v=0;v<vertices.count;v++){const along=THREE.MathUtils.clamp(vertices.getZ(v)/depth,0,1);vertices.setX(v,vertices.getX(v)*(1-.16*along));}
     vertices.needsUpdate=true;geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.computeBoundingSphere();geometry.translate(width*.5,baseY,z0);
     mesh(group,geometry,materials.hull,'war-galleon-bevelled-sterncastle-tier');
+
+    // Visible aft roof folds: ribs follow the same descending profile as the shell.
+    const folds=[[0,.58],[.14,.98],[.28,.90],[.43,.76],[.58,.62],[.73,.49],[.88,.37],[1,.29]];
+    const ribRadius=Math.max(.019,d.beamUnits*.0025);
+    for(let fold=1;fold<folds.length;fold++){
+      const [previousAlong,previousRise]=folds[fold-1];
+      const [along,rise]=folds[fold];
+      const previousZ=z0+depth*previousAlong,z=z0+depth*along;
+      const previousY=baseY+height*previousRise,y=baseY+height*rise;
+      const previousTaper=1-.16*previousAlong,taper=1-.16*along;
+      for(const side of [-1,1]){
+        beam(group,V(side*width*.5*previousTaper,previousY,previousZ),
+          V(side*width*.5*taper,y,z),ribRadius,materials.trim,'folded-cabin-side-rib');
+      }
+      if(fold<folds.length-1){
+        beam(group,V(-width*.5*taper,y,z),V(width*.5*taper,y,z),
+          ribRadius*.8,materials.trim,'folded-cabin-cross-rib');
+      }
+    }
     const count=Math.max(3,Math.round(width/1.05)),paneW=Math.max(.22,width*.055),paneH=Math.max(.18,height*.13),faceZ=z0+depth+bevel,paneY=baseY+height*.16;
     for(let n=0;n<count;n++){const x=-width*.31+width*.62*n/Math.max(1,count-1),pane=box(windows,paneW,paneH,.035,materials.glass,'stern-window');pane.position.set(x,paneY,faceZ);const hx=paneW*.62,hy=paneH*.62,fz=faceZ+.025;
       beam(windows,V(x-hx,paneY-hy,fz),V(x+hx,paneY-hy,fz),.017,materials.brass,'stern-window-sill');beam(windows,V(x-hx,paneY+hy,fz),V(x+hx,paneY+hy,fz),.017,materials.brass,'stern-window-head');beam(windows,V(x-hx,paneY-hy,fz),V(x-hx,paneY+hy,fz),.017,materials.trim,'stern-window-jamb');beam(windows,V(x+hx,paneY-hy,fz),V(x+hx,paneY+hy,fz),.017,materials.trim,'stern-window-jamb');}
