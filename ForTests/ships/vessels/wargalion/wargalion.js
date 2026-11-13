@@ -16,7 +16,9 @@ import { buildHelm } from './generators/steering/helm-generator.js';
 import { buildRailings } from './generators/deck-equipment/railing-generator.js';
 import { buildFittings } from './generators/deck-equipment/fittings-generator.js';
 import { buildAnchors } from './generators/anchors/anchor-generator.js';
-import { buildMast } from './generators/masts/mast-frame-generator.js';
+import { buildForemast } from './generators/masts/foremast-generator.js';
+import { buildMainmast } from './generators/masts/mainmast-generator.js';
+import { buildMizzenmast } from './generators/masts/mizzenmast-generator.js';
 import { buildHeadSails } from './generators/sails/head-sails-generator.js';
 
 export const WargalionDefinition = defineVesselSpec({
@@ -66,9 +68,9 @@ export const WargalionDefinition = defineVesselSpec({
 }, EDITOR_DEFAULTS);
 
 const MAST_GENERATORS = Object.freeze({
-  fore: (d, ctx, mast) => buildMast(d, ctx, mast),
-  main: (d, ctx, mast) => buildMast(d, ctx, mast),
-  mizzen: (d, ctx, mast) => buildMast(d, ctx, mast)
+  fore: buildForemast,
+  main: buildMainmast,
+  mizzen: buildMizzenmast
 });
 
 function applyMastArchitecture(design) {
