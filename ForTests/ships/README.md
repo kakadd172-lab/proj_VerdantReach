@@ -16,6 +16,7 @@ Every vessel has its own folder under `vessels/`:
 - `fluyt/`
 - `frigate/`
 - `galleon/`
+- `wargalion/`
 - `junk/`
 - `pinnace/`
 - `schooner/`
