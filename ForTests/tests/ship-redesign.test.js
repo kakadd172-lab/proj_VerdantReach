@@ -391,7 +391,27 @@ test('all 18 independent ForTests generators build separate editable models', ()
       ship.userData.animateShip(.05,{enabled:true,directionDeg:210,speedKnots:24});
       assert.ok(sampleCanvas.geometry.attributes.position.array.some((value,index)=>Math.abs(value-canvasBefore[index])>1e-6),id+' sail cloth responds to wind');
       if (getShipDesign(id).headsails > 0) {
-        assert.ok(ship.userData.partNames.some((name) => name.startsWith('head-stays-')), id + ' should generate correctly anchored headsails');
+        const headStayNames = ship.userData.partNames.filter(name => name.startsWith('head-stays-'));
+        assert.ok(headStayNames.length >= getShipDesign(id).headsails,
+          id + ' should generate an individually editable stay for every headsail');
+        if (id === 'wargalion') {
+          for (let index = 1; index <= getShipDesign(id).headsails; index++) {
+            const stayGroup = ship.userData.getPart('head-stays-' + index);
+            assert.ok(stayGroup, 'wargalion headsail ' + index + ' has its own forestay group');
+            let stayMesh = null;
+            stayGroup.traverse(object => {
+              if (object.isMesh && object.userData.dynamicMastStay) stayMesh = object;
+            });
+            assert.ok(stayMesh, 'wargalion headsail ' + index + ' forestay is dynamically mast-anchored');
+            assert.equal(stayMesh.userData.dynamicMastStay.mastId, 'fore',
+              'wargalion headsail ' + index + ' forestay follows the foremast');
+            assert.equal(stayMesh.userData.dynamicMastStay.coordinateSpace, 'mast-group',
+              'wargalion headsail ' + index + ' uses the foremast reference frame');
+            assert.ok(Array.isArray(stayMesh.userData.dynamicMastStay.fixedPoint)
+              && stayMesh.userData.dynamicMastStay.fixedPoint.length === 3,
+              'wargalion headsail ' + index + ' forestay retains a fixed lower fitting');
+          }
+        }
       }
       if (id === 'fluyt') {
         assert.ok(ship.userData.getPart('cargo-deck-details'), 'fluyt merchant cargo deck');
