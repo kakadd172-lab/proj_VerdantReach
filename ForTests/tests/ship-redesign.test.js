@@ -510,8 +510,13 @@ test('all vessels expose mast-step, rudder-stock and helm-axle pivots with linke
       const rudderPose=ship.userData.getPartTransform('rudder');
       const angle=.2;
       ship.userData.setRudderAngle(angle);
-      assert.ok(Math.abs(rudder.userData.steeringControl.pivotGroup.rotation.y-angle)<1e-6,id+' rudder rotation');
-      assert.ok(Math.abs(wheel.userData.steeringControl.pivotGroup.rotation.z-angle*(wheel.userData.steeringControl.ratio??4.5))<1e-6,id+' wheel follows rudder ratio');
+      const rudderControl=rudder.userData.steeringControl,wheelControl=wheel.userData.steeringControl;
+      const axisProperty=axis=>({x:'x',y:'y',z:'z'})[axis]||'z';
+      const rudderAxis=axisProperty(rudderControl.axis||'y');
+      const helmAxis=axisProperty(wheelControl.axis||'z');
+      assert.ok(Math.abs(rudderControl.pivotGroup.rotation[rudderAxis]-angle)<1e-6,id+' rudder rotation on declared axis');
+      assert.ok(Math.abs(wheelControl.pivotGroup.rotation[helmAxis]-angle*(wheelControl.ratio??4.5))<1e-6,
+        id+' helm control follows rudder ratio on its declared axis');
       assert.deepEqual(ship.userData.getPartTransform('rudder'),rudderPose,id+' steering stays outside saved editor transforms');
     }finally{disposeAndRelease(ship);}
   }
