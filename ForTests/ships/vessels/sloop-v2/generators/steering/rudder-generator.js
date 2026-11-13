@@ -9,7 +9,7 @@ export function buildRudder(d,ctx){
  const bladeHeight=Math.max(1.0,pivotY-keel+.20);
  const topChord=Math.max(.48,d.beamUnits*.22);
  const heelChord=topChord*.62;
- const leadingEdge=.055;
+ const leadingEdge=.025;
  const trailingTop=leadingEdge+topChord;
 
  const pivot=new THREE.Group();
