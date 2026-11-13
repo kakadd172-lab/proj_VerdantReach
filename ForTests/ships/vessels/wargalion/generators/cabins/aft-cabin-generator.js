@@ -40,7 +40,7 @@ export function ensureSternTierComponents(d, ctx) {
       beam(component, V(-half, roofY, z), V(half, roofY, z),
         0.022, materials.trim, 'folded-cabin-cross-rib');
     }
-    // Aft transom and roof crown receive light mouldings, not weapon fittings.
+    // Aft transom and roof crown receive light mouldings.
     beam(component, V(-width * 0.47, baseY + height * 0.98, aftZ + depth * 0.45),
       V(width * 0.47, baseY + height * 0.98, aftZ + depth * 0.45),
       0.035, materials.trim, 'stern-tier-roof-crown');
