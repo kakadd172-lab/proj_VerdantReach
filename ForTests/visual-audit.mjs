@@ -37,7 +37,7 @@ try{
  page.on('pageerror',e=>errors.push(e.message));
  page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});
  await page.goto(requestedShip?baseUrl+'?ship='+encodeURIComponent(requestedShip):baseUrl,{waitUntil:'domcontentloaded',timeout:30000});
- await page.waitForFunction(()=>document.querySelectorAll('#ship-select option').length>=17,{timeout:30000});
+ await page.waitForFunction(()=>document.querySelectorAll('#ship-select option').length>=18,{timeout:30000});
  const report=[];
  for(const id of selectedVessels){
   await page.locator('#ship-select').selectOption(id);
