@@ -51,3 +51,12 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Verify all 16 standalone vessel generators load in the editor
         run: npm run smoke
+      - name: Capture Sloop V2 side, bow, stern and top browser views
+        run: npm run audit:vessel -- sloop-v2
+      - name: Upload Sloop V2 visual audit screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: sloop-v2-visual-audit
+          path: ForTests/visual-audit/
+          if-no-files-found: error
+          retention-days: 7
