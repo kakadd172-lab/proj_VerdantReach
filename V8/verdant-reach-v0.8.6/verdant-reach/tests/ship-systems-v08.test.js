@@ -126,7 +126,7 @@ test('v0.8.6 game shell and v0.8.11 component-first ship modules use consistent 
   const definition = read('src/world/ships/core/vessel-definition.js');
   const kit = read('src/world/ships/core/ship-editor-kit.js');
   assert.ok(html.includes('styles.css?v=0.8.6'));
-  assert.ok(html.includes('main.js?v=0.8.6'));
+  assert.ok(html.includes('main.js?v=0.8.7'));
   assert.ok(main.includes('creative-entities.js?v=0.8.7'));
   assert.ok(main.includes('ship-designs.js?v=0.8.7'));
   assert.ok(ui.includes('ship-designs.js?v=0.8.7'));
