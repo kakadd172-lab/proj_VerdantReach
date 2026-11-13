@@ -143,7 +143,7 @@ using the studio; press `Ctrl+C` there to stop the server.
 ### Open a vessel directly
 
 The preview supports direct-review links:
-
+- Wargalion side: `http://127.0.0.1:5174/?ship=wargalion&camera=side`\n- Wargalion stern: `http://127.0.0.1:5174/?ship=wargalion&camera=stern`\n
 - Barque side: `http://127.0.0.1:5174/?ship=barque&camera=side`
 - Barque bow: `http://127.0.0.1:5174/?ship=barque&camera=bow`
 - Barque stern: `http://127.0.0.1:5174/?ship=barque&camera=stern`
