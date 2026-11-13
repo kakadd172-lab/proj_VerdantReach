@@ -1,4 +1,4 @@
-import { deckY, V } from '../../architecture/hull-geometry.js';
+import { deckSurfaceY, V } from '../../architecture/hull-geometry.js';
 
 export function ensureSternTierComponents(d, ctx) {
   const tiers = d.sternTiers || [];
@@ -12,7 +12,7 @@ export function ensureSternTierComponents(d, ctx) {
       const height = Math.max(0.18, tier.h * 1.15);
       const depth = Math.max(0.16, d.hullLengthUnits * tier.d);
       const shell = box(component, width, height, depth, materials.hull, 'wargalion-stern-tier-shell');
-      shell.position.set(0, deckY(d, 0.94) + height * (0.44 + index * 0.08),
+      shell.position.set(0, deckSurfaceY(d, 0.94) + height * (0.44 + index * 0.08),
         d.hullLengthUnits * (0.405 + index * 0.014));
       const cap = box(component, width * 1.04, 0.09, depth * 1.04, materials.trim, 'stern-tier-cap');
       cap.position.set(0, shell.position.y + height * 0.52, shell.position.z);
