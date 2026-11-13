@@ -22,11 +22,12 @@ export const WARGALION_ARCHITECTURE = Object.freeze({
     stern: { generator: './generators/stern/stern-generator.js', mount: 'aft-transom-and-sterncastle' },
     'aft-cabins': { generator: './generators/cabins/aft-cabin-generator.js', mount: 'sterncastle-roof-and-galleries' },
     bow: { generator: './generators/bow/bow-generator.js', mount: 'fore-stem-and-forecastle' },
+    bowsprit: { generator: './generators/bow/bow-generator.js', mount: 'beakhead-and-outer-bow' },
     rudder: { generator: './generators/steering/rudder-generator.js', mount: 'sternpost' },
     helm: { generator: './generators/steering/helm-generator.js', mount: 'quarterdeck' },
     railings: { generator: './generators/deck-equipment/railing-generator.js', mount: 'deck-edge' },
     'deck-equipment': { generator: './generators/deck-equipment/fittings-generator.js', mount: 'open-deck-plan' },
-    anchors: { generator: './generators/anchors/anchor-generator.js', mount: 'bow-quarters' },
+    anchors: { generator: './generators/anchors/anchor-generator.js', mount: 'bow-quarters-with-independent-port-and-starboard-rodes' },
     masts: { generator: './generators/masts/mast-frame-generator.js', mount: 'keel-and-deck-mast-stations' },
     'head-sails': { generator: './generators/sails/head-sails-generator.js', mount: 'bowsprit-and-foremast' },
     'standing-rigging': { generator: './generators/rigging/standing-rigging-generator.js', mount: 'mastheads-to-hull-rail' }
