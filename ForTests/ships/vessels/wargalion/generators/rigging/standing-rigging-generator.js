@@ -1,4 +1,4 @@
-import { deckY, halfBreadth, V } from '../../architecture/hull-geometry.js';
+import { deckSurfaceY, halfBreadth, V } from '../../architecture/hull-geometry.js';
 
 export function buildStandingRigging(d, ctx, mast, mastGroup, z, baseY, totalHeight, lowerHeight) {
   const { part, tube, beam, materials } = ctx;
@@ -8,7 +8,8 @@ export function buildStandingRigging(d, ctx, mast, mastGroup, z, baseY, totalHei
   const stays = part('mast-stays-' + mast.id, standing);
   const running = part('running-rigging-' + mast.id, mastGroup);
   const braces = part('running-braces-' + mast.id, running);
-  const railX = halfBreadth(d, 0.5 + mast.z * 0.2) * 0.82;
+  const mastStation = 0.5 + mast.z;
+  const railX = halfBreadth(d, mastStation) * 0.82;
   const pairs = d.structure.shroudPairs ?? 3;
 
   for (const side of [-1, 1]) {
@@ -18,7 +19,7 @@ export function buildStandingRigging(d, ctx, mast, mastGroup, z, baseY, totalHei
       tube(shrouds, [
         V(side * 0.08, totalHeight - 0.1, 0),
         V(side * railX * 0.30, lowerHeight * 0.72, attachZ * 0.55),
-        V(side * railX, deckY(d, 0.5 + mast.z * 0.45) - baseY + 0.32, attachZ)
+        V(side * railX, deckSurfaceY(d, mastStation) - baseY + 0.32, attachZ)
       ], 0.019, materials.rope, 'standing-shroud-' + side + '-' + pair, 26);
     }
   }
