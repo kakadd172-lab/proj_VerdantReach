@@ -1,11 +1,12 @@
-import { deckY, V } from '../../architecture/hull-geometry.js';
+import { deckSurfaceY, V } from '../../architecture/hull-geometry.js';
 import { buildStandingRigging } from '../rigging/standing-rigging-generator.js';
 import { buildCanvasSail } from '../sails/sail-cloth-generator.js';
 
 export function buildMast(d, ctx, mast) {
   const { THREE, part, beam, mesh, materials } = ctx;
   const z = mast.z * d.hullLengthUnits;
-  const baseY = deckY(d, 0.5 + mast.z * 0.45) + 0.18;
+  const mastStation = 0.5 + mast.z;
+  const baseY = deckSurfaceY(d, mastStation) + 0.18;
   const totalHeight = mast.height * (4 / 3);
   const lowerHeight = totalHeight * (d.structure.lowerMastRatio ?? 0.66);
   const radius = d.beamUnits * (mast.id === 'main' ? 0.022 : 0.019) * (mast.radiusScale ?? 1);
