@@ -38,7 +38,7 @@ export function keelY(d, t) {
   return -d.draftUnits * (0.48 + d.hull.keelDepth * rise) + d.draftUnits * rocker;
 }
 
-export function halfBreadth(d, t) {
+export function halfBreadth(d,t) {
   const body = Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.62);
   const sternTuck = 1 - 0.17 * smooth(0.70, 0.99, t);
   const forwardEntry = 0.94 + 0.06 * smooth(0.10, 0.58, t);
