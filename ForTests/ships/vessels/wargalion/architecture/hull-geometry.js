@@ -42,7 +42,7 @@ export function halfBreadth(d, t) {
   const body = Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.62);
   const sternTuck = 1 - 0.17 * smooth(0.70, 0.99, t);
   const forwardEntry = 0.94 + 0.06 * smooth(0.10, 0.58, t);
-  const transom = 0.34 * smooth(0.90, 1.00, t);
+  const transom = 0.68 * smooth(0.84, 0.995, t);
   const fineBow = 0.018 * smooth(0.00, 0.085, t);
   return d.beamUnits * 0.5 * Math.max(0.012, body * sternTuck * forwardEntry + transom + fineBow);
 }
