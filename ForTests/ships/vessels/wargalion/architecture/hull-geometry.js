@@ -32,6 +32,11 @@ export function deckY(d, t) {
   return d.deckHeightUnits + (bowLift + sternLift + sheer) * (4 / 3);
 }
 
+export function deckSurfaceY(d, t) {
+  const raisedDeck = t <= 0.225 ? d.hull.forecastleRise : t >= 0.745 ? d.hull.quarterdeckRise : 0;
+  return deckY(d, t) + raisedDeck * (4 / 3);
+}
+
 export function keelY(d, t) {
   const rise = Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.78);
   const rocker = 0.11 * Math.pow(Math.abs(t - 0.53) * 2, 1.7);
