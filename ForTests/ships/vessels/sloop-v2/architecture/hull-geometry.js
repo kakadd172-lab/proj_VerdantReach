@@ -113,7 +113,7 @@ export function hullPoint(d,t,angle){
 
 /** Shared rudder stock centre, used by both the rotating blade and tiller. */
 export function rudderStockPosition(d){
- return V(0,deckY(d,1)+.045,stationZ(d,1,1)+.04);
+ return V(0,deckY(d,1)+.045,stationZ(d,1,1)+.05);
 }
 
 /** Aft-face station on the transom at a given ship-local height. */
