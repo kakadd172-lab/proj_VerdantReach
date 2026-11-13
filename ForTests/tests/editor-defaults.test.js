@@ -6,8 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { VESSEL_IDS,VESSEL_EDITOR_DEFAULTS,VESSEL_MODULES,getShipDesign,setShipDesignOverrides } from '../ships/index.js';
 import { defineVesselSpec,getShipDesignFromSpec,getShipStructureFromSpec } from '../ships/shared/vessel-definition.js';
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
-test('all 17 vessels own defaults modules beside their generators',async()=>{
- assert.equal(VESSEL_IDS.length,17);assert.equal(Object.keys(VESSEL_EDITOR_DEFAULTS).length,17);
+test('all 18 vessels own defaults modules beside their generators',async()=>{
+ assert.equal(VESSEL_IDS.length,18);assert.equal(Object.keys(VESSEL_EDITOR_DEFAULTS).length,18);
  for(const id of VESSEL_IDS){const defaults=VESSEL_EDITOR_DEFAULTS[id];assert.equal(defaults.format,'verdant-reach-vessel-defaults');assert.equal(defaults.schemaVersion,1);assert.equal(defaults.vesselId,id);assert.ok(VESSEL_MODULES[id].definition.editorDefaults);
   const file=await readFile(join(root,'ships','vessels',id,'editor-defaults.js'),'utf8');assert.ok(file.includes('"vesselId": "'+id+'"')||file.includes("vesselId: '"+id+"'"),id+' saved defaults file identifies its vessel');
   const module=await readFile(join(root,'ships','vessels',id,id+'.js'),'utf8');assert.ok(module.includes("from './editor-defaults.js'"),id+' imports its own defaults');}
