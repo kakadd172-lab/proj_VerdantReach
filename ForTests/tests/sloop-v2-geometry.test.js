@@ -162,6 +162,20 @@ test('Sloop V2 aft transom follows the hull from keel to deck',()=>{
  }finally{disposeShipModel(ship);}
 });
 
+test('Sloop V2 jib and staysail geometry matches the specified sail areas',()=>{
+ const ship=createShipModel('sloop-v2');
+ try{
+  for(const [name,expected] of [['sail-head-1',60.5],['sail-head-2',58.5]]){
+   const sail=ship.userData.getPart(name);
+   assert.ok(sail?.userData.sailControl,'headsail component exists');
+   const actual=sail.userData.sailControl.geometricPlanAreaSquareFeet;
+   assert.ok(Number.isFinite(actual),name+' reports its geometric plan area');
+   assert.ok(Math.abs(actual-expected)<.05,
+    name+' plan area '+actual.toFixed(2)+' sq ft matches '+expected+' sq ft reference');
+  }
+ }finally{disposeShipModel(ship);}
+});
+
 test('Sloop V2 standing stays are taut and all three sails share natural canvas',()=>{
  const ship=createShipModel('sloop-v2');
  try{

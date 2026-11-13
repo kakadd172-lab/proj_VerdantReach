@@ -16,15 +16,30 @@ export function buildHeadSails(d,ctx){
  const bowspritTack=V(0,bowBaseY+.22,bowZ-d.bowspritLength*(4/3));
  const innerTackStation=.12;
  const innerTack=V(0,deckY(d,innerTackStation)+.12,stationZ(d,innerTackStation,1));
- const innerHead=mastBase.clone().lerp(mastHead,.73);
+ const innerHead=mastBase.clone().lerp(mastHead,.94);
  innerHead.z-=.025;
 
- const outerClew=V(0,bowspritTack.y+(mastHead.y-bowspritTack.y)*.24,
-  bowspritTack.z+(mastHead.z-bowspritTack.z)*.70);
- const innerClew=V(0,innerTack.y+(innerHead.y-innerTack.y)*.24,
-  innerTack.z+(innerHead.z-innerTack.z)*.74);
+ // The specification gives each headsail area. Calculate the clew station
+ // from that area instead of using arbitrary fractional offsets that silently
+ // produce sails much larger or smaller than the stated plan.
+ const squareFeetToSquareMetres=1/10.7639104167;
+ const worldUnitsPerMetre=4/3;
+ const clewForSpecifiedArea=(tack,head,areaSquareFeet,verticalFraction=.24)=>{
+  const rise=head.y-tack.y,run=head.z-tack.z;
+  const targetAreaUnits=areaSquareFeet*squareFeetToSquareMetres*
+   worldUnitsPerMetre*worldUnitsPerMetre;
+  if(!(rise>0&&run>0))throw new Error('sloop-v2: headsail head must be above and aft of its tack');
+  const fraction=verticalFraction+(2*targetAreaUnits)/(rise*run);
+  if(fraction<=verticalFraction||fraction>=.99)
+   throw new Error('sloop-v2: specified headsail area cannot fit the available luff and foot');
+  return V(tack.x+(head.x-tack.x)*verticalFraction,
+   tack.y+rise*verticalFraction,tack.z+run*fraction);
+ };
+ const outerHead=mastHead.clone().add(V(0,-.10,-.04));
+ const outerClew=clewForSpecifiedArea(bowspritTack,outerHead,60.5);
+ const innerClew=clewForSpecifiedArea(innerTack,innerHead,58.5);
  const plans=[
-  {id:'outer-jib',name:'sail-head-1',tack:bowspritTack,head:mastHead.clone().add(V(0,-.10,-.04)),
+  {id:'outer-jib',name:'sail-head-1',tack:bowspritTack,head:outerHead,
    clew:outerClew,area:60.5,fullness:.085,sheetStation:.55},
   {id:'inner-staysail',name:'sail-head-2',tack:innerTack,head:innerHead,
    clew:innerClew,area:58.5,fullness:.08,sheetStation:.68}
@@ -34,6 +49,9 @@ export function buildHeadSails(d,ctx){
    plan.fullness,group,'x');
   sail.userData.sailControl.sailType=plan.id;
   sail.userData.sailControl.sailAreaSquareFeet=plan.area;
+  const areaVector=plan.head.clone().sub(plan.tack).cross(plan.clew.clone().sub(plan.tack));
+  sail.userData.sailControl.geometricPlanAreaSquareFeet=
+   .5*areaVector.length()/(worldUnitsPerMetre*worldUnitsPerMetre)/squareFeetToSquareMetres;
 
   // The luff is also the forestay: one straight, centred lead per headsail.
   // Its first point is the moving masthead; the lower end remains at the bow
