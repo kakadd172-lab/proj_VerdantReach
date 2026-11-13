@@ -147,7 +147,7 @@ test('v0.8.6 game shell and v0.8.11 component-first ship modules use consistent 
   assert.ok(registry.includes('vessel.createModel(transforms, savedState)'));
   assert.ok(vessels.includes("./sloop/sloop.js"));
   assert.ok(registry.includes('getShipGenerator(type)'));
-  assert.ok(registry.includes('createShip(type)'));
+  assert.ok(registry.includes('createShip(type, transforms'));
   assert.ok(structures.includes('getHullHalfBeam'));
 });
 
