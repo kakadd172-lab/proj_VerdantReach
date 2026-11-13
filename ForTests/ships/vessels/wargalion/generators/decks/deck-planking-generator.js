@@ -1,4 +1,4 @@
-import { deckPoint, V } from '../../architecture/hull-geometry.js';
+import { deckPoint, deckSurfaceY, deckY, V } from '../../architecture/hull-geometry.js';
 
 export function buildDeckPlanking(d, ctx) {
   const { part, tube, materials } = ctx;
@@ -7,7 +7,7 @@ export function buildDeckPlanking(d, ctx) {
     const u = line / 11, points = [];
     for (let i = 0; i <= 56; i++) {
       const t = 0.055 + 0.90 * i / 56;
-      points.push(deckPoint(d, t, u, 0.018));
+      points.push(deckPoint(d, t, u, deckSurfaceY(d, t) - deckY(d, t) + 0.018));
     }
     tube(seams, points, 0.009, materials.plank, 'deck-longitudinal-seam-' + line, 60);
   }
@@ -16,7 +16,7 @@ export function buildDeckPlanking(d, ctx) {
     const points = [];
     for (let i = 0; i <= 18; i++) {
       const u = -0.88 + 1.76 * i / 18;
-      points.push(deckPoint(d, t, u, 0.02));
+      points.push(deckPoint(d, t, u, deckSurfaceY(d, t) - deckY(d, t) + 0.02));
     }
     tube(seams, points, 0.006, materials.plank, 'deck-butt-joint-' + row, 20);
   }
