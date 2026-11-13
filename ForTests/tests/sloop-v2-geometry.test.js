@@ -225,9 +225,11 @@ test('Sloop V2 rudder is a longitudinal foil with separate fixed transom gudgeon
   assert.equal(fittings.userData.gudgeonMounts.length,2,
    'two vertically spaced bearings carry the rudder stock');
   for(let index=1;index<=2;index++){
-   const support=fittings.getObjectByName('gudgeon-support-arm-'+index);
+   const supportPort=fittings.getObjectByName('gudgeon-support-arm-'+index+'--1');
+   const supportStarboard=fittings.getObjectByName('gudgeon-support-arm-'+index+'-1');
    const sleeve=fittings.getObjectByName('gudgeon-bearing-sleeve-'+index);
-   assert.ok(support?.isMesh,'each gudgeon is braced back to the transom');
+   assert.ok(supportPort?.isMesh&&supportStarboard?.isMesh,
+    'each gudgeon has paired braces back to the transom');
    assert.ok(sleeve?.isMesh&&sleeve.geometry.parameters.openEnded,
     'each fixed gudgeon is a hollow bearing sleeve');
   }
