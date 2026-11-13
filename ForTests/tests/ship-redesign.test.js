@@ -413,7 +413,7 @@ test('all 18 independent ForTests generators build separate editable models', ()
             const stayData = stayMesh.userData.dynamicMastStay;
             assert.equal(stayData.anchorFrame, 'hull',
               'wargalion headsail ' + index + ' lower fitting resolves into the hull frame');
-            assert.ok(Array.isArray(stayData.fixedHullLocal) && stayData.fixedHullLocal.length === 3,
+            assert.ok(Array.isArray(stayData.fixedPointHull) && stayData.fixedPointHull.length === 3,
               'wargalion headsail ' + index + ' stores its resolved hull anchor');
             assert.ok(Array.isArray(stayData.mastHeadPivotLocal) && stayData.mastHeadPivotLocal.length === 3,
               'wargalion headsail ' + index + ' stores its moving masthead anchor');
@@ -438,7 +438,7 @@ test('all 18 independent ForTests generators build separate editable models', ()
               new THREE.Vector3(...stayData.mastHeadPivotLocal)
             );
             const fixedAnchor = hullPart.localToWorld(
-              new THREE.Vector3(...stayData.fixedHullLocal)
+              new THREE.Vector3(...stayData.fixedPointHull)
             );
             const generatedMastEnd = stayMesh.localToWorld(ringCenter(0));
             const generatedHullEnd = stayMesh.localToWorld(ringCenter(segments));
