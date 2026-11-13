@@ -109,3 +109,16 @@ export function hullPoint(d,t,angle){
  return V(side*breadth,
   keelY(d,s)+(deckY(d,s)-keelY(d,s))*level,stationZ(d,s,level));
 }
+
+
+/** Shared rudder stock centre, used by both the rotating blade and tiller. */
+export function rudderStockPosition(d){
+ return V(0,deckY(d,1)+.045,stationZ(d,1,1)+.04);
+}
+
+/** Aft-face station on the transom at a given ship-local height. */
+export function transomZAtY(d,y){
+ const top=deckY(d,1),bottom=keelY(d,1);
+ const level=clamp01((y-bottom)/Math.max(1e-6,top-bottom));
+ return stationZ(d,1,level);
+}
