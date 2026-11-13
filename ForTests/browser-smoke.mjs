@@ -46,11 +46,11 @@ try{
   await page.waitForFunction(()=>{
     const selector=document.querySelector('#ship-select');
     const status=document.querySelector('#status')?.textContent||'';
-    return (selector&&selector.options.length>=18)||status.startsWith('Editor startup failed:');
+    return (selector&&selector.options.length>=19)||status.startsWith('Editor startup failed:');
   },{timeout:30000});
 
   const optionCount=await page.locator('#ship-select option').count();
-  assert.equal(optionCount,18,'Expected all 18 vessel choices in the dropdown.');
+  assert.equal(optionCount,19,'Expected all 19 vessel choices in the dropdown.');
   await page.waitForFunction(()=>{
     const status=document.querySelector('#status')?.textContent||'';
     const parts=Number(document.querySelector('#parts')?.textContent||0);
@@ -100,6 +100,11 @@ try{
   const warGalleonStatus=await page.locator('#status').innerText();
   assert.ok(warGalleonStatus.startsWith('Loaded '),'War Galleon did not load: '+warGalleonStatus);
   assert.ok(Number(await page.locator('#parts').innerText())>40,'War Galleon should expose its own modular exterior assembly.');
+  await page.locator('#ship-select').selectOption('war-galleon-2');
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('War Galleon II'));
+  const warGalleon2Status=await page.locator('#status').innerText();
+  assert.ok(warGalleon2Status.startsWith('Loaded '),'War Galleon II did not load: '+warGalleon2Status);
+  assert.ok(Number(await page.locator('#parts').innerText())>40,'War Galleon II should expose its independent modular assembly.');
   await page.locator('#ship-select').selectOption('sloop');
   await page.locator('#ship-select').selectOption('sloop-v2');
   await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('Maid of Endor'));
@@ -261,7 +266,7 @@ try{
     assert.ok(Number(await page.locator('#parts').innerText())>=5,id+' did not build its component hierarchy.');
   }
   await page.locator('#model-category').selectOption('vessels');
-  assert.equal(await page.locator('#ship-select option').count(),18,'Switching back should restore all 18 vessel designs.');
+  assert.equal(await page.locator('#ship-select option').count(),19,'Switching back should restore all 19 vessel designs.');
   assert.equal(await page.locator('#ship-select').inputValue(),'sloop','Returning to Sailing vessels should select the Sloop again.');
   assert.ok(!(await page.locator('#ship-caption').innerText()).toLowerCase().includes('cannon'),'The editor did not return to a sailing vessel.');
 

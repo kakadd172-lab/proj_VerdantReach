@@ -9,7 +9,7 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.32-maid-of-endor';
+} from '../ships/index.js?v=0.8.34-war-galleon-2';
  
 function disposeAndRelease(ship) {
   if (!ship) return;
@@ -26,11 +26,11 @@ function disposeAndRelease(ship) {
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
-test('the editor uses 18 self-contained ForTests vessel modules', () => {
+test('the editor uses 19 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.30');
-  assert.equal(ids.length, 18);
+  assert.equal(ids.length, 19);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
   for (const id of ids) {
@@ -63,7 +63,26 @@ test('Sloop V2 follows the supplied Maid of Endor pocket-cruiser specification',
   }finally{disposeAndRelease(ship);}
 });
 
-const modularIds = new Set(["barque","brig","brigantine","caravel","carrack","war-galleon","sloop","sloop-v2","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
+ 
+test('War Galleon II is an independent late-sixteenth-century vessel module',()=>{
+  const design=getShipDesign('war-galleon-2');
+  assert.equal(design.label,'Late-16th-century War Galleon II');
+  assert.equal(design.hullLength,38.0);
+  assert.equal(design.beam,10.6);
+  assert.equal(design.draft,4.7);
+  assert.equal(design.masts.length,3);
+  const ship=createShipModel('war-galleon-2');
+  try{
+    assert.equal(ship.userData.shipArchitecture.id,'war-galleon-2');
+    assert.ok(ship.userData.getPart('war-galleon-2-forecastle'),'War Galleon II owns a separate raised forecastle');
+    assert.ok(ship.userData.getPart('war-galleon-2-forecastle-deck'),'War Galleon II owns a separate forecastle deck');
+    assert.ok(ship.userData.getPart('stern-tier-1'),'War Galleon II has its own stepped sterncastle');
+    assert.ok(ship.userData.getPart('rudder'),'War Galleon II has a separate rudder component');
+    assert.ok(ship.userData.vesselProvenance.referenceStatus.includes('composite reconstruction'));
+  }finally{disposeAndRelease(ship);}
+});
+
+const modularIds = new Set(["barque","brig","brigantine","caravel","carrack","war-galleon","war-galleon-2","sloop","sloop-v2","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
 
 test('each vessel owns its own geometry-generation algorithms', () => {
   const hullAlgorithms = [];
@@ -408,7 +427,7 @@ test('all 18 independent ForTests generators build separate editable models', ()
       if (id === 'snow') {
         assert.ok(ship.userData.getPart('snow-trysail-mast-horse'), 'snow auxiliary trysail mast supports');
       }
-      if (['galleon','war-galleon','carrack','first-rate'].includes(id)) {
+      if (['galleon','war-galleon','war-galleon-2','carrack','first-rate'].includes(id)) {
         const sternTier = ship.userData.getPart('stern-tier-1');
         let taperedSternMeshes = 0;
         sternTier.traverse((object) => {
@@ -433,7 +452,7 @@ test('all 18 independent ForTests generators build separate editable models', ()
         assert.ok(gallerySupports >= 10, id + ' should support its stern galleries with visible corbels');
 
       }
-      if (['galleon','war-galleon','carrack'].includes(id)) {
+      if (['galleon','war-galleon','war-galleon-2','carrack'].includes(id)) {
         assert.ok(ship.userData.getPart(id + '-forecastle'), id + ' raised forecastle assembly');
         assert.ok(ship.userData.getPart(id + '-forecastle-deck'), id + ' raised forecastle deck');
         assert.ok(ship.userData.getPart('forecastle-side-sheathing'), id + ' forecastle side sheathing');

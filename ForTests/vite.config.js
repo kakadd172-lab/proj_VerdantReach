@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const allowedMiscModels=new Set(['misc-cannon-9-pounder','misc-cannon-18-pounder','misc-cannon-36-pounder','misc-prop-barrel','misc-prop-barrel-v2','misc-prop-crate','misc-prop-lantern','misc-prop-bollard']);
-const allowedShips=new Set(['sloop','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','war-galleon','fluyt','xebec','junk','first-rate','pinnace','sloop-v2']);
+const allowedShips=new Set(['sloop','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','war-galleon','war-galleon-2','fluyt','xebec','junk','first-rate','pinnace','sloop-v2']);
 const safePartName=/^[a-z0-9][a-z0-9_-]{0,100}$/i;
 const transformKeys=['x','y','z','rx','ry','rz','sx','sy','sz'];
 const isRecord=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
