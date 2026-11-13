@@ -7,6 +7,7 @@ export function buildRailings(d, ctx) {
     const rail = part(name, root), points = [];
     for (let i = 0; i <= 64; i++) {
       const t = 0.07 + 0.87 * i / 64;
+      if (t < 0.225) continue; // The raised forecastle has its own bulwark run.
       const x = side * halfBreadth(d, t) * 0.90;
       const y = deckSurfaceY(d, t) + 0.55;
       const z = (t - 0.5) * d.hullLengthUnits;
