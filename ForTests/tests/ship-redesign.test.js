@@ -26,7 +26,7 @@ function disposeAndRelease(ship) {
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
-test('the editor uses 19 self-contained ForTests vessel modules', () => {
+test('the editor uses 18 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.30');
