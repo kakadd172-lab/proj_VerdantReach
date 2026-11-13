@@ -96,7 +96,7 @@ try{
   const galleonStatus=await page.locator('#status').innerText();
   assert.ok(galleonStatus.startsWith('Loaded '),'Galleon did not load: '+galleonStatus);
   await page.locator('#ship-select').selectOption('war-galleon');
-  await page.waitForFunction(()=>document.querySelector('#description')?.textContent?.toLowerCase().includes('war galleon'));
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('War Galleon'));
   const warGalleonStatus=await page.locator('#status').innerText();
   assert.ok(warGalleonStatus.startsWith('Loaded '),'War Galleon did not load: '+warGalleonStatus);
   assert.ok(Number(await page.locator('#parts').innerText())>40,'War Galleon should expose its own modular exterior assembly.');
