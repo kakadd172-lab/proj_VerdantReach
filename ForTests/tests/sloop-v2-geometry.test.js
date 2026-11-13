@@ -176,14 +176,84 @@ test('Sloop V2 jib and staysail geometry matches the specified sail areas',()=>{
  }finally{disposeShipModel(ship);}
 });
 
+test('Sloop V2 rudder is an external flat plate aligned with the tiller stock',()=>{
+ const ship=createShipModel('sloop-v2');
+ try{
+  const rudder=ship.userData.getPart('rudder'),tiller=ship.userData.getPart('helm-wheel');
+  assert.ok(rudder&&tiller,'rudder and tiller editor components exist');
+  const plate=firstMesh(rudder);
+  assert.equal(plate?.name,'outboard-rudder-flat-plate','rudder blade is a dedicated flat plate mesh');
+  assert.equal(plate.geometry.type,'ExtrudeGeometry','rudder is not a rounded capsule primitive');
+  plate.geometry.computeBoundingBox();
+  const local=plate.geometry.boundingBox;
+  assert.ok(local.max.y-local.min.y>(local.max.x-local.min.x)*1.8,
+   'rudder blade is a tall tapered plate, not a stubby capsule');
+  assert.ok(local.max.z-local.min.z<(local.max.x-local.min.x)*.25,
+   'rudder plate has a thin fore-aft thickness');
+  const transomZ=stationZ(DESIGN,1,1);
+  ship.updateMatrixWorld(true);
+  const plateBounds=new THREE.Box3().setFromObject(plate);
+  assert.ok(plateBounds.min.z>transomZ+.05,'rudder blade hangs outside and aft of the transom');
+  assert.ok(plateBounds.min.y<keelY(DESIGN,1),'rudder blade extends below the keel line');
+  const rudderPivot=rudder.userData.steeringControl.pivotGroup;
+  const tillerPivot=tiller.userData.steeringControl.pivotGroup;
+  const rudderWorld=new THREE.Vector3(),tillerWorld=new THREE.Vector3();
+  rudderPivot.getWorldPosition(rudderWorld);
+  tillerPivot.getWorldPosition(tillerWorld);
+  assert.ok(rudderWorld.distanceTo(tillerWorld)<1e-6,
+   'tiller and rudder rotate around the same transom stock point');
+ }finally{disposeShipModel(ship);}
+});
+
+test('Sloop V2 deck and hull plank seams are flush ribbon meshes, not raised tubes',()=>{
+ const ship=createShipModel('sloop-v2');
+ try{
+  for(const name of ['deck-planks','hull-strakes']){
+   const group=ship.userData.getPart(name);
+   assert.ok(group,'editable '+name+' component exists');
+   const meshes=[];
+   group.traverse(object=>{if(object.isMesh)meshes.push(object);});
+   assert.ok(meshes.length>=16,name+' contains its individual plank seams');
+   for(const object of meshes){
+    assert.equal(object.geometry.type,'BufferGeometry',
+     name+' uses a surface ribbon rather than TubeGeometry');
+    assert.ok(object.geometry.attributes.position.count>=200,
+     name+' ribbon follows enough stations to remain smooth');
+    for(const value of object.geometry.attributes.position.array)
+     assert.ok(Number.isFinite(value),name+' seam coordinates are finite');
+   }
+  }
+ }finally{disposeShipModel(ship);}
+});
+
+test('Sloop V2 jib and staysail geometry matches the specified sail areas',()=>{
+ const ship=createShipModel('sloop-v2');
+ try{
+  for(const [name,expected] of [['sail-head-1',60.5],['sail-head-2',58.5]]){
+   const sail=ship.userData.getPart(name);
+   assert.ok(sail?.userData.sailControl,'headsail component exists');
+   const actual=sail.userData.sailControl.geometricPlanAreaSquareFeet;
+   assert.ok(Number.isFinite(actual),name+' reports its geometric plan area');
+   assert.ok(Math.abs(actual-expected)<.05,
+    name+' plan area '+actual.toFixed(2)+' sq ft matches '+expected+' sq ft reference');
+  }
+ }finally{disposeShipModel(ship);}
+});
+
 test('Sloop V2 standing stays are taut and all three sails share natural canvas',()=>{
  const ship=createShipModel('sloop-v2');
  try{
   const shroud=ship.getObjectByName('maid-of-endor-forward-shroud--1');
-  const backstay=ship.getObjectByName('standing-backstay--1');
+  const backstay=ship.getObjectByName('running-backstay-line--1');
+  const outerForestay=ship.getObjectByName('outer-jib-forestay');
+  const innerForestay=ship.getObjectByName('inner-staysail-forestay');
   assert.ok(shroud?.geometry?.attributes?.position,'forward shroud mesh exists');
-  assert.ok(backstay?.geometry?.attributes?.position,'standing backstay mesh exists');
-  for(const stay of [shroud,backstay]){
+  assert.ok(backstay?.geometry?.attributes?.position,'running backstay mesh exists');
+  assert.ok(outerForestay?.geometry?.attributes?.position,'outer jib forestay exists');
+  assert.ok(innerForestay?.geometry?.attributes?.position,'inner staysail forestay exists');
+  assert.equal(ship.getObjectByName('standing-backstay--1'),undefined,
+   'duplicate fixed backstay is not generated beside the running backstay');
+  for(const stay of [shroud,backstay,outerForestay,innerForestay]){
    const meta=stay.userData.dynamicMastStay;
    assert.ok(meta&&meta.points.length===2,'standing stay is authored as a direct span');
    const attr=stay.geometry.attributes.position,segments=meta.segments,radial=meta.radialSegments??7;
