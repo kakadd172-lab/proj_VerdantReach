@@ -1,6 +1,6 @@
 # ForTests Ships
 
-All **16 vessels** in the shipyard now use the same component-first folder architecture. Each vessel owns its geometry algorithms, component generators, mast-instance entry points, and assembly plan. The shared folder is limited to low-level editor lifecycle and definition/override support.
+All **17 vessels** in the shipyard now use the same component-first folder architecture. Each vessel owns its geometry algorithms, component generators, mast-instance entry points, and assembly plan. The shared folder is limited to low-level editor lifecycle and definition/override support.
 
 ## Vessel folders
 
@@ -20,6 +20,7 @@ Every vessel has its own folder under `vessels/`:
 - `pinnace/`
 - `schooner/`
 - `sloop/`
+- `sloop-v2/`
 - `snow/`
 - `xebec/`
 
@@ -29,7 +30,8 @@ Each vessel folder contains:
 - `editor-defaults.js`: the saved default design, structure, and component-state data written by the Ship Design Studio. It is loaded automatically when that vessel is generated; it does not replace or combine the vessel's part-generator source files.
 - `architecture/layout.js`: coordinate convention, component mounts, assembly order, dependency graph, and individual mast stations / scale factors.
 - `architecture/hull-geometry.js`: that vessel's own deck-height, keel-depth, half-breadth, and hull-section equations.
-- `generators/`: separate ship-local builders for the hull, keel, stem, deck, frames, hull and deck planking, stern, cabins, bow, rudder, helm, railings, deck equipment, anchors, sail cloth, headsails, mast structures, and standing rigging.
+- `architecture/rigging-geometry.js` (where needed): vessel-specific line/path helpers for stays, sheets, and other rigging geometry.
+- `generators/`: separate ship-local builders for the hull, keel, stem, deck, frames, hull and deck planking, stern, cabins, bow, rudder, helm, railings, deck equipment, anchors, sail cloth, headsails, mast structures, and standing rigging. Sloop V2 has a dedicated assembly stage for its hull-anchored standing and running rigging.
 - `generators/masts/<mast>-generator.js`: a dedicated entry point for every mast fitted to that vessel.
 - `generators/special/` (where needed): ship-specific additions such as a fluyt cargo deck and spritsail, schooner deckhouse, snow trysail supports, or xebec oar banks.
 
