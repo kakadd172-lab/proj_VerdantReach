@@ -3,7 +3,7 @@
 This workspace is deliberately isolated under `ForTests/`. The main game and
 its ship implementation are not changed by this refactor.
 
-All 19 vessel modules generate their geometry independently and now use
+All 17 vessel modules generate their geometry independently and now use
 component-first folders under `ships/vessels/<id>/`. Each vessel has its own
 definition, architecture blueprint, saved editor-defaults module, and separate
 ship-local component generators. No vessel passes its specification into a
@@ -40,8 +40,6 @@ ForTests/
 │       ├── caravel/
 │       ├── carrack/
 │       ├── galleon/
-│       ├── war-galleon/
-│       ├── war-galleon-2/
 │       ├── fluyt/
 │       ├── xebec/
 │       ├── junk/

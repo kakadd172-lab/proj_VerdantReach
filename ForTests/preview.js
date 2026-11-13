@@ -33,7 +33,7 @@ async function bootShipStudio(){
     if(!DESIGN_OVERRIDES||typeof DESIGN_OVERRIDES!=='object'||Array.isArray(DESIGN_OVERRIDES)){
       throw new Error('design-overrides.json must contain a JSON object (use {} for an empty workspace).');
     }
-    const shipModule=await import('./ships/index.js?v=0.8.34-war-galleon-2');
+    const shipModule=await import('./ships/index.js?v=0.8.35');
     const miscModule=await import('./ships/misc/index.js?v=0.4.1');
     const {SHIP_DESIGNS,VESSEL_IDS,VESSEL_EDITOR_DEFAULTS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
       getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
@@ -49,8 +49,8 @@ async function bootShipStudio(){
     if(SHIP_DESIGN_MODULE_VERSION!=='0.8.9')apiProblems.push('ships/index.js design API version '+String(SHIP_DESIGN_MODULE_VERSION));
     if(SHIP_STRUCTURE_MODULE_VERSION!=='0.8.9')apiProblems.push('ships/index.js structure API version '+String(SHIP_STRUCTURE_MODULE_VERSION));
     if(SHIP_MODEL_MODULE_VERSION!=='0.8.30')apiProblems.push('ships/shared/ship-editor-kit.js version '+String(SHIP_MODEL_MODULE_VERSION));
-    if(Object.keys(SHIP_DESIGNS||{}).length!==19)apiProblems.push('ship catalogue count '+Object.keys(SHIP_DESIGNS||{}).length);
-    if(Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length!==19)apiProblems.push('per-vessel editor defaults count '+Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length);
+    if(Object.keys(SHIP_DESIGNS||{}).length!==17)apiProblems.push('ship catalogue count '+Object.keys(SHIP_DESIGNS||{}).length);
+    if(Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length!==17)apiProblems.push('per-vessel editor defaults count '+Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length);
     if(typeof createMiscModel!=='function'||typeof getMiscModelDefinition!=='function'||typeof getMiscModelDefaults!=='function')apiProblems.push('ships/misc/index.js miscellaneous model API');
     if(!Array.isArray(MISC_MODEL_IDS)||MISC_MODEL_IDS.length!==8)apiProblems.push('miscellaneous model catalogue count '+(MISC_MODEL_IDS||[]).length);
     if(apiProblems.length){
@@ -1100,7 +1100,7 @@ async function restoreGeneratorDefaults(){
 function exportDesign(){
   const blob=new Blob([JSON.stringify(buildExport(),null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),link=document.createElement('a');
   link.href=url;link.download='verdant-reach-model-authoring-backup.json';link.click();URL.revokeObjectURL(url);
-  setStatus('Exported a full backup of all 19 vessels and 8 miscellaneous models, including saved defaults and current edits.');
+  setStatus('Exported a full backup of all 17 vessels and 8 miscellaneous models, including saved defaults and current edits.');
 }
 
 renderTransformInputs();

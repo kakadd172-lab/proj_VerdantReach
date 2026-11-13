@@ -1,6 +1,6 @@
 # ForTests Ships
 
-All **19 vessels** in the shipyard now use the same component-first folder architecture. Each vessel owns its geometry algorithms, component generators, mast-instance entry points, and assembly plan. The shared folder is limited to low-level editor lifecycle and definition/override support.
+All **17 vessels** in the shipyard now use the same component-first folder architecture. Each vessel owns its geometry algorithms, component generators, mast-instance entry points, and assembly plan. The shared folder is limited to low-level editor lifecycle and definition/override support.
 
 ## Vessel folders
 
@@ -16,8 +16,6 @@ Every vessel has its own folder under `vessels/`:
 - `fluyt/`
 - `frigate/`
 - `galleon/`
-- `war-galleon/`
-- `war-galleon-2/`
 - `junk/`
 - `pinnace/`
 - `schooner/`

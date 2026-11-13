@@ -10,7 +10,7 @@ const projectDir=dirname(fileURLToPath(import.meta.url));
 const viteCli=join(projectDir,'node_modules','vite','bin','vite.js');
 const outputDir=join(projectDir,'visual-audit');
 const baseUrl='http://127.0.0.1:5174/';
-const vessels=['barque','brig','brigantine','caravel','carrack','cutter','first-rate','fluyt','frigate','galleon','war-galleon','junk','pinnace','schooner','sloop','sloop-v2','snow','xebec'];
+const vessels=['barque','brig','brigantine','caravel','carrack','cutter','first-rate','fluyt','frigate','galleon','junk','pinnace','schooner','sloop','sloop-v2','snow','xebec'];
 const args=process.argv.slice(2);
 const shipFlag=args.indexOf('--ship');
 const requestedShip=shipFlag>=0?args[shipFlag+1]:null;
@@ -37,7 +37,7 @@ try{
  page.on('pageerror',e=>errors.push(e.message));
  page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});
  await page.goto(requestedShip?baseUrl+'?ship='+encodeURIComponent(requestedShip):baseUrl,{waitUntil:'domcontentloaded',timeout:30000});
- await page.waitForFunction(()=>document.querySelectorAll('#ship-select option').length>=18,{timeout:30000});
+ await page.waitForFunction(()=>document.querySelectorAll('#ship-select option').length>=17,{timeout:30000});
  const report=[];
  for(const id of selectedVessels){
   await page.locator('#ship-select').selectOption(id);
