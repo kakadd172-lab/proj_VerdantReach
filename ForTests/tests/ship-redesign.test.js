@@ -26,11 +26,11 @@ function disposeAndRelease(ship) {
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
 
-test('the editor uses 17 self-contained ForTests vessel modules', () => {
+test('the editor uses 18 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.30');
-  assert.equal(ids.length, 17);
+  assert.equal(ids.length, 18);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
   for (const id of ids) {
@@ -63,7 +63,7 @@ test('Sloop V2 follows the supplied Maid of Endor pocket-cruiser specification',
   }finally{disposeAndRelease(ship);}
 });
 
-const modularIds = new Set(["barque","brig","brigantine","caravel","carrack","sloop","sloop-v2","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
+const modularIds = new Set(["barque","brig","brigantine","caravel","carrack","war-galleon","sloop","sloop-v2","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
 
 test('each vessel owns its own geometry-generation algorithms', () => {
   const hullAlgorithms = [];
@@ -116,8 +116,8 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     hullAlgorithms.push(hull[1].trim());
     sailAlgorithms.push(sail[0].trim());
   }
-  assert.equal(new Set(hullAlgorithms).size, 17, 'All 17 ships must have different hull breadth algorithms');
-  assert.equal(new Set(sailAlgorithms).size, 17, 'All 17 ships must have their own sail surface profiles');
+  assert.equal(new Set(hullAlgorithms).size, 18, 'All 18 ships must have different hull breadth algorithms');
+  assert.equal(new Set(sailAlgorithms).size, 18, 'All 18 ships must have their own sail surface profiles');
 
   const kit = readFileSync(new URL('../ships/shared/ship-editor-kit.js', import.meta.url), 'utf8');
   for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildCanvasSail(', 'function buildRig(']) {
@@ -144,7 +144,7 @@ test('each vessel has an independent design, structure profile and generator', (
   }
 });
 
-test('all 17 independent ForTests generators build separate editable models', () => {
+test('all 18 independent ForTests generators build separate editable models', () => {
   for (const id of ids) {
     const module = getVesselModule(id);
     const ship = module.createModel();
@@ -408,7 +408,7 @@ test('all 17 independent ForTests generators build separate editable models', ()
       if (id === 'snow') {
         assert.ok(ship.userData.getPart('snow-trysail-mast-horse'), 'snow auxiliary trysail mast supports');
       }
-      if (['galleon','carrack','first-rate'].includes(id)) {
+      if (['galleon','war-galleon','carrack','first-rate'].includes(id)) {
         const sternTier = ship.userData.getPart('stern-tier-1');
         let taperedSternMeshes = 0;
         sternTier.traverse((object) => {
@@ -433,7 +433,7 @@ test('all 17 independent ForTests generators build separate editable models', ()
         assert.ok(gallerySupports >= 10, id + ' should support its stern galleries with visible corbels');
 
       }
-      if (['galleon','carrack'].includes(id)) {
+      if (['galleon','war-galleon','carrack'].includes(id)) {
         assert.ok(ship.userData.getPart(id + '-forecastle'), id + ' raised forecastle assembly');
         assert.ok(ship.userData.getPart(id + '-forecastle-deck'), id + ' raised forecastle deck');
         assert.ok(ship.userData.getPart('forecastle-side-sheathing'), id + ' forecastle side sheathing');

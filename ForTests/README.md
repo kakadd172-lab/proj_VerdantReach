@@ -3,7 +3,7 @@
 This workspace is deliberately isolated under `ForTests/`. The main game and
 its ship implementation are not changed by this refactor.
 
-All 17 vessel modules generate their geometry independently and now use
+All 18 vessel modules generate their geometry independently and now use
 component-first folders under `ships/vessels/<id>/`. Each vessel has its own
 definition, architecture blueprint, saved editor-defaults module, and separate
 ship-local component generators. No vessel passes its specification into a
@@ -40,6 +40,7 @@ ForTests/
 │       ├── caravel/
 │       ├── carrack/
 │       ├── galleon/
+│       ├── war-galleon/
 │       ├── fluyt/
 │       ├── xebec/
 │       ├── junk/
@@ -71,7 +72,7 @@ seventeen independent vessel modules and exposes the editor API.
 
 ## Editor capabilities
 
-- Preview all 17 independently generated vessel models, including Sloop V2.
+- Preview all 18 independently generated vessel models, including Sloop V2.
 - Inspect editable components, mesh counts, materials, transformed bounds,
   hull dimensions and model metadata.
 - Move, rotate and scale parts with TransformControls or numeric inputs.
