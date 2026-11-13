@@ -1,4 +1,4 @@
-import { deckY, V } from '../../architecture/hull-geometry.js';
+import { deckSurfaceY, V } from '../../architecture/hull-geometry.js';
 import { buildCanvasSail } from './sail-cloth-generator.js';
 
 export function buildHeadSails(d, ctx) {
@@ -6,7 +6,7 @@ export function buildHeadSails(d, ctx) {
   const root = part('head-sails');
   const fore = d.masts[0];
   const mastZ = fore.z * d.hullLengthUnits;
-  const baseY = deckY(d, 0.04) + 0.34;
+  const baseY = deckSurfaceY(d, 0.04) + 0.34;
   const mastTop = baseY + fore.height * (4 / 3);
   const bowZ = -d.hullLengthUnits * 0.5 - d.beamUnits * 0.88;
   const bow = V(0, baseY + d.deckHeightUnits * 0.36, bowZ);
