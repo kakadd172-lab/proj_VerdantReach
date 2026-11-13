@@ -28,18 +28,21 @@ export function buildHeadSails(d, ctx) {
     (innerTackStation - 0.5) * d.hullLengthUnits
   );
 
+  const mastLocalToShip = point => root.worldToLocal(mastPart.localToWorld(point.clone()));
+  const shipToMastLocal = point => mastPart.worldToLocal(root.localToWorld(point.clone()));
+
   const plans = [
     {
       id: 'outer-jib',
       tack: bowspritTip,
-      peak: mastPart.localToWorld(V(0, totalHeight, 0)),
+      peak: mastLocalToShip(V(0, totalHeight, 0)),
       clewStation: 0.245,
       fullness: 0.075
     },
     {
       id: 'inner-staysail',
       tack: innerTack,
-      peak: mastPart.localToWorld(V(0, totalHeight * 0.84, 0)),
+      peak: mastLocalToShip(V(0, totalHeight * 0.84, 0)),
       clewStation: 0.315,
       fullness: 0.070
     }
@@ -65,7 +68,7 @@ export function buildHeadSails(d, ctx) {
     const stay = tube(stayGroup, [plan.peak, plan.tack], 0.014,
       materials.rope, plan.id + '-forestay', 36);
     const mastLocalPoints = [plan.peak, plan.tack].map(point =>
-      mastPart.worldToLocal(point.clone()).toArray()
+      shipToMastLocal(point).toArray()
     );
     stay.userData.dynamicMastStay = {
       mastId: fore.id,
