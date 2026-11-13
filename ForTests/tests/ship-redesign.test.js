@@ -135,8 +135,8 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     hullAlgorithms.push(hull[1].trim());
     sailAlgorithms.push(sail[0].trim());
   }
-  assert.equal(new Set(hullAlgorithms).size, 18, 'All 18 ships must have different hull breadth algorithms');
-  assert.equal(new Set(sailAlgorithms).size, 18, 'All 18 ships must have their own sail surface profiles');
+  assert.equal(new Set(hullAlgorithms).size, 19, 'All 19 ships must have different hull breadth algorithms');
+  assert.equal(new Set(sailAlgorithms).size, 19, 'All 19 ships must have their own sail surface profiles');
 
   const kit = readFileSync(new URL('../ships/shared/ship-editor-kit.js', import.meta.url), 'utf8');
   for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildCanvasSail(', 'function buildRig(']) {
@@ -163,7 +163,7 @@ test('each vessel has an independent design, structure profile and generator', (
   }
 });
 
-test('all 18 independent ForTests generators build separate editable models', () => {
+test('all 19 independent ForTests generators build separate editable models', () => {
   for (const id of ids) {
     const module = getVesselModule(id);
     const ship = module.createModel();
