@@ -43,6 +43,8 @@ jobs:
         run: npm run test:sloop:wind
       - name: Run Sloop sail deployment tests
         run: npm run test:sloop:sails
+      - name: Run Sloop V2 hull, deck and rigging geometry tests
+        run: npm run test:sloop-v2
       - name: Build the standalone modular ship editor
         run: npm run build
       - name: Install Chromium for the browser smoke test

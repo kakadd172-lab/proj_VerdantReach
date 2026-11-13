@@ -55,9 +55,9 @@ export function buildStandingRigging(d,ctx,mast,mastGroup,z,baseY,totalHeight,lo
   const running=part('running-backstay-'+(side<0?'port':'starboard'),runningBackstays);
   const runningFoot=V(side*halfBreadth(d,.94)*.80,localY(.94)+.07,localZ(.94));
   const runningHead=V(side*.10,totalHeight*.985,.03);
-  markStay(tube(running,[runningHead,V(side*.16,totalHeight*.65,.08),runningFoot],
+  markStay(tube(running,[runningHead,runningFoot],
    .010,materials.rope,'running-backstay-line-'+side,36),
-   [runningHead,V(side*.16,totalHeight*.65,.08),runningFoot],.010,36);
+   [runningHead,runningFoot],.010,36);
   beam(running,V(side*halfBreadth(d,.94)*.80,localY(.94)+.02,localZ(.94)),
    V(side*halfBreadth(d,.94)*.80,localY(.94)+.13,localZ(.94)),.018,materials.brass,'running-backstay-tackle-'+side,8);
  }

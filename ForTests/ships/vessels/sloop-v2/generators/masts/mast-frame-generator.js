@@ -1,6 +1,7 @@
 import { deckY,stationZ,V } from '../../architecture/hull-geometry.js';
 import { buildStandingRigging } from '../rigging/standing-rigging-generator.js';
 import { buildCanvasSail } from '../sails/sail-cloth-generator.js';
+import { straightRiggingPath } from '../../architecture/rigging-geometry.js';
 
 function setPartPivot(THREE,group,pivot){
  const pivotGroup=new THREE.Group();
@@ -43,10 +44,10 @@ export function buildMast(d,ctx,mast){
  const running=part('running-rigging-'+mast.id,group),halyards=part('gaff-halyards-'+mast.id,running);
  const throatBlock=V(-.10,lowerHeight*.94,-.04),peakBlock=V(.10,totalHeight*.98,.04);
  const deckLocalY=deckY(d,station)-baseY+.10;
- ctx.tube(halyards,[throat,throatBlock,V(-.18,deckLocalY,.16)],.009,materials.rope,'throat-halyard',28);
- ctx.tube(halyards,[peak,peakBlock,V(.18,deckLocalY,.20)],.009,materials.rope,'peak-halyard',28);
+ straightRiggingPath(ctx,halyards,[throat,throatBlock,V(-.18,deckLocalY,.16)],.009,materials.rope,'throat-halyard',28);
+ straightRiggingPath(ctx,halyards,[peak,peakBlock,V(.18,deckLocalY,.20)],.009,materials.rope,'peak-halyard',28);
  const sheets=part('mainsheet-'+mast.id,running),aftZ=stationZ(d,.88,1)-z;
- ctx.tube(sheets,[V(.10,clew.y,clew.z),V(.08,(clew.y+deckLocalY)*.5,(clew.z+aftZ)*.5),
+ straightRiggingPath(ctx,sheets,[V(.10,clew.y,clew.z),V(.08,(clew.y+deckLocalY)*.5,(clew.z+aftZ)*.5),
   V(0,deckLocalY,aftZ)],.010,materials.rope,'gaff-mainsheet',28);
  return group;
 }

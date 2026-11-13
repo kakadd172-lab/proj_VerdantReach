@@ -57,9 +57,17 @@ export function hullSurfacePoint(d,t,side,v){
  const x=side*halfBreadth(d,s)*sectionBreadth(d,s,level);
  return V(x,y,stationZ(d,s,level));
 }
+/**
+ * Open-top section: port sheer -> keel -> starboard sheer. The former
+ * sin(angle) mapping pinched both sheer edges to the centreline, leaving
+ * the separate full-beam deck detached from the hull.
+ */
 export function hullPoint(d,t,angle){
- const s=clamp01(t),a=((Number(angle)||0)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
- const c=Math.cos(a),sn=Math.sin(a),level=(1-c)*.5;
- return V(sn*halfBreadth(d,s)*sectionBreadth(d,s,level),
+ const s=clamp01(t),raw=Number(angle)||0,fullTurn=Math.PI*2;
+ const wrapped=((raw%fullTurn)+fullTurn)%fullTurn;
+ const a=raw>0&&wrapped<1e-10?fullTurn:wrapped;
+ const level=(1+Math.cos(a))*.5,side=a<=Math.PI?-1:1;
+ const breadth=halfBreadth(d,s)*sectionBreadth(d,s,level);
+ return V(side*breadth,
   keelY(d,s)+(deckY(d,s)-keelY(d,s))*level,stationZ(d,s,level));
 }

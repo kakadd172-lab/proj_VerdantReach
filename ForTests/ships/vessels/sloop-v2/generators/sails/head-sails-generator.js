@@ -1,5 +1,6 @@
 import { deckY,halfBreadth,stationZ,V } from '../../architecture/hull-geometry.js';
 import { buildCanvasSail } from './sail-cloth-generator.js';
+import { straightRiggingPath } from '../../architecture/rigging-geometry.js';
 
 export function buildHeadSails(d,ctx){
  const {part,tube,materials}=ctx,group=part('head-sails');
@@ -34,14 +35,14 @@ export function buildHeadSails(d,ctx){
   stay.userData.rigRole=plan.id;
   const halyards=part('head-halyards-'+plan.id,group);
   const halyardX=staySide*.12;
-  tube(halyards,[V(halyardX,plan.head.y+.05,plan.head.z),V(halyardX,plan.head.y-.25,plan.head.z+.08),
+  straightRiggingPath(ctx,halyards,[V(halyardX,plan.head.y+.05,plan.head.z),V(halyardX,plan.head.y-.25,plan.head.z+.08),
    V(halyardX,deckY(d,mastStation)+.15,mastZ+.12)],.008,materials.rope,plan.id+'-halyard',30);
   const sheets=part('head-sheets-'+plan.id,group);
   const fairleadStation=plan.sheetStation;
   const fairleadZ=stationZ(d,fairleadStation,1),fairleadY=deckY(d,fairleadStation)+.10;
   for(const side of [-1,1]){
    const fairlead=V(side*halfBreadth(d,fairleadStation)*.82,fairleadY,fairleadZ);
-   const sheet=tube(sheets,[plan.clew,V(side*.04,plan.clew.y-.08,plan.clew.z+.16),fairlead],
+   const sheet=straightRiggingPath(ctx,sheets,[plan.clew,V(side*.04,plan.clew.y-.08,plan.clew.z+.16),fairlead],
     .009,materials.rope,plan.id+'-sheet-'+(side<0?'port':'starboard'),28);
    sheet.userData.sheetSide=side<0?'port':'starboard';
   }

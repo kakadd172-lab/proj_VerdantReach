@@ -2,7 +2,8 @@ import { deckY,halfBreadth,sectionBreadth,stationZ } from '../../architecture/hu
 export function buildDeck(d,ctx){
  const {THREE,part,mesh,materials}=ctx,deck=part('deck'),along=160,across=48,positions=[],indices=[];
  for(let i=0;i<=along;i++){
-  const t=i/along,half=halfBreadth(d,t)*sectionBreadth(d,t,1)*.978,z=stationZ(d,t,1);
+  // A slight overlap seats the deck over the hull sheer and hides hairline gaps.
+  const t=i/along,half=halfBreadth(d,t)*sectionBreadth(d,t,1)*1.004,z=stationZ(d,t,1);
   for(let j=0;j<=across;j++){
    const u=j/across*2-1,camber=(d.hull.deckCamber??.075)*d.beamUnits*.045*(1-u*u);
    positions.push(u*half,deckY(d,t)+camber,z);

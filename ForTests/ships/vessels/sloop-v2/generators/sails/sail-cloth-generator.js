@@ -32,7 +32,8 @@ export function buildCanvasSail(ctx,name,mastId,corners,fullness=.10,parent=ctx.
  const geometry=new THREE.BufferGeometry();
  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
  geometry.setIndex(indices);geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.computeBoundingSphere();
- const cloth=part('cloth-'+name,deployment),canvas=mesh(cloth,geometry,name.startsWith('sail-head-')?materials.sailShade:materials.sail,'sail-shaped-cloth');
+ // Keep all three sails in natural canvas; seam stitching remains subtly darker.
+ const cloth=part('cloth-'+name,deployment),canvas=mesh(cloth,geometry,materials.sail,'sail-shaped-cloth');
  canvas.userData.sailCloth={rows,columns,axis};
  const seams=part('panel-seams-'+name,deployment);
  const pointAt=(u,v)=>{

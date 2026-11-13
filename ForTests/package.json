@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
-    "test": "npm run test:core && npm run test:sloop",
+    "test": "npm run test:core && npm run test:sloop && npm run test:sloop-v2",
     "smoke": "node browser-smoke.mjs",
     "test:ships": "node --expose-gc --test --test-concurrency=1 tests/ship-redesign.test.js",
     "check:modules": "node verify-game-modules.mjs",
@@ -23,7 +23,8 @@
     "test:sloop:rigging": "node --expose-gc --test --test-concurrency=1 --test-name-pattern=\"continuous, correctly led|coordinate-frame versions\" tests/sloop-reference.test.js",
     "test:sloop:steering": "node --expose-gc --test --test-concurrency=1 --test-name-pattern=\"Rudder and helm wheel|Aft helm\" tests/sloop-reference.test.js",
     "test:sloop:wind": "node --expose-gc --test --test-concurrency=1 --test-name-pattern=\"Wind drives boom trim\" tests/sloop-reference.test.js",
-    "test:sloop:sails": "node --expose-gc --test --test-concurrency=1 --test-name-pattern=\"Sails reef and furl\" tests/sloop-reference.test.js"
+    "test:sloop:sails": "node --expose-gc --test --test-concurrency=1 --test-name-pattern=\"Sails reef and furl\" tests/sloop-reference.test.js",
+    "test:sloop-v2": "node --expose-gc --test --test-concurrency=1 tests/sloop-v2-geometry.test.js"
   },
   "dependencies": {
     "three": "0.187.0"
