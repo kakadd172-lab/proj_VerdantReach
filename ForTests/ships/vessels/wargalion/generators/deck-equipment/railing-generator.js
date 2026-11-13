@@ -1,4 +1,4 @@
-import { deckY, halfBreadth, V } from '../../architecture/hull-geometry.js';
+import { deckSurfaceY, halfBreadth, V } from '../../architecture/hull-geometry.js';
 
 export function buildRailings(d, ctx) {
   const { part, beam, tube, materials } = ctx;
@@ -8,7 +8,7 @@ export function buildRailings(d, ctx) {
     for (let i = 0; i <= 64; i++) {
       const t = 0.07 + 0.87 * i / 64;
       const x = side * halfBreadth(d, t) * 0.90;
-      const y = deckY(d, t) + 0.55;
+      const y = deckSurfaceY(d, t) + 0.55;
       const z = (t - 0.5) * d.hullLengthUnits;
       points.push(V(x, y, z));
       if (i % 3 === 0) beam(rail, V(x, y - 0.48, z), V(x, y, z),
