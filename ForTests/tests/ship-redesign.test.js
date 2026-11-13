@@ -395,6 +395,31 @@ test('all 18 independent ForTests generators build separate editable models', ()
         assert.ok(headStayNames.length >= getShipDesign(id).headsails,
           id + ' should generate an individually editable stay for every headsail');
         if (id === 'wargalion') {
+          const bowsprit = ship.userData.getPart('bowsprit');
+          assert.ok(bowsprit, 'wargalion has a dedicated editable bowsprit component');
+          assert.equal(bowsprit.parent, ship, 'wargalion bowsprit is independently registered at the vessel root');
+          const bowspritMeshes = [];
+          bowsprit.traverse(object => {
+            if (object.isMesh) bowspritMeshes.push(object);
+          });
+          assert.ok(bowspritMeshes.some(object => object.name === 'main-bowsprit'),
+            'wargalion bowsprit component contains its main spar');
+          assert.ok(bowspritMeshes.some(object => object.name === 'dolphin-striker'),
+            'wargalion bowsprit component contains its dolphin striker');
+
+          const anchors = ship.userData.getPart('anchors');
+          assert.ok(anchors, 'wargalion anchor assembly exists');
+          for (const side of ['port', 'starboard']) {
+            const chain = ship.userData.getPart('anchor-chain-' + side);
+            assert.ok(chain, 'wargalion ' + side + ' anchor chain is independently registered');
+            assert.equal(chain.parent, anchors, 'wargalion ' + side + ' chain belongs to the anchor assembly');
+            let chainMesh = null;
+            chain.traverse(object => {
+              if (object.isMesh && object.name === 'anchor-rode') chainMesh = object;
+            });
+            assert.ok(chainMesh, 'wargalion ' + side + ' anchor chain has actual editable geometry');
+          }
+
           for (let index = 1; index <= getShipDesign(id).headsails; index++) {
             const stayGroup = ship.userData.getPart('head-stays-' + index);
             assert.ok(stayGroup, 'wargalion headsail ' + index + ' has its own forestay group');
