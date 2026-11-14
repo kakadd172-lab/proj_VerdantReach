@@ -1,4 +1,4 @@
-import { deckSurfaceY, keelY, hullLongitudinalZ, V } from '../../architecture/hull-geometry.js';
+import { deckSurfaceY, keelY, halfBreadth, hullLongitudinalZ, V } from '../../architecture/hull-geometry.js';
 
 export function buildStem(d, ctx) {
   const { part, tube, materials } = ctx;
