@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { SLOOP_ROCKING_VERSION } from '../ships/vessels/sloop/animation/rocking-animation.js';
-import { deckPoint, getWargalionStationProfile, hullPoint } from '../ships/vessels/wargalion/architecture/hull-geometry.js';
+import { deckPoint, deckSurfaceY, deckY, getWargalionStationProfile, hullPoint } from '../ships/vessels/wargalion/architecture/hull-geometry.js';
 
 import {
   SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,resetShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
@@ -185,7 +185,7 @@ test('each vessel owns its own geometry-generation algorithms', () => {
         'function buildAnchors(', 'function buildCanvasSail(', 'function buildRig(',
       ]) assert.ok(facade.includes(required), id + ' must own ' + required);
     }
-    const hull = geometrySource.match(/function halfBreadth\(d,t\)\s*\{([\s\S]*?)\}/);
+    const hull = geometrySource.match(/(?:export\s+)?function\s+halfBreadth\s*\(\s*d\s*,\s*t\s*\)\s*\{([\s\S]*?)\}/);
     const sail = sailSource.match(/function buildCanvasSail\(ctx,[\s\S]*?\n\}/);
     assert.ok(hull, id + ' has a readable local hull breadth function');
     assert.ok(sail, id + ' has a readable local curved sail function');
