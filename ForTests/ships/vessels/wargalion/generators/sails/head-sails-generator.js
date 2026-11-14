@@ -1,8 +1,10 @@
-import { deckY, deckSurfaceY, halfBreadth, V } from '../../architecture/hull-geometry.js';
+import {
+  deckY, deckSurfaceY, halfBreadth, hullLongitudinalZ, V
+} from '../../architecture/hull-geometry.js';
 import { buildCanvasSail } from './sail-cloth-generator.js';
 
 export function buildHeadSails(d, ctx) {
-  const { part, beam, tube, materials, root, registry } = ctx;
+  const { part, beam, materials, root, registry, tube } = ctx;
   const assembly = part('head-sails');
   const fore = d.masts[0];
   const mastPart = registry.get('mast-' + fore.id);
@@ -11,21 +13,20 @@ export function buildHeadSails(d, ctx) {
   root.updateMatrixWorld(true);
   const totalHeight = fore.height * (4 / 3);
 
-  // The bowsprit tip uses the same endpoint as the bowsprit generator.
-  const bowspritRootY = deckY(d, 0.035) + 0.34;
+  // These endpoints exactly mirror bow-generator.js.
+  const bowspritRootY = deckSurfaceY(d, 0.035) + 0.26;
+  const bowspritBaseZ = hullLongitudinalZ(d, 0.025, 1);
   const bowspritTip = V(
     0,
-    bowspritRootY + d.deckHeightUnits * 0.44,
-    -d.hullLengthUnits * 0.5 - d.beamUnits * 0.90
+    bowspritRootY + d.deckHeightUnits * 0.37,
+    bowspritBaseZ - d.beamUnits * 0.82
   );
 
-  // A second stay is stepped lower on the foremast and terminates at a
-  // separate foredeck fitting, creating a distinct inner staysail.
   const innerTackStation = 0.155;
   const innerTack = V(
     0,
-    deckSurfaceY(d, innerTackStation) + 0.20,
-    (innerTackStation - 0.5) * d.hullLengthUnits
+    deckSurfaceY(d, innerTackStation) + 0.16,
+    hullLongitudinalZ(d, innerTackStation, 1)
   );
 
   const mastLocalToShip = point => root.worldToLocal(mastPart.localToWorld(point.clone()));
@@ -35,38 +36,32 @@ export function buildHeadSails(d, ctx) {
     {
       id: 'outer-jib',
       tack: bowspritTip,
-      peak: mastLocalToShip(V(0, totalHeight, 0)),
+      peak: mastLocalToShip(V(0, totalHeight * 0.94, 0)),
       clewStation: 0.245,
-      fullness: 0.075
+      fullness: 0.082
     },
     {
       id: 'inner-staysail',
       tack: innerTack,
-      peak: mastLocalToShip(V(0, totalHeight * 0.84, 0)),
+      peak: mastLocalToShip(V(0, totalHeight * 0.80, 0)),
       clewStation: 0.315,
-      fullness: 0.070
+      fullness: 0.078
     }
   ];
 
   for (const [index, plan] of plans.entries()) {
     const clew = V(
       0,
-      deckSurfaceY(d, plan.clewStation) + 0.20,
-      (plan.clewStation - 0.5) * d.hullLengthUnits
+      deckSurfaceY(d, plan.clewStation) + 0.16,
+      hullLongitudinalZ(d, plan.clewStation, 1)
     );
 
-    // The sail's first column is the luff: tack to peak. Its opposite edge
-    // tapers to the clew, keeping the canvas triangular but non-degenerate.
     buildCanvasSail(ctx, 'sail-head-' + (index + 1), fore.id,
       [plan.tack, plan.peak, clew, plan.tack], plan.fullness, assembly, 'x');
 
-    // Keep a named, individually editable forestay per headsail. Its first
-    // endpoint is attached to the foremast, its second endpoint is a fixed
-    // hull/bowsprit fitting. The shared mast-step lifecycle updates the
-    // masthead end in-place when the foremast leans.
     const stayGroup = part('head-stays-' + (index + 1), assembly);
-    const stay = tube(stayGroup, [plan.peak, plan.tack], 0.014,
-      materials.rope, plan.id + '-forestay', 36);
+    const stay = tube(stayGroup, [plan.peak, plan.tack], 0.012,
+      materials.rope, plan.id + '-forestay', 40);
     const mastLocalPoints = [plan.peak, plan.tack].map(point =>
       shipToMastLocal(point).toArray()
     );
@@ -78,19 +73,18 @@ export function buildHeadSails(d, ctx) {
       fixedPoint: mastLocalPoints[1],
       resolveAgainstChainplates: false,
       anchorRole: plan.id === 'outer-jib' ? 'bowsprit-tip' : 'foredeck-inner-stay',
-      radius: 0.014,
-      segments: 36,
+      radius: 0.012,
+      segments: 40,
       radialSegments: 7
     };
 
-    // Lead each clew aft and outboard to separate port/starboard fairleads.
     const fairleadStation = Math.min(plan.clewStation + 0.12, 0.46);
-    const fairleadZ = (fairleadStation - 0.5) * d.hullLengthUnits;
-    const fairleadY = deckSurfaceY(d, fairleadStation) + 0.12;
+    const fairleadZ = hullLongitudinalZ(d, fairleadStation, 1);
+    const fairleadY = deckSurfaceY(d, fairleadStation) + 0.10;
     const fairleadX = halfBreadth(d, fairleadStation) * 0.80;
     for (const side of [-1, 1]) {
       const fairlead = V(side * fairleadX, fairleadY, fairleadZ);
-      beam(assembly, clew, fairlead, 0.010, materials.rope,
+      beam(assembly, clew, fairlead, 0.009, materials.rope,
         'headsail-sheet-' + (index + 1) + '-' + side);
     }
   }

@@ -1,22 +1,24 @@
-import { deckSurfaceY, halfBreadth, V } from '../../architecture/hull-geometry.js';
+import { deckPoint, deckSurfaceY, deckY, V } from '../../architecture/hull-geometry.js';
 
 export function buildRailings(d, ctx) {
   const { part, beam, tube, materials } = ctx;
   const root = part('railings');
+  const liftAt = t => deckSurfaceY(d, t) - deckY(d, t);
+
   for (const [side, name] of [[-1, 'railings-port'], [1, 'railings-starboard']]) {
-    const rail = part(name, root), points = [];
-    for (let i = 0; i <= 64; i++) {
-      const t = 0.07 + 0.87 * i / 64;
-      if (t < 0.225) continue; // The raised forecastle has its own bulwark run.
-      const x = side * halfBreadth(d, t) * 0.90;
-      const y = deckSurfaceY(d, t) + 0.55;
-      const z = (t - 0.5) * d.hullLengthUnits;
-      points.push(V(x, y, z));
-      if (i % 3 === 0) beam(rail, V(x, y - 0.48, z), V(x, y, z),
-        0.032, materials.trim, 'bulwark-post');
+    const rail = part(name, root);
+    const points = [];
+    for (let i = 0; i <= 76; i++) {
+      const t = 0.07 + 0.87 * i / 76;
+      if (t < 0.225) continue;
+      const edge = deckPoint(d, t, side * 0.992, liftAt(t));
+      const top = V(edge.x, edge.y + 0.48, edge.z);
+      points.push(top);
+      if (i % 3 === 0) beam(rail, edge, top,
+        0.026, materials.trim, 'bulwark-post');
     }
-    tube(rail, points, 0.052, materials.trim, 'continuous-gunwale-rail', 72);
-    const lower = points.map(p => V(p.x, p.y - 0.20, p.z));
-    tube(rail, lower, 0.022, materials.trim, 'lower-rail', 72);
+    tube(rail, points, 0.043, materials.trim, 'continuous-gunwale-rail', 84);
+    const lower = points.map(p => V(p.x, p.y - 0.18, p.z));
+    tube(rail, lower, 0.019, materials.trim, 'lower-rail', 84);
   }
 }

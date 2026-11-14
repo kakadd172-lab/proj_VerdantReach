@@ -6,14 +6,15 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { SLOOP_ROCKING_VERSION } from '../ships/vessels/sloop/animation/rocking-animation.js';
-import { deckPoint, deckSurfaceY, deckY, getWargalionStationProfile, hullPoint } from '../ships/vessels/wargalion/architecture/hull-geometry.js';
+import { createPchipTable, deckPoint, deckSurfaceY, deckY, getWargalionStationProfile, hullLongitudinalZ, hullPoint, interpolatePchip, sectionBreadthRatio } from '../ships/vessels/wargalion/architecture/hull-geometry.js';
+import { WARGALION_BLUEPRINT_SOURCE, WARGALION_HULL_STATIONS, WARGALION_SECTION_PROFILE, WARGALION_STERN_STATIONS } from '../ships/vessels/wargalion/architecture/blueprint-data.js';
 
 import {
   SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,resetShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.41';
+} from '../ships/index.js?v=0.8.42';
  
 function disposeAndRelease(ship) {
   if (!ship) return;
@@ -54,10 +55,82 @@ test('every Wargalion JavaScript module passes Node syntax validation', () => {
 });
 
 
+test('Wargalion definition exposes blueprint-driven editor assemblies', () => {
+  const design = getShipDesign('wargalion');
+  const module = getVesselModule('wargalion');
+  assert.ok(Array.isArray(design.editorPartNames));
+  assert.deepEqual(design.editorPartNames, module.architecture.editorPartNames);
+  assert.ok(design.editorPartNames.includes('hull-skin-port'));
+  assert.ok(design.editorPartNames.includes('sterncastle-roof'));
+  assert.ok(design.editorPartNames.includes('beakhead'));
+  assert.equal(module.architecture.blueprintData.offsetState, 'visually-interpreted-estimates');
+  assert.equal(module.architecture.blueprintData.calibrationRequired, true);
+  assert.ok(module.architecture.componentContracts.hull.validates.includes('port-starboard symmetry'));
+  assert.ok(module.architecture.componentContracts.stern.validates.includes('roof and end-wall closure'));
+});
+
+test('Wargalion blueprint data preserves provenance and uncalibrated offset status', () => {
+  assert.equal(WARGALION_BLUEPRINT_SOURCE.vesselId, 'wargalion');
+  assert.equal(WARGALION_BLUEPRINT_SOURCE.calibration.status, 'not-calibrated');
+  assert.equal(WARGALION_BLUEPRINT_SOURCE.offsetStatus, 'visually-interpreted-estimates');
+  assert.ok(WARGALION_BLUEPRINT_SOURCE.sourceRecordUrl.includes('0PLAN1B.html'));
+  assert.equal(WARGALION_SECTION_PROFILE.interpolation, 'shape-preserving-cubic-hermite');
+  assert.equal(WARGALION_HULL_STATIONS[0].station, 0);
+  assert.equal(WARGALION_HULL_STATIONS.at(-1).station, 1);
+  assert.ok(WARGALION_HULL_STATIONS.every(station => station.sourceState === 'visual-estimate'));
+  assert.ok(WARGALION_STERN_STATIONS.every(station =>
+    Number.isFinite(station.widthRatio) && Number.isFinite(station.wallHeight)
+  ));
+  for (let i = 1; i < WARGALION_HULL_STATIONS.length; i++) {
+    assert.ok(WARGALION_HULL_STATIONS[i].station > WARGALION_HULL_STATIONS[i - 1].station,
+      'Wargalion source stations are strictly ordered');
+  }
+});
+
+test('Wargalion PCHIP fairing preserves monotone offset intervals without overshoot', () => {
+  const table = createPchipTable([0, 1, 2, 3], [0, 0.2, 0.8, 1]);
+  let previous = interpolatePchip(table, 0);
+  for (let i = 1; i <= 300; i++) {
+    const x = i / 100;
+    const value = interpolatePchip(table, x);
+    assert.ok(Number.isFinite(value), 'Wargalion fairing returns finite values');
+    assert.ok(value >= -1e-8 && value <= 1 + 1e-8, 'Wargalion fairing stays inside its offset envelope');
+    assert.ok(value + 1e-8 >= previous, 'Wargalion monotone offset interval does not reverse');
+    previous = value;
+  }
+
+  const design = getShipDesign('wargalion');
+  for (const station of [0.08, 0.25, 0.50, 0.75, 0.925]) {
+    let lowerPrevious = sectionBreadthRatio(design, station, 0);
+    for (let i = 1; i <= 67; i++) {
+      const v = WARGALION_SECTION_PROFILE.floorBand
+        + (WARGALION_SECTION_PROFILE.bilgeEnd - WARGALION_SECTION_PROFILE.floorBand) * i / 67;
+      const breadth = sectionBreadthRatio(design, station, v);
+      assert.ok(Number.isFinite(breadth) && breadth >= 0 && breadth <= 1.001,
+        'Wargalion section breadth stays inside the local half-beam envelope');
+      assert.ok(breadth + 1e-8 >= lowerPrevious,
+        'Wargalion lower section expands monotonically from floor to bilge');
+      lowerPrevious = breadth;
+    }
+    const upperStart = sectionBreadthRatio(design, station, WARGALION_SECTION_PROFILE.bilgeEnd);
+    let upperPrevious = upperStart;
+    for (let i = 1; i <= 33; i++) {
+      const v = WARGALION_SECTION_PROFILE.bilgeEnd
+        + (1 - WARGALION_SECTION_PROFILE.bilgeEnd) * i / 33;
+      const breadth = sectionBreadthRatio(design, station, v);
+      assert.ok(breadth <= upperPrevious + 1e-8,
+        'Wargalion tumblehome returns inward monotonically toward the deck edge');
+      upperPrevious = breadth;
+    }
+    assert.ok(Number.isFinite(hullLongitudinalZ(design, station, 1)),
+      'Wargalion raked station mapping stays finite');
+  }
+});
+
 test('Wargalion hull follows separate fore, master and after station profiles', () => {
   const design = getShipDesign('wargalion');
-  assert.equal(design.hullLength, 39.0, 'Wargalion length matches the San Martín reference dimension');
-  assert.equal(design.beam, 11.7, 'Wargalion beam matches the San Martín reference dimension');
+  assert.equal(design.hullLength, 39.0, 'Wargalion length matches its declared working scene scale');
+  assert.equal(design.beam, 11.7, 'Wargalion beam matches its declared working scene scale');
   const bow = getWargalionStationProfile(design, 0.08);
   const master = getWargalionStationProfile(design, 0.50);
   const stern = getWargalionStationProfile(design, 0.925);
@@ -91,7 +164,7 @@ test('Wargalion hull follows separate fore, master and after station profiles', 
       'Wargalion upper hull and stepped deck share their sheer edge at station ' + edge.station);
   }
   assert.ok(maximum.x > floor.x * 3,
-    'Wargalion circular futtock run expands clearly from the floor to maximum breadth');
+    'Wargalion fair bilge/futtock transition expands from the floor to maximum breadth');
   assert.ok(maximum.x > upper.x * 1.04,
     'Wargalion upper side returns inward through the tumblehome');
   assert.ok(Math.abs(maximum.x + port.x) < 1e-6,
@@ -259,6 +332,45 @@ test('all 18 independent ForTests generators build separate editable models', ()
           'wargalion has a complete stern transom skin');
         assert.ok(ship.userData.getPart('deck-quarter'), 'wargalion quarterdeck is independently editable');
         assert.ok(ship.userData.getPart('deck-poop'), 'wargalion poop deck is independently editable');
+
+        const design = getShipDesign('wargalion');
+        for (const partName of design.editorPartNames) {
+          assert.ok(ship.userData.partNames.includes(partName),
+            'wargalion editor catalogue exposes its additional component ' + partName);
+          assert.ok(ship.userData.getPart(partName),
+            'wargalion additional editor component is registered: ' + partName);
+        }
+        let rudderBlade = null;
+        ship.userData.getPart('rudder').traverse(object => {
+          if (object.isMesh && object.name === 'broad-rudder-blade') rudderBlade = object;
+        });
+        assert.ok(rudderBlade, 'wargalion has a shaped rudder leaf mesh');
+        rudderBlade.geometry.computeBoundingBox();
+        const rudderSize = new THREE.Vector3();
+        rudderBlade.geometry.boundingBox.getSize(rudderSize);
+        assert.ok(rudderSize.x < rudderSize.z * 0.30,
+          'wargalion rudder is a slender vertical leaf, not a broad transverse slab');
+        assert.ok(rudderSize.y > rudderSize.z * 1.4,
+          'wargalion rudder leaf has a tall, tapered proportion');
+
+        for (const partName of ['hull-skin-port', 'hull-skin-starboard', 'sterncastle-roof',
+          'stern-transom', 'beakhead', 'forecastle-bulwarks']) {
+          const part = ship.userData.getPart(partName);
+          assert.ok(part, 'wargalion exposes additional editable assembly ' + partName);
+          const meshes = [];
+          part.traverse(object => { if (object.isMesh) meshes.push(object); });
+          assert.ok(meshes.length > 0, 'wargalion editor assembly contains real geometry: ' + partName);
+          for (const object of meshes) {
+            const position = object.geometry?.attributes?.position;
+            assert.ok(position && position.count > 0, partName + ' mesh has a position attribute');
+            for (let i = 0; i < position.count; i++) {
+              assert.ok(Number.isFinite(position.getX(i))
+                && Number.isFinite(position.getY(i))
+                && Number.isFinite(position.getZ(i)),
+                partName + ' geometry has finite vertex coordinates');
+            }
+          }
+        }
       }
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
@@ -446,6 +558,19 @@ test('all 18 independent ForTests generators build separate editable models', ()
         assert.equal(deployment.parent,pivot,id+' '+sail.name+' deployment group is under its tack pivot');
         let canvas=null;cloth.traverse(object=>{if(object.isMesh&&object.name==='sail-shaped-cloth')canvas=object;});
         assert.ok(canvas?.userData.sailCloth?.rows>0&&canvas.userData.sailCloth?.columns>0,id+' '+sail.name+' wind-billow grid metadata');
+        if (id === 'wargalion') {
+          const sailIndex = canvas.geometry.index;
+          const sailPositions = canvas.geometry.attributes.position;
+          assert.ok(sailIndex && sailIndex.count >= 3, id+' '+sail.name+' has indexed cloth triangles');
+          for (let triangle = 0; triangle < sailIndex.count; triangle += 3) {
+            const a = new THREE.Vector3().fromBufferAttribute(sailPositions, sailIndex.getX(triangle));
+            const b = new THREE.Vector3().fromBufferAttribute(sailPositions, sailIndex.getX(triangle + 1));
+            const c = new THREE.Vector3().fromBufferAttribute(sailPositions, sailIndex.getX(triangle + 2));
+            const areaSquared = b.sub(a).cross(c.sub(a)).lengthSq();
+            assert.ok(areaSquared > 1e-12,
+              id+' '+sail.name+' cloth surface contains no zero-area triangles');
+          }
+        }
         const furlFrame=deployment.getObjectByName('sail-furl-frame-'+sail.name);
         assert.ok(furlFrame?.userData.sailFurlEdge,id+' '+sail.name+' furl frame follows its authored support edge');
         assert.equal(cloth.parent,furlFrame,id+' '+sail.name+' cloth remains inside its furl frame');

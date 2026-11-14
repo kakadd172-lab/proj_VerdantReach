@@ -5,24 +5,35 @@ export function buildHullPlanking(d, ctx) {
   const hull = registry.get('hull');
   if (!hull) throw new Error('Wargalion hull skin must be generated before its strakes.');
   const strakes = part('hull-strakes', hull);
-  const rows = 14;
+  const rows = 18;
 
+  // Narrow, low-contrast seams follow the faired surface parameter lines.
+  // Their radius is intentionally much smaller than the structural wales;
+  // this prevents the old bright, rope-like plank lines.
   for (const side of [-1, 1]) {
     for (let row = 0; row < rows; row++) {
-      const v = 0.16 + row * 0.053;
+      const v = 0.145 + row * 0.044;
       const line = [];
-      for (let i = 0; i <= 116; i++) {
-        const t = 0.012 + 0.976 * i / 116;
-        const p = hullPoint(d, t, v, side, 1.004);
-        p.y += 0.010;
+      for (let i = 0; i <= 144; i++) {
+        const t = 0.006 + 0.988 * i / 144;
+        const p = hullPoint(d, t, v, side, 1.001);
+        p.y += 0.0025;
         line.push(p);
       }
-      const material = row === 0 || row === rows - 1
-        ? materials.lower
-        : (row % 2 ? materials.plank : materials.hull);
-      tube(strakes, line,
-        Math.max(0.010, d.beamUnits * (row % 3 === 0 ? 0.0019 : 0.00145)),
-        material, 'longitudinal-hull-strake-' + side + '-' + row, 124);
+      tube(strakes, line, Math.max(0.0028, d.beamUnits * 0.00018),
+        materials.lower, 'hull-plank-seam-' + side + '-' + row, 152);
+    }
+
+    for (const [index, v] of [0.245, 0.575, 0.835].entries()) {
+      const wale = [];
+      for (let i = 0; i <= 144; i++) {
+        const t = 0.018 + 0.964 * i / 144;
+        const p = hullPoint(d, t, v, side, 1.004);
+        p.y += 0.006;
+        wale.push(p);
+      }
+      tube(strakes, wale, Math.max(0.012, d.beamUnits * (index === 1 ? 0.00105 : 0.00078)),
+        materials.trim, 'continuous-hull-wale-' + side + '-' + index, 152);
     }
   }
 }

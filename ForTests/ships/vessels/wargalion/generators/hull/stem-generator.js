@@ -1,23 +1,36 @@
-import { deckY, keelY, halfBreadth, V } from '../../architecture/hull-geometry.js';
+import { deckSurfaceY, keelY, hullLongitudinalZ, V } from '../../architecture/hull-geometry.js';
 
 export function buildStem(d, ctx) {
   const { part, tube, materials } = ctx;
   const group = part('stem');
-  const bow = [], stern = [];
-  for (let i = 0; i <= 24; i++) {
-    const v = i / 24;
-    const bowY = keelY(d, 0.018) + (deckY(d, 0.018) - keelY(d, 0.018)) * v;
-    const sternY = keelY(d, 0.995) + (deckY(d, 0.995) - keelY(d, 0.995)) * v;
-    bow.push(V(0, bowY + 0.04, -d.hullLengthUnits * 0.5 - 0.05 * v));
-    stern.push(V(0, sternY + 0.02, d.hullLengthUnits * 0.5 + 0.015));
+  const bow = [];
+  const stern = [];
+
+  for (let i = 0; i <= 36; i++) {
+    const v = i / 36;
+    const bowY = keelY(d, 0.012) + (deckSurfaceY(d, 0.012) - keelY(d, 0.012)) * v;
+    const sternY = keelY(d, 0.992) + (deckSurfaceY(d, 0.992) - keelY(d, 0.992)) * v;
+    bow.push(V(0, bowY + 0.025,
+      hullLongitudinalZ(d, 0.012, v)));
+    stern.push(V(0, sternY + 0.015,
+      hullLongitudinalZ(d, 0.992, v)));
   }
-  tube(group, bow, d.beamUnits * 0.025, materials.trim, 'curved-raked-stem-post', 36);
-  tube(group, stern, d.beamUnits * 0.022, materials.trim, 'sternpost', 36);
+
+  tube(group, bow, Math.max(0.11, d.beamUnits * 0.012),
+    materials.trim, 'tapered-raked-stempost', 48);
+  tube(group, stern, Math.max(0.10, d.beamUnits * 0.0105),
+    materials.trim, 'tapered-sternpost', 48);
+
   const transom = [];
-  for (let i = 0; i <= 18; i++) {
-    const u = i / 18 * 2 - 1;
-    const width = halfBreadth(d, 0.995) * 0.94;
-    transom.push(V(u * width, deckY(d, 0.995) - (i === 0 || i === 18 ? 0.08 : 0), d.hullLengthUnits * 0.495));
+  const station = 0.995;
+  const width = halfBreadth(d, station) * 0.94;
+  const z = hullLongitudinalZ(d, station, 1);
+  const y = deckSurfaceY(d, station);
+  for (let i = 0; i <= 32; i++) {
+    const u = -1 + 2 * i / 32;
+    const crown = 0.075 * (1 - u * u);
+    transom.push(V(u * width, y + crown, z));
   }
-  tube(group, transom, d.beamUnits * 0.014, materials.trim, 'curved-transom-rim', 28);
+  tube(group, transom, Math.max(0.075, d.beamUnits * 0.008),
+    materials.trim, 'crowned-transom-rim', 40);
 }

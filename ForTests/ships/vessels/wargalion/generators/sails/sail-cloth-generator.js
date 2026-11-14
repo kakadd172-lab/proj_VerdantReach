@@ -4,12 +4,15 @@ export function buildCanvasSail(ctx, name, mastId, corners, fullness = 0.09, par
   control.userData.sailControl = { mastId, clothPart: 'cloth-' + name };
   const cloth = part('cloth-' + name, control);
   const points = corners.map(point => point?.isVector3 ? point.clone() : V(...point));
+  if (points.length !== 4) throw new TypeError('A sail surface requires four boundary control corners.');
+
+  const collapsedFoot = points[0].distanceTo(points[3]) < 1e-6;
   const span = (points[0].distanceTo(points[3]) + points[1].distanceTo(points[2])) * 0.5;
   const height = (points[0].distanceTo(points[1]) + points[3].distanceTo(points[2])) * 0.5;
-  const rows = 18, columns = 24, positions = [], indices = [];
+  const rows = 20, columns = 28, positions = [], indices = [];
   const reference = Math.max(0.35, span, height * 0.52);
-  const camber = reference * THREE.MathUtils.clamp(fullness, 0.035, 0.15);
-  const chordPower = 1.22, verticalPower = 0.88, twistFactor = 0.018;
+  const camber = reference * THREE.MathUtils.clamp(fullness, 0.045, 0.145);
+  const chordPower = 1.12, verticalPower = 0.92, twistFactor = 0.022;
 
   for (let row = 0; row <= rows; row++) {
     const v = row / rows;
@@ -18,10 +21,11 @@ export function buildCanvasSail(ctx, name, mastId, corners, fullness = 0.09, par
       const lower = points[0].clone().lerp(points[3], u);
       const upper = points[1].clone().lerp(points[2], u);
       const p = lower.lerp(upper, v);
-      const chord = Math.pow(Math.max(0, Math.sin(Math.PI * u)), chordPower);
-      const vertical = Math.pow(Math.max(0, Math.sin(Math.PI * v)), verticalPower);
-      const belly = camber * chord * vertical * (1 + 0.10 * (1 - 2 * u));
-      const twist = reference * twistFactor * Math.sin(Math.PI * u) * Math.sin(Math.PI * v) * (v - 0.5);
+      const chordProfile = Math.pow(Math.max(0, Math.sin(Math.PI * u)), chordPower);
+      const spanProfile = Math.pow(Math.max(0, Math.sin(Math.PI * v)), verticalPower);
+      const belly = camber * chordProfile * spanProfile * (1 + 0.08 * (1 - 2 * u));
+      const twist = reference * twistFactor * Math.sin(Math.PI * u)
+        * Math.sin(Math.PI * v) * (v - 0.5);
       if (axis === 'x') { p.x += belly; p.z += twist; }
       else { p.z += belly; p.x += twist; }
       positions.push(p.x, p.y, p.z);
@@ -32,9 +36,17 @@ export function buildCanvasSail(ctx, name, mastId, corners, fullness = 0.09, par
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < columns; col++) {
       const a = row * stride + col;
-      indices.push(a, a + stride, a + 1, a + 1, a + stride, a + stride + 1);
+      const b = a + stride;
+      if (collapsedFoot && row === 0) {
+        // The first grid row is a single tack point on a triangular sail.
+        // Retain one non-degenerate triangle per column instead of a zero-area pair.
+        indices.push(a, b + 1, b);
+      } else {
+        indices.push(a, b, a + 1, a + 1, b, b + 1);
+      }
     }
   }
+
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setIndex(indices);
@@ -42,7 +54,12 @@ export function buildCanvasSail(ctx, name, mastId, corners, fullness = 0.09, par
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
   const canvas = mesh(cloth, geometry, materials.sail, 'sail-shaped-cloth');
-  canvas.userData.sailCloth = { rows, columns, axis };
+  canvas.userData.sailCloth = {
+    rows, columns, axis,
+    topology: collapsedFoot ? 'triangular-with-collapsed-foot' : 'quadrilateral',
+    supportEdge: 'luff',
+    fullness
+  };
 
   const seams = part('panel-seams-' + name, control);
   const pointAt = (u, v) => {
@@ -59,15 +76,16 @@ export function buildCanvasSail(ctx, name, mastId, corners, fullness = 0.09, par
       read(x0, y1).lerp(read(x1, y1), fx), fy
     );
   };
+
   for (let seam = 1; seam <= 3; seam++) {
     const line = [];
-    for (let step = 0; step <= 24; step++) line.push(pointAt(step / 24, seam / 4));
-    tube(seams, line, 0.006, materials.sailShade, 'sail-reef-seam-' + seam, 28);
+    for (let step = 0; step <= 28; step++) line.push(pointAt(step / 28, seam / 4));
+    tube(seams, line, 0.0045, materials.sailShade, 'sail-reef-seam-' + seam, 32);
   }
   for (let seam = 1; seam <= 2; seam++) {
     const line = [];
-    for (let step = 0; step <= 24; step++) line.push(pointAt(seam / 3, step / 24));
-    tube(seams, line, 0.006, materials.sailShade, 'sail-panel-seam-' + seam, 28);
+    for (let step = 0; step <= 28; step++) line.push(pointAt(seam / 3, step / 28));
+    tube(seams, line, 0.0045, materials.sailShade, 'sail-panel-seam-' + seam, 32);
   }
   return control;
 }

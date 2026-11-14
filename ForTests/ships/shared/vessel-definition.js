@@ -42,11 +42,15 @@ function prepareDesign(data,structure){
  });
  const heads=Array.from({length:Math.max(0,data.headsails??0)},(_,i)=>['sail-head-'+(i+1),'cloth-sail-head-'+(i+1)]).flat();
  const stern=Array.from({length:data.sternTiers.length},(_,i)=>'stern-tier-'+(i+1));
+ const editorParts=Array.isArray(data.editorPartNames)
+  ?data.editorPartNames.filter(name=>typeof name==='string'&&name.length>0&&!SHIP_PART_BASE_NAMES.includes(name))
+  :[];
+ const partNames=[...new Set([...SHIP_PART_BASE_NAMES,...frames,...stern,...(data.oars?['oars']:[]),...heads,...masts,...editorParts])];
  return deepFreeze({...data,structure,mastCount:data.primaryMastCount??data.masts.filter(m=>!m.auxiliary).length,
  totalMastSpars:data.masts.length,mastHeights:data.masts.map(m=>m.height),lengthBeamRatio:data.hullLength/data.beam,
  hullLengthUnits:data.hullLength*WORLD_UNITS_PER_METRE,beamUnits:data.beam*WORLD_UNITS_PER_METRE,
  draftUnits:data.draft*WORLD_UNITS_PER_METRE,deckHeightUnits:data.freeboard*WORLD_UNITS_PER_METRE,
- partNames:[...SHIP_PART_BASE_NAMES,...frames,...stern,...(data.oars?['oars']:[]),...heads,...masts],
+ partNames,
  modelScaleNote:data.modelScaleNote??'Dimensions are historical reference values where stated; rig heights and unrecorded details are reconstruction estimates.',
  hullFormNote:data.hullFormNote??'Original parametric hull loft informed by the cited vessel type; not a traced CAD or surviving lines plan.'});
 }
