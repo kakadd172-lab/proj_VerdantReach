@@ -10,7 +10,7 @@ const projectDir=dirname(fileURLToPath(import.meta.url));
 const viteCli=join(projectDir,'node_modules','vite','bin','vite.js');
 const outputDir=join(projectDir,'visual-audit');
 const baseUrl='http://127.0.0.1:5174/';
-const vessels=['barque','brig','brigantine','caravel','carrack','cutter','first-rate','fluyt','frigate','galleon','junk','pinnace','schooner','sloop','sloop-v2','snow','xebec'];
+const vessels=['barque','brig','brigantine','caravel','carrack','cutter','first-rate','fluyt','frigate','galleon','junk','pinnace','schooner','sloop','sloop-v2','snow','wargalion','xebec'];
 const args=process.argv.slice(2);
 const shipFlag=args.indexOf('--ship');
 const requestedShip=shipFlag>=0?args[shipFlag+1]:null;

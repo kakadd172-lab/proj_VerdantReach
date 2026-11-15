@@ -53,10 +53,12 @@ jobs:
         run: npm run smoke
       - name: Capture Sloop V2 side, bow, stern and top browser views
         run: npm run audit:vessel -- sloop-v2
-      - name: Upload Sloop V2 visual audit screenshots
+      - name: Capture Wargalion side, bow, stern and top browser views
+        run: npm run audit:vessel -- wargalion
+      - name: Upload Sloop V2 and Wargalion visual audit screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: sloop-v2-visual-audit
+          name: sloop-v2-and-wargalion-visual-audit
           path: ForTests/visual-audit/
           if-no-files-found: error
           retention-days: 7

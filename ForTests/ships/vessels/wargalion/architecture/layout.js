@@ -52,10 +52,21 @@ export const WARGALION_ARCHITECTURE = Object.freeze({
     'standing-rigging': { generator: './generators/rigging/standing-rigging-generator.js', mount: 'mast-to-hull-shrouds-stays-and-ladder-ratlines' }
   }),
   editorPartNames: Object.freeze([
-    'hull-skin-port', 'hull-skin-starboard',
+    'hull-skin-port', 'hull-skin-starboard', 'hull-strakes',
     'deck-forecastle', 'deck-quarter', 'deck-poop', 'deck-edge-trim',
     'stern-transom', 'sterncastle-roof',
-    'beakhead', 'forecastle-bulwarks'
+    'beakhead', 'forecastle-bulwarks', 'bowsprit-gammoning',
+    'chainplates-fore', 'chainplates-main', 'chainplates-mizzen',
+    'backstays-fore', 'backstays-main', 'backstays-mizzen',
+    'backstay-chainplates-main', 'backstay-chainplates-mizzen',
+    'mast-cap-fore', 'mast-cap-main', 'mast-cap-mizzen',
+    'mast-cross-trees-fore', 'mast-cross-trees-main', 'mast-cross-trees-mizzen',
+    'mast-topgallant-fore', 'mast-topgallant-main', 'mast-topgallant-mizzen',
+    'footropes-fore-course', 'footropes-fore-topsail', 'footropes-fore-topgallant',
+    'footropes-main-course', 'footropes-main-topsail', 'footropes-main-topgallant',
+    'yard-lifts-fore-course', 'yard-lifts-fore-topsail', 'yard-lifts-fore-topgallant',
+    'yard-lifts-main-course', 'yard-lifts-main-topsail', 'yard-lifts-main-topgallant',
+    'sheets-mizzen-lateen'
   ]),
   mastInstances: Object.freeze([
     Object.freeze({ id: 'fore', foreAftStation: -0.305, heightScale: 1, radiusScale: 1, yardScale: 1 }),

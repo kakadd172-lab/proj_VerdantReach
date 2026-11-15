@@ -14,7 +14,7 @@ import {
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.42';
+} from '../ships/index.js?v=0.8.43';
  
 function disposeAndRelease(ship) {
   if (!ship) return;
@@ -492,9 +492,9 @@ test('all 18 independent ForTests generators build separate editable models', ()
         assert.ok(roof, 'wargalion has a continuous crowned roof/deck over the aftercastle');
         let roofSurfaceCount = 0;
         roof.traverse(object => {
-          if (object.isMesh && object.name === 'continuous-sterncastle-roof-deck') roofSurfaceCount += 1;
+          if (object.isMesh && object.name.startsWith('sterncastle-tier-roof-')) roofSurfaceCount += 1;
         });
-        assert.equal(roofSurfaceCount, 1, 'wargalion aftercastle roof is one continuous lofted surface');
+        assert.equal(roofSurfaceCount, 3, 'wargalion aftercastle has three distinct roof stages that follow its stepped tiers');
         firstTier.traverse(object => {
           if (object.isMesh && (object.name === 'folded-cabin-side-rib'
             || object.name === 'folded-cabin-cross-rib')) roofFrameCount += 1;
@@ -512,6 +512,39 @@ test('all 18 independent ForTests generators build separate editable models', ()
         assert.equal(firstTier.parent, stern, 'wargalion lower aftercastle section joins the common stern assembly');
         assert.equal(secondTier.parent, stern, 'wargalion middle aftercastle section joins the common stern assembly');
         assert.equal(thirdTier.parent, stern, 'wargalion upper aftercastle section joins the common stern assembly');
+        for (const mastId of ['fore', 'main', 'mizzen']) {
+          const chainplates = ship.userData.getPart('chainplates-' + mastId);
+          assert.ok(chainplates, 'wargalion ' + mastId + ' shroud chainplates are independently editable');
+          let chainplateMeshes = 0;
+          chainplates.traverse(object => { if (object.isMesh) chainplateMeshes += 1; });
+          assert.ok(chainplateMeshes >= 6, 'wargalion ' + mastId + ' has visible individual shroud chainplates');
+          if (mastId !== 'fore') {
+            const backstayPlates = ship.userData.getPart('backstay-chainplates-' + mastId);
+            assert.ok(backstayPlates, 'wargalion ' + mastId + ' backstay plates are independently editable');
+            let backstayPlateMeshes = 0;
+            backstayPlates.traverse(object => { if (object.isMesh) backstayPlateMeshes += 1; });
+            assert.ok(backstayPlateMeshes >= 3, 'wargalion ' + mastId + ' has visible backstay anchoring');
+          }
+        }
+        const hullStrakes = ship.userData.getPart('hull-strakes');
+        assert.ok(hullStrakes, 'wargalion hull planking remains a separately editable assembly');
+        let longitudinalSeams = 0, structuralWales = 0;
+        hullStrakes.traverse(object => {
+          if (!object.isMesh) return;
+          if (object.name.startsWith('hull-plank-seam-')) longitudinalSeams += 1;
+          if (object.name.startsWith('continuous-hull-wale-')) structuralWales += 1;
+        });
+        assert.ok(longitudinalSeams >= 40, 'wargalion has longitudinal plank seams on both hull sides');
+        assert.ok(structuralWales >= 6, 'wargalion has continuous structural wales on both hull sides');
+        for (const mastId of ['fore', 'main']) {
+          const course = ship.userData.getPart('sail-' + mastId + '-course');
+          const cloth = ship.userData.getPart('cloth-sail-' + mastId + '-course');
+          assert.ok(course && cloth, 'wargalion ' + mastId + ' has an independent square course');
+          assert.ok(Math.abs(course.rotation.y) >= 0.5,
+            'wargalion ' + mastId + ' course has a readable broadside brace angle');
+          assert.ok(Math.abs(cloth.userData.sailBraceAngle) >= 0.5,
+            'wargalion ' + mastId + ' cloth retains its authored brace angle');
+        }
       } else if (id === 'sloop-v2') {
         const cabin = ship.userData.getPart('stern-tier-1');
         assert.ok(cabin, 'Maid of Endor should have its compact trunk cabin');

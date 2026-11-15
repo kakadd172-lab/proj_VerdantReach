@@ -5,8 +5,12 @@ import {
 import { WARGALION_STERN_STATIONS } from '../../architecture/blueprint-data.js';
 
 const sternAxis = WARGALION_STERN_STATIONS.map(item => item.station);
-const sternWidthTable = createPchipTable(sternAxis, WARGALION_STERN_STATIONS.map(item => item.widthRatio));
-const sternHeightTable = createPchipTable(sternAxis, WARGALION_STERN_STATIONS.map(item => item.wallHeight));
+const sternWidthTable = createPchipTable(
+  sternAxis, WARGALION_STERN_STATIONS.map(item => item.widthRatio)
+);
+const sternHeightTable = createPchipTable(
+  sternAxis, WARGALION_STERN_STATIONS.map(item => item.wallHeight)
+);
 
 function profileAt(t) {
   return {
@@ -15,32 +19,43 @@ function profileAt(t) {
   };
 }
 
-function sideHalfWidth(d, t, v = 1) {
-  const p = profileAt(t);
-  return d.beamUnits * 0.5 * p.widthRatio * (1 - 0.025 * v);
+function halfWidthAt(d, t, scale = 1) {
+  return d.beamUnits * 0.5 * profileAt(t).widthRatio * scale;
 }
 
-function sternStationGeometry(d, t, v, side) {
-  const profile = profileAt(t);
-  const baseY = deckSurfaceY(d, t);
-  const halfWidth = sideHalfWidth(d, t, v);
-  const camber = 0.025 * Math.sin(Math.PI * Math.max(0, Math.min(1, v)));
-  return V(side * halfWidth, baseY + profile.wallHeight * v + camber,
-    hullLongitudinalZ(d, t, 1));
+function tierHeightAt(t, tier) {
+  return Math.max(0.62, profileAt(t).wallHeight * tier.heightScale);
 }
 
-function makeSideWall(d, ctx, parent, side, t0, t1, name) {
+function finishGeometry(geometry) {
+  geometry.computeVertexNormals();
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+function makeSideWall(d, ctx, parent, side, tier) {
   const { THREE, mesh, materials } = ctx;
-  const along = 36;
-  const vertical = 16;
+  const along = 56;
+  const vertical = 18;
   const positions = [];
   const indices = [];
 
   for (let i = 0; i <= along; i++) {
-    const t = t0 + (t1 - t0) * i / along;
+    const t = tier.t0 + (tier.t1 - tier.t0) * i / along;
+    const wallHeight = tierHeightAt(t, tier);
+    const half = halfWidthAt(d, t, tier.widthScale);
+    const baseY = deckSurfaceY(d, t) + tier.baseOffset;
+    const z = hullLongitudinalZ(d, t, 1);
+
     for (let j = 0; j <= vertical; j++) {
-      const p = sternStationGeometry(d, t, j / vertical, side);
-      positions.push(p.x, p.y, p.z);
+      const v = j / vertical;
+      const sheer = 0.025 * Math.sin(Math.PI * v);
+      positions.push(
+        side * half,
+        baseY + wallHeight * v + sheer,
+        z
+      );
     }
   }
 
@@ -57,92 +72,31 @@ function makeSideWall(d, ctx, parent, side, t0, t1, name) {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-  geometry.computeBoundingBox();
-  geometry.computeBoundingSphere();
+  finishGeometry(geometry);
   mesh(parent, geometry, materials.hull,
-    side < 0 ? name + '-port-continuous-wall' : name + '-starboard-continuous-wall');
+    'sterncastle-tier-' + tier.id + '-continuous-wall-' + (side < 0 ? 'port' : 'starboard'));
 }
 
-function addSideWindows(d, ctx, windows, side, stations) {
-  const { box, beam, materials } = ctx;
-  for (const t of stations) {
-    const profile = profileAt(t);
-    const y = deckSurfaceY(d, t) + profile.wallHeight * 0.56;
-    const half = sideHalfWidth(d, t, 0.56);
-    const x = side * (half + 0.010);
-    const z = hullLongitudinalZ(d, t, 0.57);
-    const paneWidth = 0.38;
-    const paneHeight = Math.min(0.48, profile.wallHeight * 0.20);
-
-    const pane = box(windows, 0.035, paneHeight, paneWidth,
-      materials.glass, 'quarter-gallery-side-window');
-    pane.position.set(x, y, z);
-
-    const z0 = z - paneWidth * 0.5;
-    const z1 = z + paneWidth * 0.5;
-    const y0 = y - paneHeight * 0.5;
-    const y1 = y + paneHeight * 0.5;
-    for (const edgeZ of [z0, z1]) {
-      beam(windows, V(x, y0, edgeZ), V(x, y1, edgeZ),
-        0.016, materials.brass, 'side-window-jamb');
-    }
-    for (const edgeY of [y0, y1]) {
-      beam(windows, V(x, edgeY, z0), V(x, edgeY, z1),
-        0.016, materials.brass, 'side-window-moulding');
-    }
-  }
-}
-
-function addAftWindows(d, ctx, windows) {
-  const { box, beam, materials } = ctx;
-  const t = 0.994;
-  const profile = profileAt(t);
-  const baseY = deckSurfaceY(d, t);
-  const y = baseY + profile.wallHeight * 0.54;
-  const half = sideHalfWidth(d, t, 0.54);
-  const z = hullLongitudinalZ(d, t, 0.54) + 0.035;
-  const count = 5;
-  const paneWidth = Math.min(0.30, half * 0.22);
-  const paneHeight = Math.min(0.38, profile.wallHeight * 0.18);
-
-  for (let i = 0; i < count; i++) {
-    const x = -half * 0.74 + half * 1.48 * i / (count - 1);
-    const pane = box(windows, paneWidth, paneHeight, 0.035,
-      materials.glass, 'stern-gallery-window');
-    pane.position.set(x, y, z);
-    for (const side of [-1, 1]) {
-      beam(windows, V(x + side * paneWidth * 0.52, y - paneHeight * 0.52, z + 0.025),
-        V(x + side * paneWidth * 0.52, y + paneHeight * 0.52, z + 0.025),
-        0.016, materials.brass, 'stern-window-jamb');
-    }
-    beam(windows, V(x - paneWidth * 0.52, y + paneHeight * 0.52, z + 0.025),
-      V(x + paneWidth * 0.52, y + paneHeight * 0.52, z + 0.025),
-      0.016, materials.brass, 'stern-window-head');
-    beam(windows, V(x - paneWidth * 0.52, y - paneHeight * 0.52, z + 0.025),
-      V(x + paneWidth * 0.52, y - paneHeight * 0.52, z + 0.025),
-      0.016, materials.brass, 'stern-window-sill');
-  }
-}
-
-function makeCastleEndWall(d, ctx, parent, t, name, outwardSign) {
+function makeCastleEndWall(d, ctx, parent, t, tier, name, offsetSign) {
   const { THREE, mesh, materials } = ctx;
-  const profile = profileAt(t);
-  const across = 32, vertical = 18;
+  const across = 32;
+  const vertical = 18;
+  const half = halfWidthAt(d, t, tier.widthScale);
+  const wallHeight = tierHeightAt(t, tier);
+  const baseY = deckSurfaceY(d, t) + tier.baseOffset;
+  const z = hullLongitudinalZ(d, t, 1) + offsetSign * 0.035;
   const positions = [];
   const indices = [];
 
   for (let row = 0; row <= vertical; row++) {
     const v = row / vertical;
-    const half = sideHalfWidth(d, t, v);
-    const baseY = deckSurfaceY(d, t);
     for (let col = 0; col <= across; col++) {
       const u = -1 + 2 * col / across;
-      const crown = 0.075 * (1 - u * u);
+      const crown = 0.075 * (1 - u * u) * v;
       positions.push(
         u * half,
-        baseY + profile.wallHeight * v + crown * v,
-        hullLongitudinalZ(d, t, v) + outwardSign * 0.025
+        baseY + wallHeight * v + crown,
+        z
       );
     }
   }
@@ -152,7 +106,7 @@ function makeCastleEndWall(d, ctx, parent, t, name, outwardSign) {
     for (let col = 0; col < across; col++) {
       const a = row * stride + col;
       const b = a + stride;
-      if (outwardSign > 0) indices.push(a, a + 1, b, a + 1, b + 1, b);
+      if (offsetSign > 0) indices.push(a, a + 1, b, a + 1, b + 1, b);
       else indices.push(a, b, a + 1, a + 1, b, b + 1);
     }
   }
@@ -160,29 +114,26 @@ function makeCastleEndWall(d, ctx, parent, t, name, outwardSign) {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-  geometry.computeBoundingBox();
-  geometry.computeBoundingSphere();
+  finishGeometry(geometry);
   mesh(parent, geometry, materials.hull, name);
 }
 
-function makeCastleRoof(d, ctx, parent) {
-  const { THREE, part, mesh, materials } = ctx;
-  const roof = part('sterncastle-roof', parent);
-  const along = 56, across = 28;
+function makeTierRoof(d, ctx, roof, tier) {
+  const { THREE, mesh, materials, tube } = ctx;
+  const along = 52;
+  const across = 24;
   const positions = [];
   const indices = [];
 
   for (let i = 0; i <= along; i++) {
-    const t = 0.690 + 0.310 * i / along;
-    const profile = profileAt(t);
-    const baseY = deckSurfaceY(d, t) + profile.wallHeight;
-    const half = sideHalfWidth(d, t, 1);
+    const t = tier.t0 + (tier.t1 - tier.t0) * i / along;
+    const half = halfWidthAt(d, t, tier.widthScale);
+    const y = deckSurfaceY(d, t) + tier.baseOffset + tierHeightAt(t, tier);
     const z = hullLongitudinalZ(d, t, 1);
     for (let j = 0; j <= across; j++) {
       const u = -1 + 2 * j / across;
-      const camber = 0.055 * (1 - u * u);
-      positions.push(u * half, baseY + camber, z);
+      const camber = 0.075 * (1 - u * u);
+      positions.push(u * half, y + camber, z);
     }
   }
 
@@ -190,58 +141,124 @@ function makeCastleRoof(d, ctx, parent) {
   for (let i = 0; i < along; i++) {
     for (let j = 0; j < across; j++) {
       const a = i * stride + j;
-      indices.push(a, a + stride, a + 1, a + 1, a + stride, a + stride + 1);
+      const b = a + stride;
+      indices.push(a, b, a + 1, a + 1, b, b + 1);
     }
   }
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-  geometry.computeBoundingBox();
-  geometry.computeBoundingSphere();
-  mesh(roof, geometry, materials.deck, 'continuous-sterncastle-roof-deck');
+  finishGeometry(geometry);
+  mesh(roof, geometry, materials.deck, 'sterncastle-tier-roof-' + tier.id);
 
   for (const side of [-1, 1]) {
     const rail = [];
-    for (let i = 0; i <= 56; i++) {
-      const t = 0.690 + 0.310 * i / 56;
-      const profile = profileAt(t);
-      const half = sideHalfWidth(d, t, 1);
-      const z = hullLongitudinalZ(d, t, 1);
-      const y = deckSurfaceY(d, t) + profile.wallHeight + 0.36;
-      rail.push(V(side * half, y, z));
+    for (let i = 0; i <= 48; i++) {
+      const t = tier.t0 + (tier.t1 - tier.t0) * i / 48;
+      const half = halfWidthAt(d, t, tier.widthScale);
+      const y = deckSurfaceY(d, t) + tier.baseOffset + tierHeightAt(t, tier) + 0.31;
+      rail.push(V(side * half, y, hullLongitudinalZ(d, t, 1)));
     }
-    ctx.tube(roof, rail, 0.030, materials.trim,
-      side < 0 ? 'sterncastle-roof-rail-port' : 'sterncastle-roof-rail-starboard', 60);
+    tube(roof, rail, 0.027, materials.trim,
+      'sterncastle-tier-roof-rail-' + tier.id + '-' + side, 52);
   }
-  return roof;
 }
 
-function addQuarterGalleries(d, ctx, gallery) {
-  const { THREE, beam, tube, mesh, materials } = ctx;
+function addSideWindows(d, ctx, windows, tier) {
+  const { box, beam, materials } = ctx;
+  const stations = [0.815, 0.852, 0.889, 0.926];
+
   for (const side of [-1, 1]) {
-    const along = 44;
+    for (const [index, t] of stations.entries()) {
+      if (t < tier.t0 || t > tier.t1) continue;
+      const half = halfWidthAt(d, t, tier.widthScale);
+      const wallHeight = tierHeightAt(t, tier);
+      const baseY = deckSurfaceY(d, t) + tier.baseOffset;
+      const x = side * (half + 0.018);
+      const y = baseY + wallHeight * 0.55;
+      const z = hullLongitudinalZ(d, t, 1);
+      const paneWidth = 0.39;
+      const paneHeight = 0.34;
+
+      const pane = box(windows, 0.040, paneHeight, paneWidth,
+        materials.glass, 'quarter-gallery-side-window');
+      pane.position.set(x, y, z);
+
+      for (const edgeZ of [z - paneWidth * 0.54, z + paneWidth * 0.54]) {
+        beam(windows, V(x, y - paneHeight * 0.56, edgeZ),
+          V(x, y + paneHeight * 0.56, edgeZ),
+          0.018, materials.brass, 'quarter-gallery-window-jamb');
+      }
+      for (const edgeY of [y - paneHeight * 0.56, y + paneHeight * 0.56]) {
+        beam(windows, V(x, edgeY, z - paneWidth * 0.54),
+          V(x, edgeY, z + paneWidth * 0.54),
+          0.018, materials.brass, 'quarter-gallery-window-moulding');
+      }
+      beam(windows, V(x, y, z - paneWidth * 0.48),
+        V(x, y, z + paneWidth * 0.48),
+        0.012, materials.brass, 'quarter-gallery-window-muntin-' + index);
+    }
+  }
+}
+
+function addAftTransomWindows(d, ctx, windows, tier) {
+  const { box, beam, materials } = ctx;
+  const t = tier.t1 - 0.003;
+  const half = halfWidthAt(d, t, tier.widthScale);
+  const wallHeight = tierHeightAt(t, tier);
+  const baseY = deckSurfaceY(d, t) + tier.baseOffset;
+  const y = baseY + wallHeight * 0.55;
+  const z = hullLongitudinalZ(d, t, 1) + 0.055;
+  const paneWidth = Math.min(0.33, half * 0.23);
+  const paneHeight = 0.31;
+
+  for (let i = 0; i < 5; i++) {
+    const x = -half * 0.73 + half * 1.46 * i / 4;
+    const pane = box(windows, paneWidth, paneHeight, 0.035,
+      materials.glass, 'stern-gallery-transom-window');
+    pane.position.set(x, y, z);
+
+    for (const side of [-1, 1]) {
+      beam(windows, V(x + side * paneWidth * 0.54, y - paneHeight * 0.55, z + 0.025),
+        V(x + side * paneWidth * 0.54, y + paneHeight * 0.55, z + 0.025),
+        0.016, materials.brass, 'stern-gallery-window-jamb');
+    }
+    beam(windows, V(x - paneWidth * 0.54, y + paneHeight * 0.55, z + 0.025),
+      V(x + paneWidth * 0.54, y + paneHeight * 0.55, z + 0.025),
+      0.016, materials.brass, 'stern-gallery-window-head');
+    beam(windows, V(x - paneWidth * 0.54, y - paneHeight * 0.55, z + 0.025),
+      V(x + paneWidth * 0.54, y - paneHeight * 0.55, z + 0.025),
+      0.016, materials.brass, 'stern-gallery-window-sill');
+  }
+}
+
+function addQuarterGalleries(d, ctx, gallery, tier) {
+  const { THREE, beam, tube, mesh, materials } = ctx;
+
+  for (const side of [-1, 1]) {
+    const along = 48;
     const positions = [];
     const indices = [];
-    const inner = [];
-    const outer = [];
-    const handrail = [];
+    const outerRail = [];
+    const lowerRail = [];
 
     for (let i = 0; i <= along; i++) {
-      const t = 0.735 + 0.245 * i / along;
-      const profile = profileAt(t);
-      const baseY = deckSurfaceY(d, t) + profile.wallHeight * 0.32;
-      const z = hullLongitudinalZ(d, t, 0.32);
-      const innerX = side * sideHalfWidth(d, t, 0.32);
-      const outerX = side * (sideHalfWidth(d, t, 0.32) + 0.24);
-      inner.push(V(innerX, baseY, z));
-      outer.push(V(outerX, baseY, z));
-      handrail.push(V(outerX, baseY + 0.38, z));
+      const t = 0.775 + 0.215 * i / along;
+      const half = halfWidthAt(d, t, tier.widthScale);
+      const baseY = deckSurfaceY(d, t) + tier.baseOffset + 0.075;
+      const z = hullLongitudinalZ(d, t, 1);
+      const innerX = side * (half - 0.035);
+      const outerX = side * (half + 0.46);
       positions.push(innerX, baseY, z, outerX, baseY, z);
+      outerRail.push(V(outerX, baseY + 0.46, z));
+      lowerRail.push(V(outerX, baseY + 0.19, z));
+
       if (i % 4 === 0) {
-        beam(gallery, V(outerX, baseY, z), V(outerX, baseY + 0.38, z),
-          0.022, materials.trim, 'quarter-gallery-baluster');
+        beam(gallery, V(side * (half + 0.06), baseY - 0.45, z),
+          V(outerX, baseY, z), 0.042, materials.trim, 'gallery-cantilever-support');
+        beam(gallery, V(outerX, baseY, z), V(outerX, baseY + 0.46, z),
+          0.024, materials.trim, 'quarter-gallery-baluster');
       }
     }
 
@@ -249,15 +266,31 @@ function addQuarterGalleries(d, ctx, gallery) {
       const a = i * 2;
       indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
     }
-    const deckGeometry = new THREE.BufferGeometry();
-    deckGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    deckGeometry.setIndex(indices);
-    deckGeometry.computeVertexNormals();
-    deckGeometry.computeBoundingBox();
-    deckGeometry.computeBoundingSphere();
-    mesh(gallery, deckGeometry, materials.deck, 'quarter-gallery-walkway-surface');
-    tube(gallery, outer, 0.043, materials.trim, 'quarter-gallery-walkway-edge', 48);
-    tube(gallery, handrail, 0.038, materials.trim, 'quarter-gallery-handrail', 48);
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setIndex(indices);
+    finishGeometry(geometry);
+    mesh(gallery, geometry, materials.deck, 'quarter-gallery-walkway-surface');
+    tube(gallery, outerRail, 0.043, materials.trim, 'quarter-gallery-walkway-edge', 52);
+    tube(gallery, lowerRail, 0.021, materials.trim, 'quarter-gallery-lower-rail', 52);
+    tube(gallery, outerRail, 0.039, materials.trim, 'quarter-gallery-handrail', 52);
+  }
+}
+
+function makeStringers(d, ctx, parent, side, tier) {
+  const { tube, materials } = ctx;
+  for (const fraction of [0.14, 0.88]) {
+    const line = [];
+    for (let i = 0; i <= 44; i++) {
+      const t = tier.t0 + (tier.t1 - tier.t0) * i / 44;
+      const half = halfWidthAt(d, t, tier.widthScale);
+      const wallHeight = tierHeightAt(t, tier);
+      const y = deckSurfaceY(d, t) + tier.baseOffset + wallHeight * fraction;
+      line.push(V(side * (half + 0.012), y, hullLongitudinalZ(d, t, 1)));
+    }
+    tube(parent, line, fraction > 0.5 ? 0.031 : 0.022,
+      materials.trim, 'sterncastle-tier-' + tier.id + '-stringer-' + side + '-' + fraction, 48);
   }
 }
 
@@ -267,89 +300,77 @@ export function buildStern(d, ctx) {
   const gallery = part('stern-gallery', shell);
   const windows = part('stern-windows', shell);
   const transom = part('stern-transom', shell);
+  const roof = part('sterncastle-roof');
 
-  // Three editor components share station boundaries but form one fair
-  // aftercastle side profile: lower counter, quarter-gallery tier and poop.
-  const intervals = [
-    [0.690, 0.820],
-    [0.820, 0.910],
-    [0.910, 1.000]
+  const tiers = [
+    { id: 1, t0: 0.690, t1: 0.995, baseOffset: 0.00, heightScale: 0.74, widthScale: 1.00 },
+    { id: 2, t0: 0.790, t1: 0.995, baseOffset: 1.58, heightScale: 0.43, widthScale: 0.84 },
+    { id: 3, t0: 0.885, t1: 0.995, baseOffset: 2.55, heightScale: 0.34, widthScale: 0.67 }
   ];
 
-  intervals.forEach(([t0, t1], index) => {
-    const group = part('stern-tier-' + (index + 1), shell);
-    const mid = (t0 + t1) * 0.5;
-    const p = profileAt(mid);
+  for (const tier of tiers) {
+    const group = part('stern-tier-' + tier.id, shell);
+    const mid = (tier.t0 + tier.t1) * 0.5;
     group.userData.sternTier = {
-      t0, t1,
-      width: d.beamUnits * p.widthRatio,
-      depth: (t1 - t0) * d.hullLengthUnits,
-      height: p.wallHeight,
-      baseY: deckSurfaceY(d, mid),
-      z0: hullLongitudinalZ(d, t0, 1),
-      z1: hullLongitudinalZ(d, t1, 1),
-      roofFrames: Array.from({ length: 6 }, (_, frameIndex) => {
-        const t = t0 + (t1 - t0) * (0.10 + 0.16 * frameIndex);
-        const section = profileAt(t);
+      ...tier,
+      width: d.beamUnits * profileAt(mid).widthRatio * tier.widthScale,
+      depth: (tier.t1 - tier.t0) * d.hullLengthUnits,
+      height: tierHeightAt(mid, tier),
+      baseY: deckSurfaceY(d, mid) + tier.baseOffset,
+      z0: hullLongitudinalZ(d, tier.t0, 1),
+      z1: hullLongitudinalZ(d, tier.t1, 1),
+      roofFrames: Array.from({ length: 8 }, (_, frameIndex) => {
+        const t = tier.t0 + (tier.t1 - tier.t0) * (0.08 + 0.12 * frameIndex);
         return {
           t,
-          halfWidth: sideHalfWidth(d, t, 1),
+          halfWidth: halfWidthAt(d, t, tier.widthScale),
           baseY: deckSurfaceY(d, t),
-          wallHeight: section.wallHeight,
+          baseOffset: tier.baseOffset,
+          wallHeight: tierHeightAt(t, tier),
           z: hullLongitudinalZ(d, t, 1)
         };
       })
     };
 
     for (const side of [-1, 1]) {
-      makeSideWall(d, ctx, group, side, t0, t1, 'sterncastle-tier-' + (index + 1));
+      makeSideWall(d, ctx, group, side, tier);
+      makeStringers(d, ctx, group, side, tier);
     }
-  });
 
-  const aft = profileAt(0.999);
-  const transomLine = [];
+    const forwardName = tier.id === 1
+      ? 'sterncastle-forward-bulkhead'
+      : 'sterncastle-tier-' + tier.id + '-forward-bulkhead';
+    const aftName = tier.id === 3
+      ? 'sterncastle-after-transom-wall'
+      : 'sterncastle-tier-' + tier.id + '-aft-wall';
+    makeCastleEndWall(d, ctx, group, tier.t0, tier, forwardName, -1);
+    makeCastleEndWall(d, ctx, transom, tier.t1, tier, aftName, 1);
+    makeTierRoof(d, ctx, roof, tier);
+  }
+
+  addSideWindows(d, ctx, windows, tiers[1]);
+  addAftTransomWindows(d, ctx, windows, tiers[2]);
+  addQuarterGalleries(d, ctx, gallery, tiers[1]);
+
+  const transomCrown = [];
+  const upperTier = tiers[2];
+  const aftT = upperTier.t1 - 0.002;
+  const aftHalf = halfWidthAt(d, aftT, upperTier.widthScale);
+  const aftY = deckSurfaceY(d, aftT) + upperTier.baseOffset + tierHeightAt(aftT, upperTier);
+  const aftZ = hullLongitudinalZ(d, aftT, 1) + 0.045;
   for (let i = 0; i <= 32; i++) {
     const u = -1 + 2 * i / 32;
-    transomLine.push(V(
-      u * sideHalfWidth(d, 0.999, 1),
-      deckSurfaceY(d, 0.999) + aft.wallHeight + 0.075 * (1 - u * u),
-      hullLongitudinalZ(d, 0.999, 1) + 0.025
-    ));
+    transomCrown.push(V(u * aftHalf, aftY + 0.075 * (1 - u * u), aftZ));
   }
-  tube(transom, transomLine, 0.045, materials.trim, 'stern-transom-crown', 38);
+  tube(transom, transomCrown, 0.041, materials.trim, 'sterncastle-upper-transom-crown', 38);
 
-  makeCastleEndWall(d, ctx, transom, 0.690, 'sterncastle-forward-bulkhead', -1);
-  makeCastleEndWall(d, ctx, transom, 1.000, 'sterncastle-after-transom-wall', 1);
-  makeCastleRoof(d, ctx, shell);
-
-  addSideWindows(d, ctx, windows, -1, [0.755, 0.825, 0.895, 0.945]);
-  addSideWindows(d, ctx, windows, 1, [0.755, 0.825, 0.895, 0.945]);
-  addAftWindows(d, ctx, windows);
-  addQuarterGalleries(d, ctx, gallery);
-
-  for (const side of [-1, 1]) {
-    const upper = [];
-    const lower = [];
-    for (let i = 0; i <= 48; i++) {
-      const t = 0.705 + 0.285 * i / 48;
-      const profile = profileAt(t);
-      const x = side * (sideHalfWidth(d, t, 0.18) + 0.025);
-      const z = hullLongitudinalZ(d, t, 0.18);
-      const y = deckSurfaceY(d, t) + profile.wallHeight * 0.18;
-      lower.push(V(x, y, z));
-      upper.push(V(x, y + profile.wallHeight * 0.12, z));
-    }
-    tube(shell, lower, 0.026, materials.trim, 'sterncastle-lower-stringer', 52);
-    tube(shell, upper, 0.023, materials.trim, 'sterncastle-upper-stringer', 52);
-  }
-
-  const sill = [];
-  const sternHalf = halfBreadth(d, 0.995) * 0.94;
-  const sternY = deckSurfaceY(d, 0.995) + 0.045;
-  const sternZ = hullLongitudinalZ(d, 0.995, 1);
-  for (let i = 0; i <= 28; i++) {
-    const u = -1 + 2 * i / 28;
-    sill.push(V(u * sternHalf, sternY, sternZ));
-  }
-  tube(transom, sill, 0.040, materials.trim, 'stern-transom-moulding', 34);
+  shell.userData.aftercastleProfile = {
+    tierCount: tiers.length,
+    arrangement: 'three-stepped-aftercastle-levels-with-projecting-quarter-galleries',
+    stationSource: 'WARGALION_STERN_STATIONS'
+  };
+  roof.userData.roofStages = tiers.map(tier => ({
+    id: tier.id, t0: tier.t0, t1: tier.t1,
+    widthScale: tier.widthScale, baseOffset: tier.baseOffset
+  }));
 }

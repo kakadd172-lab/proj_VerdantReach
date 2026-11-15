@@ -69,7 +69,7 @@ export const WargalionDefinition = defineVesselSpec({
     frameCount: 44, beamStation: 0.52, forebody: 0.84, aftbody: 0.92,
     foreTip: 0.004, aftTip: 0.14, bottomFlat: 0.36, bilge: 0.26,
     flare: 0.13, tumble: 0.13, sheer: 1.15, lowerMastRatio: 0.66,
-    shroudPairs: 3, ratlines: 12, yardSpread: 1.06
+    shroudPairs: 4, ratlines: 14, yardSpread: 1.06
   }
 }, EDITOR_DEFAULTS);
 
@@ -101,10 +101,10 @@ function assembleWargalion(vessel, componentTransforms = {}, savedState = {}) {
   const design = applyMastArchitecture(vessel.design);
   const resolved = { ...vessel, design };
   const ctx = createShipContext(resolved, {
-    hull: 0x49352b, lower: 0x302a25, plank: 0x876344,
-    deck: 0xb99a6c, trim: 0x49372b, sail: 0xe4dbc7,
-    sailShade: 0xb9ad94, brass: 0xb28a4c, iron: 0x59605d,
-    glass: 0x769b9b, rope: 0x6a5540
+    hull: 0x76543a, lower: 0x403126, plank: 0x9a724b,
+    deck: 0xc2a477, trim: 0x5e432e, sail: 0xe9e0cd,
+    sailShade: 0xc8b99e, brass: 0xb58a45, iron: 0x56605d,
+    glass: 0x83aeb2, rope: 0x755a3d
   });
   const generators = {
     hull: () => buildHull(design, ctx),
