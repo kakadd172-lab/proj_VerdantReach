@@ -1,4 +1,4 @@
-import { deckSurfaceY, keelY, halfBreadth, hullLongitudinalZ, V } from '../../architecture/hull-geometry.js';
+import { deckSurfaceY, keelY, halfBreadth, sectionBreadthRatio, hullLongitudinalZ, V } from '../../architecture/hull-geometry.js';
 
 export function buildStem(d, ctx) {
   const { part, tube, materials } = ctx;
@@ -23,7 +23,7 @@ export function buildStem(d, ctx) {
 
   const transom = [];
   const station = 0.995;
-  const width = halfBreadth(d, station) * 0.94;
+  const width = halfBreadth(d, station) * sectionBreadthRatio(d, station, 1) * 0.985;
   const z = hullLongitudinalZ(d, station, 1);
   const y = deckSurfaceY(d, station);
   for (let i = 0; i <= 32; i++) {

@@ -43,8 +43,8 @@ export const WargalionDefinition = defineVesselSpec({
       { label: 'Spanish Navy Revista General de Marina — San Martín model dimensions (2007)', url: 'https://armada.defensa.gob.es/archivo/rgm/2007/200707.pdf' }
     ],
     hull: {
-      fullness: 0.86, entry: 0.52, stern: 'transom', sternWidth: 0.44,
-      tumblehome: 0.13, sheer: 0.12, bowRise: 0.34, sternRise: 0.49, bowRake: 0.012, sternRake: 0.010,
+      fullness: 0.86, entry: 0.52, stern: 'transom', sternWidth: 0.52,
+      tumblehome: 0.13, sheer: 0.12, bowRise: 0.34, sternRise: 0.49, bowRake: 0.045, sternRake: 0.038,
       keelDepth: 0.13, deckCamber: 0.075, forecastleRise: 0.55, quarterdeckRise: 0.82, poopRise: 0.38
     },
     sternwork: 'continuous-tapered-galleon-aftercastle-with-quarter-galleries',

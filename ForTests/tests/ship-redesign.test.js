@@ -134,6 +134,7 @@ test('Wargalion hull follows separate fore, master and after station profiles', 
   const bow = getWargalionStationProfile(design, 0.08);
   const master = getWargalionStationProfile(design, 0.50);
   const stern = getWargalionStationProfile(design, 0.925);
+  const transom = getWargalionStationProfile(design, 1.0);
 
   assert.ok(master.halfBreadthUnits > bow.halfBreadthUnits * 2,
     'Wargalion master station is substantially fuller than the fine bow entry');
@@ -143,6 +144,14 @@ test('Wargalion hull follows separate fore, master and after station profiles', 
     'Wargalion master frame retains a measurable flat floor');
   assert.ok(master.maxBreadthHeight > master.floorHeight,
     'Wargalion maximum breadth sits above the floor/turn-of-bilge point');
+  assert.ok(master.deckRatio <= 0.88 && master.deckRatio >= 0.84,
+    'Wargalion master section carries a pronounced, separate tumblehome');
+  assert.ok(transom.halfBreadthUnits * transom.deckRatio > master.halfBreadthUnits * master.deckRatio * 0.42,
+    'Wargalion transom remains broad instead of pinching to a point');
+  const bowRake = hullLongitudinalZ(design, 0.035, 1) - hullLongitudinalZ(design, 0.035, 0);
+  const sternRake = hullLongitudinalZ(design, 0.995, 1) - hullLongitudinalZ(design, 0.995, 0);
+  assert.ok(bowRake > 1.5, 'Wargalion stem has a visible backward rake above the keel');
+  assert.ok(sternRake > 1.4, 'Wargalion sternpost has a visible aft rake above the keel');
 
   const keelCentre = hullPoint(design, 0.50, 0, 1);
   const floor = hullPoint(design, 0.50, master.floorBand, 1);
