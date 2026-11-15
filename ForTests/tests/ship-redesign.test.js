@@ -492,7 +492,7 @@ test('all 18 independent ForTests generators build separate editable models', ()
         assert.ok(roof, 'wargalion has a continuous crowned roof/deck over the aftercastle');
         let roofSurfaceCount = 0;
         roof.traverse(object => {
-          if (object.isMesh && object.name.startsWith('sterncastle-tier-roof-')) roofSurfaceCount += 1;
+          if (object.isMesh && object.name.startsWith('sterncastle-tier-roof-deck-')) roofSurfaceCount += 1;
         });
         assert.equal(roofSurfaceCount, 3, 'wargalion aftercastle has three distinct roof stages that follow its stepped tiers');
         firstTier.traverse(object => {

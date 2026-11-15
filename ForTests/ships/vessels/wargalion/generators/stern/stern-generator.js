@@ -150,7 +150,7 @@ function makeTierRoof(d, ctx, roof, tier) {
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setIndex(indices);
   finishGeometry(geometry);
-  mesh(roof, geometry, materials.deck, 'sterncastle-tier-roof-' + tier.id);
+  mesh(roof, geometry, materials.deck, 'sterncastle-tier-roof-deck-' + tier.id);
 
   for (const side of [-1, 1]) {
     const rail = [];
@@ -161,7 +161,7 @@ function makeTierRoof(d, ctx, roof, tier) {
       rail.push(V(side * half, y, hullLongitudinalZ(d, t, 1)));
     }
     tube(roof, rail, 0.027, materials.trim,
-      'sterncastle-tier-roof-rail-' + tier.id + '-' + side, 52);
+      'sterncastle-tier-rail-' + tier.id + '-' + side, 52);
   }
 }
 
