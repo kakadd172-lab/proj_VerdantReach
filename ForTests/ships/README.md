@@ -52,3 +52,8 @@ Use the Ship Design Studio for component transforms, visibility, detachment, rud
 To change the actual geometry algorithm or add/change component geometry, edit the matching generator inside that ship's folder. Update that ship's `architecture/layout.js` when a component mount, dependency, mast station, or assembly order changes. A change in one vessel's generator should not change another vessel.
 
 The architecture makes components independently inspectable and replaceable; it does not claim the generated meshes are museum-scanned CAD models or exact surviving lines plans.
+
+
+## Wargalion V2
+
+A separate reconstruction stage lives at `vessels/wargalion-v2/`. It focuses on the shared parametric hull, decks and modular polygonal aftercastle. The original `vessels/wargalion/` implementation remains intact. See the V2 README and evidence register for provenance and uncertainty.

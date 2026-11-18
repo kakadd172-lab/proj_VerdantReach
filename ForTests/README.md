@@ -72,7 +72,7 @@ seventeen independent vessel modules and exposes the editor API.
 
 ## Editor capabilities
 
-- Preview all 18 independently generated vessel models, including Sloop V2.
+- Preview all 19 independently generated vessel models, including Sloop V2.
 - Inspect editable components, mesh counts, materials, transformed bounds,
   hull dimensions and model metadata.
 - Move, rotate and scale parts with TransformControls or numeric inputs.

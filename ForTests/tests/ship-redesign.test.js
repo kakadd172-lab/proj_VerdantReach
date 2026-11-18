@@ -30,6 +30,7 @@ function disposeAndRelease(ship) {
 
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
+const legacyIds = ids.filter(id => id !== 'wargalion-v2');
 
 function collectWargalionJavaScript(directory) {
   const files = [];
@@ -183,11 +184,11 @@ test('Wargalion hull follows separate fore, master and after station profiles', 
 });
 
 
-test('the editor uses 18 self-contained ForTests vessel modules', () => {
+test('the editor uses 19 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.30');
-  assert.equal(ids.length, 18);
+  assert.equal(ids.length, 19);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
   for (const id of ids) {
@@ -226,7 +227,7 @@ const modularIds = new Set(["barque","brig","brigantine","caravel","carrack","sl
 test('each vessel owns its own geometry-generation algorithms', () => {
   const hullAlgorithms = [];
   const sailAlgorithms = [];
-  for (const id of ids) {
+  for (const id of legacyIds) {
     const module = getVesselModule(id);
     const sourcePath = module.editorModulePath.replace(/^ForTests\//, '../');
     const facade = readFileSync(new URL(sourcePath, import.meta.url), 'utf8');
@@ -274,8 +275,8 @@ test('each vessel owns its own geometry-generation algorithms', () => {
     hullAlgorithms.push(hull[1].trim());
     sailAlgorithms.push(sail[0].trim());
   }
-  assert.equal(new Set(hullAlgorithms).size, 18, 'All 18 ships must have different hull breadth algorithms');
-  assert.equal(new Set(sailAlgorithms).size, 18, 'All 18 ships must have their own sail surface profiles');
+  assert.equal(new Set(hullAlgorithms).size, 18, 'All 18 legacy ships must have different hull breadth algorithms');
+  assert.equal(new Set(sailAlgorithms).size, 18, 'All 18 legacy ships must have their own sail surface profiles');
 
   const kit = readFileSync(new URL('../ships/shared/ship-editor-kit.js', import.meta.url), 'utf8');
   for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildCanvasSail(', 'function buildRig(']) {
@@ -292,7 +293,9 @@ test('each vessel has an independent design, structure profile and generator', (
     assert.ok(structure, id + ' structure');
     assert.equal(design.id, id);
     assert.ok(design.hullLength > 0 && design.beam > 0 && design.draft > 0, id + ' dimensions');
-    assert.ok(Array.isArray(design.masts) && design.masts.length > 0, id + ' rig');
+    assert.ok(Array.isArray(design.masts), id + ' mast definitions');
+    if (id === 'wargalion-v2') assert.equal(design.masts.length, 0, 'V2 defers rig geometry');
+    else assert.ok(design.masts.length > 0, id + ' rig');
     assert.ok(Array.isArray(design.partNames) && design.partNames.length > 10, id + ' parts');
     assert.ok(structure.frameCount >= 12, id + ' frames');
     assert.equal(module.design.id, id, id + ' module design');
@@ -302,7 +305,7 @@ test('each vessel has an independent design, structure profile and generator', (
   }
 });
 
-test('all 18 independent ForTests generators build separate editable models', () => {
+test('all 19 independent ForTests generators build separate editable models', () => {
   for (const id of ids) {
     const module = getVesselModule(id);
     const ship = module.createModel();
@@ -380,6 +383,38 @@ test('all 18 independent ForTests generators build separate editable models', ()
             }
           }
         }
+      }
+      if (id === 'wargalion-v2') {
+        const hull = ship.userData.getPart('hull');
+        assert.ok(hull, 'Wargalion V2 hull assembly');
+        for (const name of ['hull-skin-port','hull-skin-starboard']) {
+          const skin = ship.userData.getPart(name);
+          assert.ok(skin, 'Wargalion V2 has separate ' + name);
+          assert.equal(skin.parent, hull, name + ' nested in hull assembly');
+        }
+        for (const name of [
+          'keel','stem','sternpost','stern-transom','deck',
+          'main-deck','forecastle-deck','quarterdeck','aftercastle',
+          'aftercastle-tier-1','aftercastle-tier-2','aftercastle-tier-3',
+          'aftercastle-windows','quarter-gallery-port','quarter-gallery-starboard'
+        ]) assert.ok(ship.userData.getPart(name), 'Wargalion V2 registers ' + name);
+        assert.equal(ship.userData.hullStage, 'hull-and-cabins');
+        assert.equal(ship.userData.shipArchitecture.surfaceAuthority, './architecture/hull-surface.js');
+        assert.deepEqual(getShipDesign(id).masts, [], 'V2 defers masts and rigging');
+        let meshCount = 0;
+        ship.traverse(object => {
+          if (!object.isMesh) return;
+          meshCount++;
+          const pos = object.geometry?.getAttribute('position');
+          assert.ok(pos && pos.count > 0, 'V2 mesh has vertices: ' + object.name);
+          for (let i=0;i<pos.count;i++) {
+            assert.ok(Number.isFinite(pos.getX(i)),'finite x: '+object.name);
+            assert.ok(Number.isFinite(pos.getY(i)),'finite y: '+object.name);
+            assert.ok(Number.isFinite(pos.getZ(i)),'finite z: '+object.name);
+          }
+        });
+        assert.ok(meshCount >= 20, 'V2 builds genuine hull, deck and cabin mesh geometry');
+        continue;
       }
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
@@ -886,6 +921,7 @@ test('all 18 independent ForTests generators build separate editable models', ()
 
 test('all vessels expose mast-step, rudder-stock and helm-axle pivots with linked steering',()=>{
   for(const id of ids){
+    if(id==='wargalion-v2') continue;
     const design=getShipDesign(id),ship=createShipModel(id);
     try{
       for(const definition of design.masts){

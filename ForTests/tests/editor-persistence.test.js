@@ -84,3 +84,20 @@ test('save and reset persist the independent Sloop V2 defaults module',async()=>
   assert.ok((await readFile(file,'utf8')).includes('"partTransforms": {}'));
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('save and reset persist the independent Wargalion V2 module',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'verdant-wargalion-v2-'));try{
+  const h=attach(root),saved=await request(h.get('/__ship-editor/save'),'POST',{ships:{'wargalion-v2':{
+   design:{beam:12.1},
+   componentState:{transformFrameVersion:2,partTransforms:{'aftercastle-tier-2':{x:.2,y:0,z:0,rx:0,ry:0,rz:0,sx:1,sy:1,sz:1}},hiddenParts:{},unlinkedParts:[]}
+  }}});
+  assert.equal(saved.status,200);assert.equal(saved.body.saved,true);assert.equal(saved.body.vessels,1);
+  const file=join(root,'ships','vessels','wargalion-v2','editor-defaults.js');
+  const savedText=await readFile(file,'utf8');
+  assert.ok(savedText.includes('wargalion-v2'));assert.ok(savedText.includes('"beam": 12.1'));
+  assert.ok(savedText.includes('"aftercastle-tier-2"'));
+  const reset=await request(h.get('/__ship-editor/reset'),'POST',{shipId:'wargalion-v2'});
+  assert.equal(reset.status,200);assert.equal(reset.body.saved,true);
+  assert.ok((await readFile(file,'utf8')).includes('"partTransforms": {}'));
+ }finally{await rm(root,{recursive:true,force:true});}
+});

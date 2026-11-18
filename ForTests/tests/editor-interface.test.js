@@ -132,5 +132,6 @@ test('shipyard exposes a separate miscellaneous category and variant-aware model
 
 test('shipyard exposes the Maid of Endor V2 vessel entry and module version',()=>{
   assert.ok(html.includes('<option value="sloop-v2">Maid of Endor · Sloop V2</option>'));
-  assert.ok(preview.includes("./ships/index.js?v=0.8.44"));
+  assert.ok(preview.includes("./ships/index.js?v=0.8.45"));
+  assert.ok(html.includes('<option value="wargalion-v2">Wargalion V2 · hull and cabins</option>'));
 });
