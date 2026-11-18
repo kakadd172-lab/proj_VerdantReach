@@ -109,7 +109,7 @@ function sectionTablesAt(t) {
   const p = stationValues(station);
   const axis = [0, WARGALION_V2_SECTION.floorBand, WARGALION_V2_SECTION.bilgeEnd, 1];
   const tables = Object.freeze({
-    height: createPchipTable(axis, [p.floorHeight, p.floorHeight, p.maxBreadthHeight, 1]),
+    height: createPchipTable(axis, [0, p.floorHeight, p.maxBreadthHeight, 1]),
     breadth: createPchipTable(axis, [0, p.floorRatio, 1, p.deckRatio])
   });
   if (sectionTableCache.size > 700) sectionTableCache.clear();
@@ -152,7 +152,8 @@ export function hullLongitudinalZ(d, t, v = 1) {
   const sternRake = (d.hull.sternRake ?? 0.034) * d.hullLengthUnits
     * smoothstep(0.82, 1, station);
   return (station - 0.5) * d.hullLengthUnits
-    + (bowRake + sternRake) * heightFraction;
+    - bowRake * heightFraction
+    + sternRake * heightFraction;
 }
 
 /** Authoritative point evaluator for the single port/starboard hull surface. */

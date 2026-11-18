@@ -1,5 +1,6 @@
 import { hullPoint } from '../../architecture/hull-surface.js';
 import { WARGALION_V2_HULL_STATIONS } from '../../architecture/blueprint-data.js';
+import { buildHullWales } from './hull-wales-generator.js';
 
 function makeSideSkin(d, ctx, parent, side) {
   const { THREE, mesh, materials } = ctx;
@@ -47,6 +48,7 @@ export function buildHull(d, ctx) {
   const starboard = ctx.part('hull-skin-starboard', hull);
   makeSideSkin(d, ctx, port, -1);
   makeSideSkin(d, ctx, starboard, 1);
+  buildHullWales(d, ctx, hull);
   hull.userData.surfaceAuthority = 'architecture/hull-surface.js';
   hull.userData.linesPlanFamilies = ['stations', 'waterlines', 'buttocks'];
   hull.userData.offsetState = 'reconstruction-estimates-not-calibrated';

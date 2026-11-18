@@ -61,19 +61,19 @@ export const WARGALION_V2_SOURCE = Object.freeze({
  * tumblehome at deck edge.
  */
 export const WARGALION_V2_HULL_STATIONS = Object.freeze([
-  Object.freeze({ station: 0.000, halfBreadth: 0.012, floorRatio: 0.035, floorHeight: 0.085, maxBreadthHeight: 0.735, deckRatio: 0.72, keelDepthRatio: 0.42, sheerRiseRatio: 0.31, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.035, halfBreadth: 0.165, floorRatio: 0.070, floorHeight: 0.060, maxBreadthHeight: 0.690, deckRatio: 0.78, keelDepthRatio: 0.49, sheerRiseRatio: 0.27, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.080, halfBreadth: 0.365, floorRatio: 0.115, floorHeight: 0.040, maxBreadthHeight: 0.650, deckRatio: 0.82, keelDepthRatio: 0.58, sheerRiseRatio: 0.20, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.150, halfBreadth: 0.585, floorRatio: 0.160, floorHeight: 0.020, maxBreadthHeight: 0.625, deckRatio: 0.85, keelDepthRatio: 0.65, sheerRiseRatio: 0.12, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.245, halfBreadth: 0.785, floorRatio: 0.190, floorHeight: 0.006, maxBreadthHeight: 0.600, deckRatio: 0.875, keelDepthRatio: 0.69, sheerRiseRatio: 0.06, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.360, halfBreadth: 0.930, floorRatio: 0.210, floorHeight: 0.000, maxBreadthHeight: 0.585, deckRatio: 0.88, keelDepthRatio: 0.71, sheerRiseRatio: 0.02, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.000, halfBreadth: 0.012, floorRatio: 0.035, floorHeight: 0.085, maxBreadthHeight: 0.735, deckRatio: 0.72, keelDepthRatio: 0.42, sheerRiseRatio: 0.44, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.035, halfBreadth: 0.165, floorRatio: 0.070, floorHeight: 0.060, maxBreadthHeight: 0.690, deckRatio: 0.78, keelDepthRatio: 0.49, sheerRiseRatio: 0.38, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.080, halfBreadth: 0.365, floorRatio: 0.115, floorHeight: 0.040, maxBreadthHeight: 0.650, deckRatio: 0.82, keelDepthRatio: 0.58, sheerRiseRatio: 0.30, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.150, halfBreadth: 0.585, floorRatio: 0.160, floorHeight: 0.020, maxBreadthHeight: 0.625, deckRatio: 0.85, keelDepthRatio: 0.65, sheerRiseRatio: 0.19, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.245, halfBreadth: 0.785, floorRatio: 0.190, floorHeight: 0.006, maxBreadthHeight: 0.600, deckRatio: 0.875, keelDepthRatio: 0.69, sheerRiseRatio: 0.08, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.360, halfBreadth: 0.930, floorRatio: 0.210, floorHeight: 0.000, maxBreadthHeight: 0.585, deckRatio: 0.88, keelDepthRatio: 0.71, sheerRiseRatio: 0.025, sourceState: 'visual-estimate' }),
   Object.freeze({ station: 0.500, halfBreadth: 1.000, floorRatio: 0.220, floorHeight: 0.000, maxBreadthHeight: 0.575, deckRatio: 0.875, keelDepthRatio: 0.72, sheerRiseRatio: 0.00, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.640, halfBreadth: 0.990, floorRatio: 0.215, floorHeight: 0.000, maxBreadthHeight: 0.585, deckRatio: 0.875, keelDepthRatio: 0.70, sheerRiseRatio: 0.02, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.755, halfBreadth: 0.920, floorRatio: 0.190, floorHeight: 0.006, maxBreadthHeight: 0.610, deckRatio: 0.86, keelDepthRatio: 0.66, sheerRiseRatio: 0.06, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.855, halfBreadth: 0.820, floorRatio: 0.160, floorHeight: 0.025, maxBreadthHeight: 0.645, deckRatio: 0.84, keelDepthRatio: 0.60, sheerRiseRatio: 0.12, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.925, halfBreadth: 0.700, floorRatio: 0.130, floorHeight: 0.050, maxBreadthHeight: 0.690, deckRatio: 0.82, keelDepthRatio: 0.50, sheerRiseRatio: 0.20, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.975, halfBreadth: 0.600, floorRatio: 0.110, floorHeight: 0.080, maxBreadthHeight: 0.735, deckRatio: 0.80, keelDepthRatio: 0.42, sheerRiseRatio: 0.27, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 1.000, halfBreadth: 0.520, floorRatio: 0.090, floorHeight: 0.100, maxBreadthHeight: 0.765, deckRatio: 0.78, keelDepthRatio: 0.38, sheerRiseRatio: 0.31, sourceState: 'visual-estimate' })
+  Object.freeze({ station: 0.640, halfBreadth: 0.990, floorRatio: 0.215, floorHeight: 0.000, maxBreadthHeight: 0.585, deckRatio: 0.875, keelDepthRatio: 0.70, sheerRiseRatio: 0.025, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.755, halfBreadth: 0.920, floorRatio: 0.190, floorHeight: 0.006, maxBreadthHeight: 0.610, deckRatio: 0.86, keelDepthRatio: 0.66, sheerRiseRatio: 0.08, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.855, halfBreadth: 0.800, floorRatio: 0.160, floorHeight: 0.025, maxBreadthHeight: 0.645, deckRatio: 0.84, keelDepthRatio: 0.60, sheerRiseRatio: 0.19, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.925, halfBreadth: 0.670, floorRatio: 0.130, floorHeight: 0.050, maxBreadthHeight: 0.690, deckRatio: 0.82, keelDepthRatio: 0.50, sheerRiseRatio: 0.30, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.975, halfBreadth: 0.530, floorRatio: 0.110, floorHeight: 0.080, maxBreadthHeight: 0.735, deckRatio: 0.80, keelDepthRatio: 0.42, sheerRiseRatio: 0.38, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 1.000, halfBreadth: 0.440, floorRatio: 0.090, floorHeight: 0.100, maxBreadthHeight: 0.765, deckRatio: 0.78, keelDepthRatio: 0.38, sheerRiseRatio: 0.44, sourceState: 'visual-estimate' })
 ]);
 
 export const WARGALION_V2_SECTION = Object.freeze({
@@ -90,7 +90,7 @@ export const WARGALION_V2_DECKS = Object.freeze({
 });
 
 export const WARGALION_V2_CASTLE_TIERS = Object.freeze([
-  Object.freeze({ id: 1, t0: 0.695, t1: 0.980, widthScale: 0.78, baseOffset: 0.00, wallHeight: 1.55, roofRise: 0.32 }),
-  Object.freeze({ id: 2, t0: 0.805, t1: 0.980, widthScale: 0.65, baseOffset: 1.87, wallHeight: 1.40, roofRise: 0.28 }),
-  Object.freeze({ id: 3, t0: 0.895, t1: 0.980, widthScale: 0.50, baseOffset: 3.55, wallHeight: 1.25, roofRise: 0.25 })
+  Object.freeze({ id: 1, t0: 0.680, t1: 0.975, widthScale: 0.84, baseOffset: 0.00, wallHeight: 1.52, roofRise: 0.075, roofStyle: 'deck', topInset: 0.105, endCrown: 0.10, galleryDepth: 0.82, sideCamber: 0.075 }),
+  Object.freeze({ id: 2, t0: 0.785, t1: 0.962, widthScale: 0.72, baseOffset: 1.60, wallHeight: 1.34, roofRise: 0.065, roofStyle: 'deck', topInset: 0.13, endCrown: 0.08, galleryDepth: 0.63, sideCamber: 0.06 }),
+  Object.freeze({ id: 3, t0: 0.875, t1: 0.945, widthScale: 0.58, baseOffset: 3.01, wallHeight: 1.12, roofRise: 0.24, roofStyle: 'cap', topInset: 0.16, endCrown: 0.06, galleryDepth: 0.44, sideCamber: 0.045 })
 ]);

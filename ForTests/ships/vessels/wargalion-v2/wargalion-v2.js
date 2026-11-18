@@ -10,6 +10,7 @@ import { buildSternpost } from './generators/hull/sternpost-generator.js';
 import { buildTransom } from './generators/hull/transom-generator.js';
 import { buildDeck } from './generators/decks/deck-generator.js';
 import { buildAftercastle } from './generators/cabins/aftercastle-generator.js';
+import { buildForecastleBulwark } from './generators/cabins/forecastle-bulwark-generator.js';
 
 /**
  * Hull-and-cabin stage only. Mast and rigging geometry are intentionally not
@@ -30,7 +31,7 @@ export const WargalionV2Definition = Object.freeze({
     draft: 5.2,
     freeboard: 3.8,
     rig: 'Deferred — hull and cabin geometry stage only; no mast or rigging meshes yet.',
-    hullProfile: 'Single authoritative PCHIP-faired surface with a broad flat floor, rounded turn of bilge, upper tumblehome, raked stem and broad transom.',
+    hullProfile: 'PCHIP-faired hull with connected keel, stronger sheer, forward-raked stem, tapered afterbody and rounded tumblehome sections.',
     hullFormNote: 'The station ordinates are explicit reconstruction estimates, not digitized archival offsets. Stations, waterlines and buttocks are derived from one shared parametric hull surface.',
     modelScaleNote: '39.0 × 11.7 m is the working scale reported in the 2007 Revista General de Marina account. A secondary account gives 35.3 × 10.5 m; neither report supplies a calibrated offset table for this model.',
     reference: 'San Martín / São Martinho is the historical reference, but Wargalion V2 is a reconstruction study rather than a claim to reproduce a verified original shipyard plan.',
@@ -42,7 +43,7 @@ export const WargalionV2Definition = Object.freeze({
       forecastleRise: 0.52,
       quarterdeckRise: 0.72
     },
-    sternwork: 'three independently modelled stepped cabin tiers with polygonal gabled roofs',
+    sternwork: 'three narrowing aftcastle levels with framed timber walls, stepped decks and projecting stern galleries',
     sternTiers: [],
     masts: [],
     headsails: 0,
@@ -79,6 +80,7 @@ function assembleWargalionV2(transforms = {}, savedState = {}) {
     sternpost: () => buildSternpost(vessel.design, ctx),
     transom: () => buildTransom(vessel.design, ctx),
     deck: () => buildDeck(vessel.design, ctx),
+    'forecastle-bulwark': () => buildForecastleBulwark(vessel.design, ctx),
     aftercastle: () => buildAftercastle(vessel.design, ctx)
   };
 

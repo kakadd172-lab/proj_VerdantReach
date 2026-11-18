@@ -7,7 +7,7 @@
  */
 export const WARGALION_V2_ARCHITECTURE = Object.freeze({
   id: 'wargalion-v2',
-  schemaVersion: 1,
+  schemaVersion: 2,
   coordinateSystem: Object.freeze({
     forward: '-z', aft: '+z', port: '-x', starboard: '+x',
     up: '+y', origin: 'keel-midships',
@@ -29,14 +29,16 @@ export const WARGALION_V2_ARCHITECTURE = Object.freeze({
     offsetState: 'reconstruction-estimates-not-calibrated',
     fairing: 'bivariate shape-preserving cubic Hermite interpolation'
   }),
-  assemblyOrder: Object.freeze(['hull', 'keel', 'stem', 'sternpost', 'transom', 'deck', 'aftercastle']),
+  assemblyOrder: Object.freeze(['hull', 'keel', 'stem', 'sternpost', 'transom', 'deck', 'forecastle-bulwark', 'aftercastle']),
   components: Object.freeze({
-    hull: Object.freeze({ generator: './generators/hull/hull-generator.js', source: 'single shared hull surface' }),
+    hull: Object.freeze({ generator: './generators/hull/hull-generator.js', source: 'shared hull surface, two separate skins and wale bands' }),
+    hullWales: Object.freeze({ generator: './generators/hull/hull-wales-generator.js', source: 'three continuous timber bands per side sampled from shared hull surface' }),
     keel: Object.freeze({ generator: './generators/hull/keel-generator.js', source: 'keel centreline sampled from hull surface' }),
     stem: Object.freeze({ generator: './generators/hull/stem-generator.js', source: 'forward centreline sampled from hull surface' }),
     sternpost: Object.freeze({ generator: './generators/hull/sternpost-generator.js', source: 'aft centreline sampled from hull surface' }),
     transom: Object.freeze({ generator: './generators/hull/transom-generator.js', source: 'aft station surface sampled from the same hull evaluator' }),
     deck: Object.freeze({ generator: './generators/decks/deck-generator.js', source: 'main sheer plus separately raised deck platforms' }),
+    forecastleBulwark: Object.freeze({ generator: './generators/cabins/forecastle-bulwark-generator.js', source: 'separate side bulwarks framing the raised foredeck' }),
     aftercastle: Object.freeze({ generator: './generators/cabins/aftercastle-generator.js', source: 'assembly-only coordinator for dedicated cabin component generators' }),
     aftercastleSideWalls: Object.freeze({ generator: './generators/cabins/aftercastle-side-walls-generator.js', source: 'tier-specific side wall meshes' }),
     aftercastleEndWalls: Object.freeze({ generator: './generators/cabins/aftercastle-end-walls-generator.js', source: 'tier-specific fore and aft wall meshes' }),
@@ -55,9 +57,9 @@ export const WARGALION_V2_ARCHITECTURE = Object.freeze({
   }),
   mastInstances: Object.freeze([]),
   editorPartNames: Object.freeze([
-    'hull-skin-port', 'hull-skin-starboard',
+    'hull-skin-port', 'hull-skin-starboard', 'hull-wales',
     'keel', 'stem', 'sternpost', 'stern-transom',
-    'main-deck', 'forecastle-deck', 'quarterdeck',
+    'main-deck', 'forecastle-deck', 'quarterdeck', 'forecastle-bulwark', 'forecastle-bulwark-port', 'forecastle-bulwark-starboard',
     'aftercastle', 'aftercastle-tier-1', 'aftercastle-tier-2', 'aftercastle-tier-3',
     'aftercastle-side-port-tier-1', 'aftercastle-side-starboard-tier-1',
     'aftercastle-side-port-tier-2', 'aftercastle-side-starboard-tier-2',

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createShipModel, disposeShipModel, getShipDesign } from '../ships/index.js';
 import { WARGALION_V2_SOURCE, WARGALION_V2_HULL_STATIONS, WARGALION_V2_SECTION } from '../ships/vessels/wargalion-v2/architecture/blueprint-data.js';
 import {
-  halfBreadth, sectionBreadthRatio, hullPoint, sampleStationCurve,
+  halfBreadth, sectionBreadthRatio, hullPoint, keelY, sampleStationCurve,
   sampleWaterlineCurve, sampleButtockCurve
 } from '../ships/vessels/wargalion-v2/architecture/hull-surface.js';
 
@@ -14,6 +14,15 @@ test('Wargalion V2 preserves conflicting dimension and offset evidence',()=>{
   assert.equal(WARGALION_V2_SOURCE.alternativePublishedDimensions.beam,10.5);
   assert.equal(WARGALION_V2_SOURCE.offsetsStatus,'reconstruction-estimates-not-calibrated');
   assert.ok(WARGALION_V2_HULL_STATIONS.every(x=>x.sourceState==='visual-estimate'));
+});
+
+test('Wargalion V2 hull shell meets the keel datum and bow/stern sheer rake outward',()=>{
+  const d=getShipDesign('wargalion-v2');
+  for(const t of [.08,.25,.5,.75,.92]) {
+    assert.ok(Math.abs(hullPoint(d,t,0,1).y-keelY(d,t))<1e-8,'lower hull meets keel datum');
+  }
+  assert.ok(hullPoint(d,.015,1,1).z<hullPoint(d,.015,0,1).z,'bow upper stem rakes forward');
+  assert.ok(hullPoint(d,.985,1,1).z>hullPoint(d,.985,0,1).z,'stern upper counter rakes aft');
 });
 
 test('Wargalion V2 PCHIP hull breadth remains monotone fore and aft',()=>{
@@ -78,8 +87,8 @@ test('Wargalion V2 creates independently editable hull, deck and cabin assemblie
   const ship=createShipModel('wargalion-v2');
   try{
     for(const name of [
-      'hull','hull-skin-port','hull-skin-starboard','keel','stem','sternpost','stern-transom',
-      'deck','main-deck','forecastle-deck','quarterdeck','aftercastle',
+      'hull','hull-skin-port','hull-skin-starboard','hull-wales','keel','stem','sternpost','stern-transom',
+      'deck','main-deck','forecastle-deck','quarterdeck','forecastle-bulwark','forecastle-bulwark-port','forecastle-bulwark-starboard','aftercastle',
       'aftercastle-tier-1','aftercastle-tier-2','aftercastle-tier-3',
       'aftercastle-windows','quarter-gallery-port','quarter-gallery-starboard'
     ])assert.ok(ship.userData.getPart(name),'missing V2 assembly '+name);
