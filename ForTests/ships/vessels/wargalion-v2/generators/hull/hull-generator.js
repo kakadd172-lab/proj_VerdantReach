@@ -1,7 +1,5 @@
-import {
-  hullPoint,
-  WARGALION_V2_HULL_STATIONS
-} from '../../architecture/hull-surface.js';
+import { hullPoint } from '../../architecture/hull-surface.js';
+import { WARGALION_V2_HULL_STATIONS } from '../../architecture/blueprint-data.js';
 
 function makeSideSkin(d, ctx, parent, side) {
   const { THREE, mesh, materials } = ctx;
