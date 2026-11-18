@@ -42,7 +42,8 @@ export const WARGALION_V2_ARCHITECTURE = Object.freeze({
     aftercastle: Object.freeze({ generator: './generators/cabins/aftercastle-generator.js', source: 'assembly-only coordinator for dedicated cabin component generators' }),
     aftercastleSideWalls: Object.freeze({ generator: './generators/cabins/aftercastle-side-walls-generator.js', source: 'tier-specific side wall meshes' }),
     aftercastleEndWalls: Object.freeze({ generator: './generators/cabins/aftercastle-end-walls-generator.js', source: 'tier-specific fore and aft wall meshes' }),
-    aftercastleRoofs: Object.freeze({ generator: './generators/cabins/aftercastle-roof-generator.js', source: 'independent polygonal gabled roof surfaces' }),
+    aftercastleRoofs: Object.freeze({ generator: './generators/cabins/aftercastle-roof-generator.js', source: 'separate upper deck levels and pitched roof cap on the top cabin' }),
+    sternGalleries: Object.freeze({ generator: './generators/cabins/stern-gallery-generator.js', source: 'three projecting aft gallery decks with balustrades and support brackets' }),
     aftercastleWindows: Object.freeze({ generator: './generators/cabins/aftercastle-windows-generator.js', source: 'independent glazed window and frame geometry' }),
     quarterGalleries: Object.freeze({ generator: './generators/cabins/quarter-gallery-generator.js', source: 'port and starboard gallery deck and rail geometry' })
   }),
@@ -68,6 +69,7 @@ export const WARGALION_V2_ARCHITECTURE = Object.freeze({
     'aftercastle-front-wall-tier-2', 'aftercastle-aft-wall-tier-2',
     'aftercastle-front-wall-tier-3', 'aftercastle-aft-wall-tier-3',
     'aftercastle-roof-tier-1', 'aftercastle-roof-tier-2', 'aftercastle-roof-tier-3',
-    'aftercastle-windows', 'quarter-gallery-port', 'quarter-gallery-starboard'
+    'aftercastle-windows', 'quarter-gallery-port', 'quarter-gallery-starboard',
+    'stern-gallery-tier-1', 'stern-gallery-tier-2', 'stern-gallery-tier-3'
   ])
 });

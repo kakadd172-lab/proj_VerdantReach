@@ -90,7 +90,8 @@ test('Wargalion V2 creates independently editable hull, deck and cabin assemblie
       'hull','hull-skin-port','hull-skin-starboard','hull-wales','keel','stem','sternpost','stern-transom',
       'deck','main-deck','forecastle-deck','quarterdeck','forecastle-bulwark','forecastle-bulwark-port','forecastle-bulwark-starboard','aftercastle',
       'aftercastle-tier-1','aftercastle-tier-2','aftercastle-tier-3',
-      'aftercastle-windows','quarter-gallery-port','quarter-gallery-starboard'
+      'aftercastle-windows','quarter-gallery-port','quarter-gallery-starboard',
+      'stern-gallery-tier-1','stern-gallery-tier-2','stern-gallery-tier-3'
     ])assert.ok(ship.userData.getPart(name),'missing V2 assembly '+name);
     assert.equal(ship.userData.getPart('hull-skin-port').parent,ship.userData.getPart('hull'));
     assert.equal(ship.userData.getPart('hull-skin-starboard').parent,ship.userData.getPart('hull'));

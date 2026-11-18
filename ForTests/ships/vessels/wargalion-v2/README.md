@@ -1,28 +1,26 @@
-# Wargalion V2 — hull and cabin stage
+# Wargalion V2 — hull and castle refinement
 
-Wargalion V2 is a clean, parallel reconstruction folder. The existing
-`wargalion/` implementation is intentionally preserved.
+Wargalion V2 is a parallel reconstruction. The existing Wargalion V1 folder is preserved.
 
-## Current scope
+## Current stage
 
-- One shared, shape-preserving parametric hull surface.
-- Derived station, waterline and buttock curves from that exact same surface.
-- Separate editable hull skins, keel, stem, sternpost/transom and deck assemblies.
-- Separate aftcastle tiers, side walls, end walls, gabled roofs, windows and quarter galleries.
-- No masts, sails, standing rigging, running rigging, rudder, guns or decorative deck fittings in this stage.
-
-## Coordinate system
-
-X is athwartships (port negative, starboard positive), Y is vertical, and Z is longitudinal (bow negative, stern positive). The origin is the keel at midships. Dimensions are specified in metres and converted to editor world units by the shared vessel definition helper.
+- Shared PCHIP hull surface; the lower shell now meets the keel datum.
+- Stronger sheer and separate forward and aft rake, with a tapered run toward the stern.
+- Independently editable port/starboard hull skins and longitudinal wale bands.
+- Raised forecastle platform with separate low timber bulwarks.
+- Three narrowing aftercastle levels, with inward-tapered timber side walls, separate vertical framing, string courses, side and aft-facing windows, deck-like upper surfaces, and projecting stern galleries.
+- No masts, sails, standing rigging, running rigging, rudder, or deck armament at this stage.
 
 ## Geometry authority
 
-`architecture/hull-surface.js` owns the hull equations. Every hull mesh and every cabin station reads from it. Do not add a second smoothing implementation to a component generator. If the design changes, alter the source station data or the authoritative surface function, then rerun the geometry tests.
+`architecture/hull-surface.js` is the sole hull-form authority. Hull skins, wale bands, stem, keel, decks and cabin station geometry must sample this evaluator rather than invent separate hull curves.
 
-The surface uses Fritsch-Carlson/PCHIP cubic Hermite interpolation. It is shape-preserving and C1-continuous at interpolation knots; it is not a measured CAD surface and should not be described as curvature-continuous or archival. Inspect the resulting side, plan and body views visually as well as running numerical checks.
+The surface uses shape-preserving PCHIP cubic Hermite interpolation. It is C1-continuous at the interpolation knots; it is not a measured CAD surface or an archival offsets table.
 
-## Historical uncertainty
+## Research and uncertainty
 
-The 39.0 × 11.7 m working scale follows the 2007 Spanish naval-periodical account. A secondary publication reports 35.3 × 10.5 m and a different construction date. Keep this discrepancy in the evidence register; do not silently combine the values or claim the working station offsets are measured.
+The Shipmodell San Martín 1580 reproduced sheet provides a named-ship comparison with side, stern/bow and section views. Pinterest galleon plan images were also checked for comparative side profiles, deck outlines and frame sections. These general Pinterest examples are not claimed to depict San Martín and are not used as measured offsets.
 
-The three-dimensional shape is a plausible reconstruction study guided by the reproduced San Martín plan and general Iberian/Portuguese shipbuilding research. It is not a verified replica. Rig plan and more detailed construction decisions remain deferred.
+The Spanish naval-periodical account reports approximately 39 × 11.7 m for the modelled San Martín, while another secondary source gives different figures. The working dimensions and all station offsets remain explicitly provisional until a traceable, calibrated plan is available.
+
+The revised aftercastle is a visual reconstruction hypothesis, not a verified copy of a single ship's architectural plan. Inspect side, bow, stern and top camera views before treating the proportions as accepted.
