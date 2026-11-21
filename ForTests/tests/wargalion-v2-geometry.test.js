@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { Box3 } from 'three';
 import { createShipModel, disposeShipModel, getShipDesign } from '../ships/index.js';
 import { WARGALION_V2_SOURCE, WARGALION_V2_HULL_STATIONS, WARGALION_V2_SECTION } from '../ships/vessels/wargalion-v2/architecture/blueprint-data.js';
 import {
@@ -113,8 +114,8 @@ test('Wargalion V2 creates independently editable hull, deck and cabin assemblie
     const tierOneRoof=ship.userData.getPart('aftercastle-roof-tier-1');
     const tierOnePortWall=ship.userData.getPart('aftercastle-side-port-tier-1');
     assert.ok(tierOneRoof&&tierOnePortWall,'castle deck and wall assemblies exist');
-    const roofBounds=new (await import('three')).Box3().setFromObject(tierOneRoof);
-    const wallBounds=new (await import('three')).Box3().setFromObject(tierOnePortWall);
+    const roofBounds=new Box3().setFromObject(tierOneRoof);
+    const wallBounds=new Box3().setFromObject(tierOnePortWall);
     assert.ok(Math.abs(Math.abs(roofBounds.min.x)-Math.abs(wallBounds.min.x))<0.8,
       'castle deck edge remains close to the matching port side wall');
     assert.equal(ship.userData.hullStage,'hull-and-cabins');
