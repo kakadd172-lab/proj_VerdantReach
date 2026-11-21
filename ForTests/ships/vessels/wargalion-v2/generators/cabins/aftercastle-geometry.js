@@ -42,6 +42,6 @@ export function aftercastleWallZ(d, t, tier, wallFraction = 0) {
 export function aftercastleTransomZ(d, tier, u, wallFraction = 0) {
   const v = clamp01(wallFraction);
   const across = clamp01((u + 1) * 0.5) * 2 - 1;
-  return aftercastleWallZ(d, tier, tier.t1, v)
+  return aftercastleWallZ(d, tier.t1, tier, v)
     + (tier.transomProjection ?? 0) * (1 - across * across) * (0.85 + 0.15 * v);
 }
