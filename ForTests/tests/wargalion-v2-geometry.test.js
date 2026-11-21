@@ -10,8 +10,10 @@ import {
 test('Wargalion V2 preserves conflicting dimension and offset evidence',()=>{
   assert.equal(WARGALION_V2_SOURCE.primaryWorkingDimensions.length,39);
   assert.equal(WARGALION_V2_SOURCE.primaryWorkingDimensions.beam,11.7);
-  assert.equal(WARGALION_V2_SOURCE.alternativePublishedDimensions.length,35.3);
-  assert.equal(WARGALION_V2_SOURCE.alternativePublishedDimensions.beam,10.5);
+  assert.equal(WARGALION_V2_SOURCE.alternativePublishedDimensions.length,35.24);
+  assert.equal(WARGALION_V2_SOURCE.alternativePublishedDimensions.beam,10.51);
+  assert.equal(WARGALION_V2_SOURCE.alternativePublishedDimensions.mouldedDepth,5.60);
+  assert.equal(WARGALION_V2_SOURCE.derivedWorkingMouldedDepth.metres,6.20);
   assert.equal(WARGALION_V2_SOURCE.offsetsStatus,'reconstruction-estimates-not-calibrated');
   assert.ok(WARGALION_V2_HULL_STATIONS.every(x=>x.sourceState==='visual-estimate'));
 });
@@ -23,6 +25,19 @@ test('Wargalion V2 hull shell meets the keel datum and bow/stern sheer rake outw
   }
   assert.ok(hullPoint(d,.015,1,1).z<hullPoint(d,.015,0,1).z,'bow upper stem rakes forward');
   assert.ok(hullPoint(d,.985,1,1).z>hullPoint(d,.985,0,1).z,'stern upper counter rakes aft');
+});
+
+test('Wargalion V2 moulded depth and widest section follow the scaled San Martín proportions',()=>{
+  const d=getShipDesign('wargalion-v2');
+  const midshipDepth=d.deckHeightUnits+d.draftUnits*0.72;
+  assert.ok(Math.abs(midshipDepth-6.20*(4/3))<1e-6,
+    'keel-to-main-deck depth equals the proportionally scaled 6.20 m estimate');
+  const waterlineFraction=(d.draftUnits*0.72)/midshipDepth;
+  const midship=WARGALION_V2_HULL_STATIONS.find(station=>station.station===0.5);
+  assert.ok(Math.abs(midship.maxBreadthHeight-waterlineFraction)<0.002,
+    'midship maximum breadth occurs at the waterline');
+  assert.ok(midship.deckRatio<0.86,
+    'upper sides draw inward from the waterline towards the bulwarks');
 });
 
 test('Wargalion V2 PCHIP hull breadth remains monotone fore and aft',()=>{
