@@ -14,7 +14,7 @@ export function buildBeakhead(d, ctx) {
   const deckPort = deckPoint(d, attachT, -1, 'forecastle');
   const deckStarboard = deckPoint(d, attachT, 1, 'forecastle');
   const baseHalf = Math.min(Math.abs(deckPort.x), Math.abs(deckStarboard.x)) * 0.66;
-  const extension = d.hullLengthUnits * 0.038;
+  const extension = d.hullLengthUnits * 0.075;
   const tipZ = hullLongitudinalZ(d, attachT, 1) - extension;
 
   for (let row = 0; row <= along; row++) {
