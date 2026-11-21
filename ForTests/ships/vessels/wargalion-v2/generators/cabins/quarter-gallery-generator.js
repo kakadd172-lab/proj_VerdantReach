@@ -1,4 +1,4 @@
-import { V } from '../../architecture/hull-surface.js';
+import { deckLevelY, V } from '../../architecture/hull-surface.js';
 import { aftercastleHalfWidth, aftercastleWallZ } from './aftercastle-geometry.js';
 
 export function buildQuarterGallery(d, ctx, parent, side, tier) {
@@ -8,7 +8,7 @@ export function buildQuarterGallery(d, ctx, parent, side, tier) {
     const t = 0.805 + 0.165 * i / along;
     const half = aftercastleHalfWidth(d, t, tier, 0);
     const z = aftercastleWallZ(d, t, tier, 0);
-    const y = d.deckHeightUnits + tier.baseOffset + 0.10;
+    const y = deckLevelY(d, t, 'quarterdeck') + tier.baseOffset + 0.10;
     positions.push(side * half, y, z, side * (half + 0.34), y, z);
     outerRail.push(V(side * (half + 0.34), y + 0.42, z));
     if (i % 4 === 0) {
