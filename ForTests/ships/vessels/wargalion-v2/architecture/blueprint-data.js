@@ -2,9 +2,9 @@
  * Wargalion V2 — provenance-labelled reconstruction inputs.
  *
  * These are working geometry offsets, not an archival offsets table. The
- * published San Martín reproductions disagree on principal dimensions and
- * do not provide a calibrated digital lines plan. Keep that uncertainty
- * visible until a traceable plan can be measured.
+ * reproduced San Martín plan is used as a visual control for the hull sheer,
+ * rising keel, tumblehome and tiered stern works; no pixel-to-metre calibration
+ * has been claimed. Keep that uncertainty visible until the sheet is traced.
  */
 export const WARGALION_V2_SOURCE = Object.freeze({
   schemaVersion: 1,
@@ -47,13 +47,13 @@ export const WARGALION_V2_SOURCE = Object.freeze({
       title: 'González-Aller Hierro — Resumen del historial de los navíos portugueses que participaron en la jornada de Inglaterra de 1588, Revista de Historia Naval Supplement 16 (2012)',
       url: 'https://armada.defensa.gob.es/archivo/mardigitalrevistas/rhn/2012/201216.pdf',
       sourceType: 'official-naval-historical-publication',
-      note: 'Cites estimated San Martín dimensions from Augusto Salgado and Casado Soto; Casado Soto values are 35.24 × 10.51 × 5.60 m. The source explicitly presents these as estimates, not an original lines plan.'
+      note: 'Cites estimated San Martín dimensions from Augusto Salgado and Casado Soto; Casado Soto values are 35.24 × 10.51 × 5.60 m. The source presents these as estimates, not an original lines plan.'
     }),
     Object.freeze({
       title: 'Shipmodell — Galleon San Martín 1580 reproduced plan set',
       url: 'https://www.shipmodell.com/index_files/0PLAN1B.html',
       sourceType: 'secondary-plan-reproduction',
-      note: 'Useful profile and section reference; its web reproduction has not been calibrated into offsets.'
+      note: 'Side elevation, end views and sections are used for visual comparison; the reproduction has not been calibrated into offsets.'
     }),
     Object.freeze({
       title: 'Filipe Castro — Rising and Narrowing: 16th-Century Geometric Algorithms used to Design the Bottom of Ships in Portugal (2007)',
@@ -72,44 +72,43 @@ export const WARGALION_V2_SOURCE = Object.freeze({
 
 /**
  * Normalized station positions: 0 = forward stem, 0.5 = master frame,
- * 1 = aft transom. All ordinates are dimensionless estimates.
+ * 1 = aft transom. All ordinates are dimensionless reconstruction estimates.
  *
- * halfBreadth is relative to maximum half-beam. floorRatio is the flat-floor
- * half-breadth fraction. floorHeight and maxBreadthHeight are measured from
- * the local keel-to-deck section height. deckRatio describes the upper
- * tumblehome at deck edge.
+ * The new side-profile pass increases the rising keel and sheer at both ends,
+ * while drawing the upper hull inward. The central body remains full and
+ * rounded rather than being pinched into a modern narrow yacht section.
  */
 export const WARGALION_V2_HULL_STATIONS = Object.freeze([
-  Object.freeze({ station: 0.000, halfBreadth: 0.012, floorRatio: 0.035, floorHeight: 0.085, maxBreadthHeight: 0.307, deckRatio: 0.58, keelDepthRatio: 0.42, sheerRiseRatio: 0.44, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.035, halfBreadth: 0.165, floorRatio: 0.070, floorHeight: 0.060, maxBreadthHeight: 0.350, deckRatio: 0.64, keelDepthRatio: 0.49, sheerRiseRatio: 0.38, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.080, halfBreadth: 0.365, floorRatio: 0.115, floorHeight: 0.040, maxBreadthHeight: 0.404, deckRatio: 0.70, keelDepthRatio: 0.58, sheerRiseRatio: 0.30, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.150, halfBreadth: 0.585, floorRatio: 0.160, floorHeight: 0.020, maxBreadthHeight: 0.454, deckRatio: 0.76, keelDepthRatio: 0.65, sheerRiseRatio: 0.19, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.245, halfBreadth: 0.785, floorRatio: 0.190, floorHeight: 0.006, maxBreadthHeight: 0.493, deckRatio: 0.80, keelDepthRatio: 0.69, sheerRiseRatio: 0.08, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.360, halfBreadth: 0.930, floorRatio: 0.210, floorHeight: 0.000, maxBreadthHeight: 0.513, deckRatio: 0.83, keelDepthRatio: 0.71, sheerRiseRatio: 0.025, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.500, halfBreadth: 1.000, floorRatio: 0.220, floorHeight: 0.000, maxBreadthHeight: 0.523, deckRatio: 0.84, keelDepthRatio: 0.72, sheerRiseRatio: 0.00, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.640, halfBreadth: 0.990, floorRatio: 0.215, floorHeight: 0.000, maxBreadthHeight: 0.509, deckRatio: 0.83, keelDepthRatio: 0.70, sheerRiseRatio: 0.025, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.755, halfBreadth: 0.920, floorRatio: 0.190, floorHeight: 0.006, maxBreadthHeight: 0.482, deckRatio: 0.81, keelDepthRatio: 0.66, sheerRiseRatio: 0.08, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.855, halfBreadth: 0.800, floorRatio: 0.160, floorHeight: 0.025, maxBreadthHeight: 0.434, deckRatio: 0.78, keelDepthRatio: 0.60, sheerRiseRatio: 0.19, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.925, halfBreadth: 0.670, floorRatio: 0.130, floorHeight: 0.050, maxBreadthHeight: 0.369, deckRatio: 0.73, keelDepthRatio: 0.50, sheerRiseRatio: 0.30, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 0.975, halfBreadth: 0.530, floorRatio: 0.110, floorHeight: 0.080, maxBreadthHeight: 0.316, deckRatio: 0.68, keelDepthRatio: 0.42, sheerRiseRatio: 0.38, sourceState: 'visual-estimate' }),
-  Object.freeze({ station: 1.000, halfBreadth: 0.520, floorRatio: 0.090, floorHeight: 0.100, maxBreadthHeight: 0.286, deckRatio: 0.64, keelDepthRatio: 0.38, sheerRiseRatio: 0.44, sourceState: 'visual-estimate' })
+  Object.freeze({ station: 0.000, halfBreadth: 0.012, floorRatio: 0.035, floorHeight: 0.085, maxBreadthHeight: 0.307, deckRatio: 0.52, keelDepthRatio: 0.26, sheerRiseRatio: 0.68, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.035, halfBreadth: 0.165, floorRatio: 0.070, floorHeight: 0.060, maxBreadthHeight: 0.350, deckRatio: 0.60, keelDepthRatio: 0.29, sheerRiseRatio: 0.60, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.080, halfBreadth: 0.365, floorRatio: 0.115, floorHeight: 0.040, maxBreadthHeight: 0.404, deckRatio: 0.66, keelDepthRatio: 0.36, sheerRiseRatio: 0.47, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.150, halfBreadth: 0.585, floorRatio: 0.160, floorHeight: 0.020, maxBreadthHeight: 0.454, deckRatio: 0.71, keelDepthRatio: 0.47, sheerRiseRatio: 0.31, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.245, halfBreadth: 0.785, floorRatio: 0.190, floorHeight: 0.006, maxBreadthHeight: 0.493, deckRatio: 0.75, keelDepthRatio: 0.60, sheerRiseRatio: 0.13, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.360, halfBreadth: 0.930, floorRatio: 0.210, floorHeight: 0.000, maxBreadthHeight: 0.513, deckRatio: 0.77, keelDepthRatio: 0.68, sheerRiseRatio: 0.04, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.500, halfBreadth: 1.000, floorRatio: 0.220, floorHeight: 0.000, maxBreadthHeight: 0.523, deckRatio: 0.79, keelDepthRatio: 0.72, sheerRiseRatio: 0.00, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.640, halfBreadth: 0.990, floorRatio: 0.215, floorHeight: 0.000, maxBreadthHeight: 0.509, deckRatio: 0.79, keelDepthRatio: 0.70, sheerRiseRatio: 0.03, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.755, halfBreadth: 0.920, floorRatio: 0.190, floorHeight: 0.006, maxBreadthHeight: 0.482, deckRatio: 0.77, keelDepthRatio: 0.65, sheerRiseRatio: 0.10, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.855, halfBreadth: 0.800, floorRatio: 0.160, floorHeight: 0.025, maxBreadthHeight: 0.434, deckRatio: 0.72, keelDepthRatio: 0.56, sheerRiseRatio: 0.24, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.925, halfBreadth: 0.670, floorRatio: 0.130, floorHeight: 0.050, maxBreadthHeight: 0.369, deckRatio: 0.66, keelDepthRatio: 0.43, sheerRiseRatio: 0.42, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 0.975, halfBreadth: 0.530, floorRatio: 0.110, floorHeight: 0.080, maxBreadthHeight: 0.316, deckRatio: 0.60, keelDepthRatio: 0.32, sheerRiseRatio: 0.57, sourceState: 'visual-estimate' }),
+  Object.freeze({ station: 1.000, halfBreadth: 0.520, floorRatio: 0.090, floorHeight: 0.100, maxBreadthHeight: 0.286, deckRatio: 0.56, keelDepthRatio: 0.28, sheerRiseRatio: 0.65, sourceState: 'visual-estimate' })
 ]);
 
 export const WARGALION_V2_SECTION = Object.freeze({
   floorBand: 0.16,
   bilgeEnd: 0.68,
   interpolation: 'shape-preserving-cubic-hermite',
-  description: 'A broad flat floor rises through a rounded turn of bilge to maximum breadth, then returns inward through the upper tumblehome.'
+  description: 'A broad, low floor rises through a rounded turn of bilge to maximum breadth, then returns inward through pronounced upper tumblehome.'
 });
 
 export const WARGALION_V2_DECKS = Object.freeze({
   camberRatio: 0.065,
-  forecastle: Object.freeze({ rise: 0.52, start: 0.035, riseStart: 0.085, fallStart: 0.205, end: 0.275, widthScale: 0.84 }),
-  quarterdeck: Object.freeze({ rise: 0.72, start: 0.675, riseStart: 0.735, fallStart: 0.985, end: 1.0, widthScale: 0.86 })
+  forecastle: Object.freeze({ rise: 1.02, start: 0.025, riseStart: 0.085, fallStart: 0.235, end: 0.320, widthScale: 0.82 }),
+  quarterdeck: Object.freeze({ rise: 1.12, start: 0.650, riseStart: 0.735, fallStart: 0.985, end: 1.000, widthScale: 0.82 })
 });
 
 export const WARGALION_V2_CASTLE_TIERS = Object.freeze([
-  Object.freeze({ id: 1, t0: 0.680, t1: 0.975, widthScale: 0.84, baseOffset: 0.00, wallHeight: 1.52, roofRise: 0.075, roofStyle: 'deck', topInset: 0.105, endCrown: 0.10, galleryDepth: 0.82, sideCamber: 0.075 }),
-  Object.freeze({ id: 2, t0: 0.785, t1: 0.962, widthScale: 0.72, baseOffset: 1.60, wallHeight: 1.34, roofRise: 0.065, roofStyle: 'deck', topInset: 0.13, endCrown: 0.08, galleryDepth: 0.63, sideCamber: 0.06 }),
-  Object.freeze({ id: 3, t0: 0.875, t1: 0.945, widthScale: 0.58, baseOffset: 3.01, wallHeight: 1.12, roofRise: 0.24, roofStyle: 'cap', topInset: 0.16, endCrown: 0.06, galleryDepth: 0.44, sideCamber: 0.045 })
+  Object.freeze({ id: 1, t0: 0.665, t1: 0.975, widthScale: 0.78, baseOffset: 0.00, wallHeight: 1.55, roofRise: 0.090, roofStyle: 'deck', topInset: 0.085, endCrown: 0.14, galleryDepth: 0.88, sideCamber: 0.090, longitudinalInset: 0.24 }),
+  Object.freeze({ id: 2, t0: 0.775, t1: 0.962, widthScale: 0.66, baseOffset: 1.64, wallHeight: 1.38, roofRise: 0.075, roofStyle: 'deck', topInset: 0.100, endCrown: 0.12, galleryDepth: 0.66, sideCamber: 0.075, longitudinalInset: 0.18 }),
+  Object.freeze({ id: 3, t0: 0.855, t1: 0.945, widthScale: 0.54, baseOffset: 3.10, wallHeight: 1.16, roofRise: 0.205, roofStyle: 'cap', topInset: 0.120, endCrown: 0.10, galleryDepth: 0.48, sideCamber: 0.060, longitudinalInset: 0.12 })
 ]);

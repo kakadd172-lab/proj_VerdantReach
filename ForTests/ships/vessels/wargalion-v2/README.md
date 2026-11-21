@@ -1,28 +1,35 @@
-# Wargalion V2 — proportion correction
+# Wargalion V2 — silhouette and structure refinement
 
 Wargalion V2 is a parallel reconstruction. The existing Wargalion V1 folder is preserved.
 
-## Proportion basis
+## Reference basis
 
-The working length and beam (39.0 × 11.7 m) follow the model report in the Spanish Navy's *Revista General de Marina* (July 2007). The Spanish Navy's *Revista de Historia Naval* (Supplement 16, 2012) records two estimated dimension sets for the San Martín; the Casado Soto estimate is 35.24 m length, 10.51 m beam and 5.60 m moulded depth. Scaling that depth by the ratio 39.0 / 35.24 produces a 6.20 m working moulded depth for the retained 39.0 m model scale. This is a proportional estimate, not a separately documented measurement.
+The San Martín / São Martinho reproduced plan set is the principal visual comparison for the hull elevation, forebody, afterbody, end sections and stepped aft works:
 
-The 2012 source also lists Augusto Salgado's different estimate (27 m keel length, 11.15 m beam and 4.0 m depth to the first deck). The differences are preserved rather than blended. The 2007 model report and the 2012 estimates are not a calibrated lines plan.
+https://www.shipmodell.com/index_files/0PLAN1B.html
 
-## Current geometry
+The reproduced sheet is a secondary modelling plan, not a surviving shipyard draught. The hull station ordinates remain reconstruction estimates and have not been digitized from a calibrated copy. Other late-16th-century galleon drawings are comparative material only; they are not treated as San Martín's own lines.
 
-- Midship keel-to-main-deck depth is 6.20 m at the 39.0 m working scale, replacing the previous 7.54 m geometry.
-- Length-to-beam ratio remains approximately 3.33, close to the Casado Soto estimate (35.24 / 10.51 ≈ 3.35).
-- The broadest part of each principal hull section is aligned with its estimated waterline height.
-- Upper sides draw inward toward the bulwarks, rather than carrying maximum beam high up the topsides.
-- The forebody and afterbody remain smoothly faired from one shared surface; the flat stern transom is retained.
-- The hull skins, keel, wale bands, decks, forecastle bulwark, aftcastle and galleries remain separate editable assemblies.
+The working length and beam (39.0 × 11.7 m) follow the model report in the Spanish Navy's Revista General de Marina (July 2007). Revista de Historia Naval (Supplement 16, 2012) records two estimated San Martín dimension sets; the Casado Soto estimate is 35.24 m length, 10.51 m beam and 5.60 m moulded depth. Scaling that depth by 39.0 / 35.24 produces the 6.20 m working moulded depth. This is a proportional estimate, not a separately documented measurement.
+
+## Geometry changes in this pass
+
+- The hull profile has a stronger rising keel and a more pronounced sheer toward both ends.
+- The midbody retains a full, rounded section; the upper sides draw farther inward toward a narrower deck edge.
+- The forecastle and quarterdeck are more visibly raised and are narrower than the main deck.
+- A separate open beakhead platform projects forward beyond the stem. No bowsprit pole or rigging is generated in this stage.
+- Aftercastle walls taper across their height and rake inward along the fore-aft axis.
+- Roofs now share their edge calculations with the wall tops. The exaggerated lid-like overhang has been removed.
+- Side windows, end walls and galleries use the same tier geometry so they remain aligned as the tiers narrow.
 
 ## Geometry authority
 
-`architecture/hull-surface.js` is the sole hull-form authority. Hull skins, wale bands, stem, keel, decks and cabin station geometry sample this evaluator. It uses shape-preserving PCHIP interpolation; it is C1-continuous at knots, not a measured CAD surface or an archival offsets table.
+architecture/hull-surface.js is the sole hull-form authority. Hull skins, wale bands, stem, keel, decks and cabin station geometry sample this evaluator. It uses shape-preserving PCHIP interpolation; this is C1-continuous at knots, not a measured CAD surface or an archival offsets table.
 
-## Visual and historical limits
+generators/cabins/aftercastle-geometry.js is the shared source for tier station taper, wall top coordinates and roof-edge alignment. The assembly coordinator still only positions and coordinates independent component generators.
 
-The Shipmodell San Martín 1580 reproduction provides the named-ship side, end and sectional views. The current station offsets are still reconstruction estimates and have not been digitized from a calibrated copy of that sheet. Pinterest and generic Elizabethan galleon drawings are comparison material only; they are not treated as San Martín's own plans.
+## Scope and remaining limits
 
-The aftcastle remains a visual reconstruction hypothesis. Review side, bow, stern and top views before treating the current proportions as accepted.
+The current stage contains hull, decks, beakhead, forecastle bulwarks, aftcastle, windows and galleries. Masts, sails, bowsprit pole, rigging, rudder and helm details remain deferred.
+
+The aftcastle is a visual reconstruction hypothesis. Review clean side, bow, stern and top views before accepting the proportions as final.

@@ -4,7 +4,7 @@ import { Box3 } from 'three';
 import { createShipModel, disposeShipModel, getShipDesign } from '../ships/index.js';
 import { WARGALION_V2_SOURCE, WARGALION_V2_HULL_STATIONS, WARGALION_V2_SECTION } from '../ships/vessels/wargalion-v2/architecture/blueprint-data.js';
 import {
-  halfBreadth, sectionBreadthRatio, hullPoint, keelY, sampleStationCurve,
+  halfBreadth, sectionBreadthRatio, hullPoint, keelY, deckY, sampleStationCurve,
   sampleWaterlineCurve, sampleButtockCurve
 } from '../ships/vessels/wargalion-v2/architecture/hull-surface.js';
 
@@ -28,6 +28,14 @@ test('Wargalion V2 hull shell meets the keel datum and bow/stern sheer rake outw
   assert.ok(hullPoint(d,.985,1,1).z>hullPoint(d,.985,0,1).z,'stern upper counter rakes aft');
 });
 
+test('Wargalion V2 side profile has a visible rising keel and stronger end sheer',()=>{
+  const d=getShipDesign('wargalion-v2');
+  assert.ok(deckY(d,0)-deckY(d,.5)>1.0,'fore stem has pronounced deck sheer');
+  assert.ok(deckY(d,1)-deckY(d,.5)>1.0,'aft counter has pronounced deck sheer');
+  assert.ok(keelY(d,0)-keelY(d,.5)>1.0,'fore keel rises toward the stem');
+  assert.ok(keelY(d,1)-keelY(d,.5)>1.0,'aft keel rises toward the sternpost');
+});
+
 test('Wargalion V2 moulded depth and widest section follow the scaled San Martín proportions',()=>{
   const d=getShipDesign('wargalion-v2');
   const midshipDepth=d.deckHeightUnits+d.draftUnits*0.72;
@@ -37,8 +45,8 @@ test('Wargalion V2 moulded depth and widest section follow the scaled San Martí
   const midship=WARGALION_V2_HULL_STATIONS.find(station=>station.station===0.5);
   assert.ok(Math.abs(midship.maxBreadthHeight-waterlineFraction)<0.002,
     'midship maximum breadth occurs at the waterline');
-  assert.ok(midship.deckRatio<0.86,
-    'upper sides draw inward from the waterline towards the bulwarks');
+  assert.ok(midship.deckRatio<0.82,
+    'upper sides draw inward from the waterline towards the narrower deck edge');
 });
 
 test('Wargalion V2 PCHIP hull breadth remains monotone fore and aft',()=>{
@@ -99,25 +107,38 @@ test('Wargalion V2 stations, waterlines and buttocks sample the same surface',()
   assert.ok(Math.abs(port.z-starboard.z)<1e-9);
 });
 
-test('Wargalion V2 creates independently editable hull, deck and cabin assemblies',()=>{
+test('Wargalion V2 creates independently editable hull, bow, deck and cabin assemblies',()=>{
   const ship=createShipModel('wargalion-v2');
   try{
     for(const name of [
       'hull','hull-skin-port','hull-skin-starboard','hull-wales','keel','stem','sternpost','stern-transom',
-      'deck','main-deck','forecastle-deck','quarterdeck','forecastle-bulwark','forecastle-bulwark-port','forecastle-bulwark-starboard','aftercastle',
+      'deck','main-deck','forecastle-deck','quarterdeck','beakhead','beakhead-platform',
+      'forecastle-bulwark','forecastle-bulwark-port','forecastle-bulwark-starboard','aftercastle',
       'aftercastle-tier-1','aftercastle-tier-2','aftercastle-tier-3',
       'aftercastle-windows','quarter-gallery-port','quarter-gallery-starboard',
       'stern-gallery-tier-1','stern-gallery-tier-2','stern-gallery-tier-3'
     ])assert.ok(ship.userData.getPart(name),'missing V2 assembly '+name);
     assert.equal(ship.userData.getPart('hull-skin-port').parent,ship.userData.getPart('hull'));
     assert.equal(ship.userData.getPart('hull-skin-starboard').parent,ship.userData.getPart('hull'));
+
+    const beakheadBounds=new Box3().setFromObject(ship.userData.getPart('beakhead'));
+    const stemBounds=new Box3().setFromObject(ship.userData.getPart('stem'));
+    assert.ok(beakheadBounds.min.z<stemBounds.min.z,
+      'the open beakhead projects forward beyond the stem');
+
     const tierOneRoof=ship.userData.getPart('aftercastle-roof-tier-1');
     const tierOnePortWall=ship.userData.getPart('aftercastle-side-port-tier-1');
     assert.ok(tierOneRoof&&tierOnePortWall,'castle deck and wall assemblies exist');
-    const roofBounds=new Box3().setFromObject(tierOneRoof);
-    const wallBounds=new Box3().setFromObject(tierOnePortWall);
-    assert.ok(Math.abs(Math.abs(roofBounds.min.x)-Math.abs(wallBounds.min.x))<0.8,
-      'castle deck edge remains close to the matching port side wall');
+    const upperRail=tierOnePortWall.getObjectByName('aftercastle-tier-1-upper-string-course--1');
+    const roofEave=tierOneRoof.getObjectByName('aftercastle-tier-1-port-eave');
+    assert.ok(upperRail&&roofEave,'castle wall top rail and roof eave are independently addressable');
+    const railBounds=new Box3().setFromObject(upperRail);
+    const eaveBounds=new Box3().setFromObject(roofEave);
+    assert.ok(Math.abs(Math.abs(railBounds.min.x)-Math.abs(eaveBounds.min.x))<0.12,
+      'roof eave follows the actual tapered wall top, not the wider wall foot');
+    assert.ok(Math.abs(railBounds.max.y-eaveBounds.max.y)<0.12,
+      'roof edge sits at the wall top instead of floating above it');
+
     assert.equal(ship.userData.hullStage,'hull-and-cabins');
     assert.equal(ship.userData.shipArchitecture.surfaceAuthority,'./architecture/hull-surface.js');
     assert.equal(getShipDesign('wargalion-v2').masts.length,0);

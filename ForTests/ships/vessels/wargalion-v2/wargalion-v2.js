@@ -9,13 +9,14 @@ import { buildStem } from './generators/hull/stem-generator.js';
 import { buildSternpost } from './generators/hull/sternpost-generator.js';
 import { buildTransom } from './generators/hull/transom-generator.js';
 import { buildDeck } from './generators/decks/deck-generator.js';
+import { buildBeakhead } from './generators/decks/beakhead-generator.js';
 import { buildAftercastle } from './generators/cabins/aftercastle-generator.js';
 import { buildForecastleBulwark } from './generators/cabins/forecastle-bulwark-generator.js';
 
 /**
- * Hull-and-cabin stage only. Mast and rigging geometry are intentionally not
- * generated in this version; the editor still receives the standard model
- * lifecycle and each physical assembly remains independently editable.
+ * Hull-and-cabin stage only. Mast, bowsprit pole and rigging geometry are
+ * intentionally deferred. Every physical assembly remains independently
+ * editable and the hull form is governed by one shared surface evaluator.
  */
 export const WargalionV2Definition = Object.freeze({
   id: 'wargalion-v2',
@@ -31,25 +32,26 @@ export const WargalionV2Definition = Object.freeze({
     draft: 4.5,
     freeboard: 2.96,
     mouldedDepth: 6.2,
-    rig: 'Deferred — hull and cabin geometry stage only; no mast or rigging meshes yet.',
-    hullProfile: 'PCHIP-faired hull with 6.20 m scaled moulded depth, maximum breadth at the waterline, inward-tapered upper sides, connected keel, pronounced sheer and a fine bow run.',
-    hullFormNote: 'The 6.20 m working moulded depth is scaled from Casado Soto’s 5.60 m estimate at 35.24 m length to the 39.0 m working model scale. Station ordinates remain reconstruction estimates, not digitized archival offsets. The widest section is constrained to the waterline, with inward-tapered topsides.',
-    modelScaleNote: '39.0 × 11.7 m is the working scale reported for the San Martín model in Revista General de Marina (2007). Revista de Historia Naval (2012) cites Casado Soto’s estimated 35.24 × 10.51 × 5.60 m dimensions. The 6.20 m moulded depth is derived by proportional scaling to the 39.0 m working length; it is not a separately recorded measurement.',
+    rig: 'Deferred — hull and cabin geometry stage only; no mast, bowsprit pole or rigging meshes yet.',
+    hullProfile: 'Rising keel and pronounced sheer at both ends, a full rounded midbody, inward-tapered upper sides, raised fore and quarter decks, and a raked bow/stern profile.',
+    hullFormNote: 'The 6.20 m working moulded depth is scaled from Casado Soto’s 5.60 m estimate at 35.24 m length to the 39.0 m working model scale. Station ordinates remain reconstruction estimates, not digitized archival offsets. The revised profile is visually compared with the reproduced San Martín elevation and sections.',
+    modelScaleNote: '39.0 × 11.7 m is the working scale reported for the San Martín model in Revista General de Marina (2007). Revista de Historia Naval (2012) cites Casado Soto’s estimated 35.24 × 10.51 × 5.60 m dimensions. The 6.20 m moulded depth is derived by proportional scaling to the 39.0 m working model scale; it is not a separately recorded measurement.',
     reference: 'San Martín / São Martinho is the historical reference, but Wargalion V2 is a reconstruction study rather than a claim to reproduce a verified original shipyard plan.',
     sources: WARGALION_V2_SOURCE.sources.map(source => ({ label: source.title, url: source.url })),
     hull: {
-      bowRake: 0.038,
-      sternRake: 0.034,
+      bowRake: 0.055,
+      sternRake: 0.050,
       deckCamber: 0.065,
-      forecastleRise: 0.52,
-      quarterdeckRise: 0.72
+      forecastleRise: 1.02,
+      quarterdeckRise: 1.12
     },
-    sternwork: 'three narrowing aftcastle levels with framed timber walls, stepped decks and projecting stern galleries',
+    beakhead: 'separate narrow open bow platform; bowsprit and rigging deferred',
+    sternwork: 'three progressively narrower, inward-raked aftcastle tiers with curved top edges and projecting stern galleries',
     sternTiers: [],
     masts: [],
     headsails: 0,
     oars: false,
-    keelDetails: { label: 'V2 shaped keel', minimumRadius: 0.12 },
+    keelDetails: { label: 'V2 rising curved keel', minimumRadius: 0.12 },
     rudderDetails: { label: 'deferred to later modelling stage' },
     editorPartNames: [...WARGALION_V2_ARCHITECTURE.editorPartNames]
   }),
@@ -81,6 +83,7 @@ function assembleWargalionV2(transforms = {}, savedState = {}) {
     sternpost: () => buildSternpost(vessel.design, ctx),
     transom: () => buildTransom(vessel.design, ctx),
     deck: () => buildDeck(vessel.design, ctx),
+    beakhead: () => buildBeakhead(vessel.design, ctx),
     'forecastle-bulwark': () => buildForecastleBulwark(vessel.design, ctx),
     aftercastle: () => buildAftercastle(vessel.design, ctx)
   };

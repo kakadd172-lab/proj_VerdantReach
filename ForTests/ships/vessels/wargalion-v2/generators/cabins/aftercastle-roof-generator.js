@@ -1,40 +1,52 @@
-import { hullPoint, hullLongitudinalZ, deckLevelY, V } from '../../architecture/hull-surface.js';
+import { hullLongitudinalZ, V } from '../../architecture/hull-surface.js';
+import { aftercastleHalfWidth, aftercastleWallY, aftercastleWallZ } from './aftercastle-geometry.js';
 
 /**
- * Each tier has a walkable deck-like top. The uppermost small cabin alone
- * receives a pitched cap. Geometry remains a distinct assembly per tier.
+ * The roof edges now sit directly on the tapered side-wall top rails.
+ * Only a small physical eave is added; it no longer overhangs the cabin like
+ * a large rectangular lid. Longitudinal raking follows the wall surfaces.
  */
-export function buildAftercastleRoof(d,ctx,parent,tier){
-  const {THREE,mesh,materials,tube}=ctx;
-  const along=56,across=32,positions=[],indices=[],portEdge=[],starboardEdge=[],ridge=[];
-  for(let row=0;row<=along;row++){
-    const u=row/along,t=tier.t0+(tier.t1-tier.t0)*u;
-    const deckEdgeHalf=Math.abs(hullPoint(d,t,1,1).x);
-    const half=deckEdgeHalf*tier.widthScale*1.025;
-    const z=hullLongitudinalZ(d,t,1);
-    const y0=deckLevelY(d,t,'quarterdeck')+tier.baseOffset+tier.wallHeight;
-    for(let col=0;col<=across;col++){
-      const q=col/across,a=-1+2*q;
-      const lift=tier.roofStyle==='cap'?tier.roofRise*(1-Math.abs(a)):tier.roofRise*(1-a*a);
-      const p=V(a*half,y0+lift,z);
-      positions.push(p.x,p.y,p.z);
-      if(col===0)portEdge.push(p);
-      if(col===across)starboardEdge.push(p);
-      if(col===across/2)ridge.push(p);
+export function buildAftercastleRoof(d, ctx, parent, tier) {
+  const { THREE, mesh, materials, tube } = ctx;
+  const along = 56, across = 32;
+  const positions = [], indices = [], portEdge = [], starboardEdge = [], ridge = [];
+
+  for (let row = 0; row <= along; row++) {
+    const u = row / along;
+    const t = tier.t0 + (tier.t1 - tier.t0) * u;
+    const edgeHalf = aftercastleHalfWidth(d, t, tier, 1, 0.055);
+    const wallTopY = aftercastleWallY(d, t, tier, 1);
+    const wallTopZ = aftercastleWallZ(d, t, tier, 1);
+    for (let col = 0; col <= across; col++) {
+      const q = col / across;
+      const a = -1 + 2 * q;
+      const lift = tier.roofStyle === 'cap'
+        ? tier.roofRise * (1 - Math.abs(a))
+        : tier.roofRise * (1 - a * a);
+      const point = V(a * edgeHalf, wallTopY + lift, wallTopZ);
+      positions.push(point.x, point.y, point.z);
+      if (col === 0) portEdge.push(point);
+      if (col === across) starboardEdge.push(point);
+      if (col === across / 2) ridge.push(point);
     }
   }
-  const stride=across+1;
-  for(let r=0;r<along;r++)for(let c=0;c<across;c++){
-    const a=r*stride+c,b=a+stride,x=a+1,y=b+1;
-    indices.push(a,b,x,b,y,x);
+
+  const stride = across + 1;
+  for (let r = 0; r < along; r++) for (let c = 0; c < across; c++) {
+    const a = r * stride + c, b = a + stride, x = a + 1, y = b + 1;
+    indices.push(a, b, x, b, y, x);
   }
-  const g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-  g.setIndex(indices);g.computeVertexNormals();g.computeBoundingBox();
-  mesh(parent,g,materials.deck,'aftercastle-tier-'+tier.id+
-    (tier.roofStyle==='cap'?'-upper-roof-cap':'-raised-deck-level'));
-  tube(parent,portEdge,0.045,materials.trim,'aftercastle-tier-'+tier.id+'-port-eave',10);
-  tube(parent,starboardEdge,0.045,materials.trim,'aftercastle-tier-'+tier.id+'-starboard-eave',10);
-  if(tier.roofStyle==='cap')tube(parent,ridge,0.04,materials.trim,
-    'aftercastle-tier-'+tier.id+'-roof-ridge',10);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingBox();
+  mesh(parent, geometry, materials.deck,
+    'aftercastle-tier-' + tier.id + (tier.roofStyle === 'cap' ? '-upper-roof-cap' : '-raised-deck-level'));
+  tube(parent, portEdge, 0.045, materials.trim, 'aftercastle-tier-' + tier.id + '-port-eave', 10);
+  tube(parent, starboardEdge, 0.045, materials.trim, 'aftercastle-tier-' + tier.id + '-starboard-eave', 10);
+  if (tier.roofStyle === 'cap') {
+    tube(parent, ridge, 0.04, materials.trim, 'aftercastle-tier-' + tier.id + '-roof-ridge', 10);
+  }
+  parent.userData.wallTopAlignment = 'shared aftercastle-geometry.js top-edge evaluator';
 }
