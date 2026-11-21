@@ -33,8 +33,8 @@ export const WargalionV2Definition = Object.freeze({
     mouldedDepth: 6.2,
     rig: 'Deferred — hull and cabin geometry stage only; no mast or rigging meshes yet.',
     hullProfile: 'PCHIP-faired hull with 6.20 m scaled moulded depth, maximum breadth at the waterline, inward-tapered upper sides, connected keel, pronounced sheer and a fine bow run.',
-    hullFormNote: 'The 6.20 m working moulded depth is scaled from Casado Soto’s 5.60 m estimate at 35.24 m length to the 39.0 m working model scale. Station ordinates remain reconstruction estimates, not digitized archival offsets. The widest section is constrained to the waterline, with inward-tapered topsides.'
-    modelScaleNote: '39.0 × 11.7 m is the working scale reported for the San Martín model in Revista General de Marina (2007). Revista de Historia Naval (2012) cites Casado Soto’s estimated 35.24 × 10.51 × 5.60 m dimensions. The 6.20 m moulded depth is derived by proportional scaling to the 39.0 m working length; it is not a separately recorded measurement.'
+    hullFormNote: 'The 6.20 m working moulded depth is scaled from Casado Soto’s 5.60 m estimate at 35.24 m length to the 39.0 m working model scale. Station ordinates remain reconstruction estimates, not digitized archival offsets. The widest section is constrained to the waterline, with inward-tapered topsides.',
+    modelScaleNote: '39.0 × 11.7 m is the working scale reported for the San Martín model in Revista General de Marina (2007). Revista de Historia Naval (2012) cites Casado Soto’s estimated 35.24 × 10.51 × 5.60 m dimensions. The 6.20 m moulded depth is derived by proportional scaling to the 39.0 m working length; it is not a separately recorded measurement.',
     reference: 'San Martín / São Martinho is the historical reference, but Wargalion V2 is a reconstruction study rather than a claim to reproduce a verified original shipyard plan.',
     sources: WARGALION_V2_SOURCE.sources.map(source => ({ label: source.title, url: source.url })),
     hull: {

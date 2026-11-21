@@ -50,7 +50,7 @@ export const WARGALION_V2_SOURCE = Object.freeze({
       note: 'Cites estimated San Martín dimensions from Augusto Salgado and Casado Soto; Casado Soto values are 35.24 × 10.51 × 5.60 m. The source explicitly presents these as estimates, not an original lines plan.'
     }),
     Object.freeze({
-      title: 'Spanish Navy — Revista General de Marina, July 2007: San Martín model and dimensions',
+      title: 'Shipmodell — Galleon San Martín 1580 reproduced plan set',
       url: 'https://www.shipmodell.com/index_files/0PLAN1B.html',
       sourceType: 'secondary-plan-reproduction',
       note: 'Useful profile and section reference; its web reproduction has not been calibrated into offsets.'
