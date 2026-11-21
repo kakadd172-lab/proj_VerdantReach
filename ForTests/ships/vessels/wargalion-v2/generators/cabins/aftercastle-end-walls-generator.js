@@ -1,18 +1,20 @@
 import {
-  aftercastleHalfWidth, aftercastleWallY, aftercastleWallZ
+  aftercastleHalfWidth, aftercastleWallY, aftercastleWallZ, aftercastleTransomZ
 } from './aftercastle-geometry.js';
 
 export function buildAftercastleEndWall(d, ctx, parent, tier, t, direction) {
-  const across = 40, vertical = 16, positions = [], indices = [];
+  const across = 48, vertical = 20, positions = [], indices = [];
   for (let row = 0; row <= vertical; row++) {
     const v = row / vertical;
     const half = aftercastleHalfWidth(d, t, tier, v);
     const wallY = aftercastleWallY(d, t, tier, v);
-    const wallZ = aftercastleWallZ(d, t, tier, v);
     for (let col = 0; col <= across; col++) {
       const u = -1 + 2 * col / across;
       const crown = tier.endCrown * (1 - u * u) * Math.pow(v, 3);
-      positions.push(u * half, wallY + crown, wallZ + direction * 0.018 * v);
+      const wallZ = direction > 0
+        ? aftercastleTransomZ(d, tier, u, v)
+        : aftercastleWallZ(d, t, tier, v) + direction * 0.018 * v;
+      positions.push(u * half, wallY + crown, wallZ);
     }
   }
 

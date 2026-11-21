@@ -1,6 +1,6 @@
 import { V } from '../../architecture/hull-surface.js';
 import {
-  aftercastleHalfWidth, aftercastleWallY, aftercastleWallZ
+  aftercastleHalfWidth, aftercastleWallY, aftercastleWallZ, aftercastleTransomZ
 } from './aftercastle-geometry.js';
 
 function addSideWindow(d, ctx, parent, side, t, tier, index) {
@@ -32,7 +32,7 @@ function addAftWindow(d, ctx, parent, tier, u, index) {
   const half = aftercastleHalfWidth(d, tier.t1, tier, v);
   const width = tier.id === 1 ? 0.52 : tier.id === 2 ? 0.44 : 0.36;
   const height = tier.id === 1 ? 0.42 : 0.36;
-  const z = aftercastleWallZ(d, tier.t1, tier, v) + 0.15;
+  const z = aftercastleTransomZ(d, tier, u * 0.78, v) + 0.15;
   const x = u * half * 0.78;
   const y = aftercastleWallY(d, tier.t1, tier, v);
   box(parent, width, height, 0.055, materials.glass,

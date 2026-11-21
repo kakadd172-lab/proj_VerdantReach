@@ -18,9 +18,9 @@ The working length and beam (39.0 × 11.7 m) follow the model report in the Span
 - The midbody retains a full, rounded section; the upper sides draw farther inward toward a narrower deck edge.
 - The forecastle and quarterdeck are more visibly raised and are narrower than the main deck.
 - A separate open beakhead platform projects forward beyond the stem. No bowsprit pole or rigging is generated in this stage.
-- Aftercastle walls taper across their height and rake inward along the fore-aft axis.
-- Roofs now share their edge calculations with the wall tops. The exaggerated lid-like overhang has been removed.
-- Side windows, end walls and galleries use the same tier geometry so they remain aligned as the tiers narrow.
+- The aftercastle is no longer built from near-vertical box sides: each tier rises toward the stern, the forward and aft wall tops rake visibly inward, and each upper tier follows the rising roofline of the level below.
+- The aft-facing walls now form a shallow convex transom; their windows use the same curved evaluator, so they sit on the wall rather than on a flat plane.
+- Roofs, rails, windows and galleries share the same tier geometry and taper evaluators. The tiers are still separate editable assemblies, but their silhouettes now form one stepped, raked stern structure.
 
 ## Geometry authority
 

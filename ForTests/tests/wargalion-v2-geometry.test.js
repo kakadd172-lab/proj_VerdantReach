@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Box3 } from 'three';
 import { createShipModel, disposeShipModel, getShipDesign } from '../ships/index.js';
-import { WARGALION_V2_SOURCE, WARGALION_V2_HULL_STATIONS, WARGALION_V2_SECTION } from '../ships/vessels/wargalion-v2/architecture/blueprint-data.js';
+import { WARGALION_V2_SOURCE, WARGALION_V2_HULL_STATIONS, WARGALION_V2_SECTION, WARGALION_V2_CASTLE_TIERS } from '../ships/vessels/wargalion-v2/architecture/blueprint-data.js';
+import { aftercastleWallY, aftercastleWallZ, aftercastleTransomZ } from '../ships/vessels/wargalion-v2/generators/cabins/aftercastle-geometry.js';
 import {
-  halfBreadth, sectionBreadthRatio, hullPoint, keelY, deckY, sampleStationCurve,
+  halfBreadth, sectionBreadthRatio, hullPoint, keelY, deckY, deckLevelY, hullLongitudinalZ, sampleStationCurve,
   sampleWaterlineCurve, sampleButtockCurve
 } from '../ships/vessels/wargalion-v2/architecture/hull-surface.js';
 
@@ -47,6 +48,24 @@ test('Wargalion V2 moulded depth and widest section follow the scaled San Martí
     'midship maximum breadth occurs at the waterline');
   assert.ok(midship.deckRatio<0.82,
     'upper sides draw inward from the waterline towards the narrower deck edge');
+});
+
+test('Wargalion V2 aftercastle tiers rise aft, rake inward and form a curved stern face',()=>{
+  const d=getShipDesign('wargalion-v2');
+  for(const tier of WARGALION_V2_CASTLE_TIERS){
+    const forwardTop=aftercastleWallY(d,tier.t0,tier,1)-deckLevelY(d,tier.t0,'quarterdeck');
+    const aftTop=aftercastleWallY(d,tier.t1,tier,1)-deckLevelY(d,tier.t1,'quarterdeck');
+    assert.ok(aftTop-forwardTop>0.55,'each castle tier rises visibly toward the stern');
+
+    const forwardRake=aftercastleWallZ(d,tier.t0,tier,1)-hullLongitudinalZ(d,tier.t0,1);
+    const aftRake=hullLongitudinalZ(d,tier.t1,1)-aftercastleWallZ(d,tier.t1,tier,1);
+    assert.ok(forwardRake>0.45,'forward wall top rakes toward the stern');
+    assert.ok(aftRake>0.45,'aft wall top rakes toward the bow');
+
+    const sternCentre=aftercastleTransomZ(d,tier,0,0.5);
+    const sternQuarter=aftercastleTransomZ(d,tier,0.75,0.5);
+    assert.ok(sternCentre>sternQuarter,'stern face bows outward at its centre');
+  }
 });
 
 test('Wargalion V2 PCHIP hull breadth remains monotone fore and aft',()=>{

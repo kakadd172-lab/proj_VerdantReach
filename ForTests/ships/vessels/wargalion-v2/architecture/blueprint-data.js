@@ -108,7 +108,22 @@ export const WARGALION_V2_DECKS = Object.freeze({
 });
 
 export const WARGALION_V2_CASTLE_TIERS = Object.freeze([
-  Object.freeze({ id: 1, t0: 0.665, t1: 0.975, widthScale: 0.78, baseOffset: 0.00, wallHeight: 1.55, roofRise: 0.090, roofStyle: 'deck', topInset: 0.085, endCrown: 0.14, galleryDepth: 0.88, sideCamber: 0.090, longitudinalInset: 0.24 }),
-  Object.freeze({ id: 2, t0: 0.775, t1: 0.962, widthScale: 0.66, baseOffset: 1.64, wallHeight: 1.38, roofRise: 0.075, roofStyle: 'deck', topInset: 0.100, endCrown: 0.12, galleryDepth: 0.66, sideCamber: 0.075, longitudinalInset: 0.18 }),
-  Object.freeze({ id: 3, t0: 0.855, t1: 0.945, widthScale: 0.54, baseOffset: 3.10, wallHeight: 1.16, roofRise: 0.205, roofStyle: 'cap', topInset: 0.120, endCrown: 0.10, galleryDepth: 0.48, sideCamber: 0.060, longitudinalInset: 0.12 })
+  Object.freeze({
+    id: 1, t0: 0.665, t1: 0.975, widthScale: 0.78,
+    baseOffset: 0.00, baseRise: 0.00, wallHeight: 1.55, aftRise: 0.62,
+    roofRise: 0.13, roofStyle: 'deck', topInset: 0.22, endCrown: 0.18,
+    galleryDepth: 0.72, sideCamber: 0.11, longitudinalInset: 0.95, transomProjection: 0.48
+  }),
+  Object.freeze({
+    id: 2, t0: 0.775, t1: 0.962, widthScale: 0.65,
+    baseOffset: 1.77, baseRise: 0.37, wallHeight: 1.38, aftRise: 0.48,
+    roofRise: 0.11, roofStyle: 'deck', topInset: 0.26, endCrown: 0.15,
+    galleryDepth: 0.54, sideCamber: 0.09, longitudinalInset: 0.75, transomProjection: 0.36
+  }),
+  Object.freeze({
+    id: 3, t0: 0.855, t1: 0.945, widthScale: 0.52,
+    baseOffset: 3.52, baseRise: 0.41, wallHeight: 1.16, aftRise: 0.32,
+    roofRise: 0.24, roofStyle: 'cap', topInset: 0.30, endCrown: 0.12,
+    galleryDepth: 0.36, sideCamber: 0.07, longitudinalInset: 0.52, transomProjection: 0.24
+  })
 ]);
