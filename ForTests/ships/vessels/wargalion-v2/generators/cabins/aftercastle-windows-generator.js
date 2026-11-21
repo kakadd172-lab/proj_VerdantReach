@@ -1,4 +1,4 @@
-import { hullPoint, halfBreadth, hullLongitudinalZ, deckLevelY, V } from '../../architecture/hull-surface.js';
+import { hullPoint, hullLongitudinalZ, deckLevelY, V } from '../../architecture/hull-surface.js';
 
 function addSideWindow(d,ctx,parent,side,t,tier,index){
   const {box,beam,materials}=ctx;
@@ -21,7 +21,7 @@ function addSideWindow(d,ctx,parent,side,t,tier,index){
 
 function addAftWindow(d,ctx,parent,tier,u,index){
   const {box,beam,materials}=ctx;
-  const half=halfBreadth(d,tier.t1)*tier.widthScale;
+  const half=Math.abs(hullPoint(d,tier.t1,1,1).x)*tier.widthScale;
   const baseY=deckLevelY(d,tier.t1,'quarterdeck')+tier.baseOffset;
   const z=hullLongitudinalZ(d,tier.t1,1)+0.15;
   const width=tier.id===1?0.52:tier.id===2?0.44:0.36;

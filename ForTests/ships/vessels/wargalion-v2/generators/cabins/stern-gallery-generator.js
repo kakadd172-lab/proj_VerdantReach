@@ -1,9 +1,10 @@
-import { halfBreadth, hullLongitudinalZ, deckLevelY, V } from '../../architecture/hull-surface.js';
+import { hullPoint, hullLongitudinalZ, deckLevelY, V } from '../../architecture/hull-surface.js';
 
 export function buildSternGallery(d,ctx,parent,tier){
   const {THREE,mesh,tube,beam,materials}=ctx;
   const acrossSteps=40,depthSteps=12,positions=[],indices=[],rail=[];
-  const half=halfBreadth(d,tier.t1)*tier.widthScale*1.03;
+  const deckEdgeHalf=Math.abs(hullPoint(d,tier.t1,1,1).x);
+  const half=deckEdgeHalf*tier.widthScale;
   const wallZ=hullLongitudinalZ(d,tier.t1,1)+0.09;
   const wallY=deckLevelY(d,tier.t1,'quarterdeck')+tier.baseOffset+tier.wallHeight;
   for(let row=0;row<=acrossSteps;row++){

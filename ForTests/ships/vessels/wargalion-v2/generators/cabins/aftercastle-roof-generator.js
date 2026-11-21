@@ -1,4 +1,4 @@
-import { halfBreadth, hullLongitudinalZ, deckLevelY, V } from '../../architecture/hull-surface.js';
+import { hullPoint, hullLongitudinalZ, deckLevelY, V } from '../../architecture/hull-surface.js';
 
 /**
  * Each tier has a walkable deck-like top. The uppermost small cabin alone
@@ -9,7 +9,8 @@ export function buildAftercastleRoof(d,ctx,parent,tier){
   const along=56,across=32,positions=[],indices=[],portEdge=[],starboardEdge=[],ridge=[];
   for(let row=0;row<=along;row++){
     const u=row/along,t=tier.t0+(tier.t1-tier.t0)*u;
-    const half=halfBreadth(d,t)*tier.widthScale*1.055;
+    const deckEdgeHalf=Math.abs(hullPoint(d,t,1,1).x);
+    const half=deckEdgeHalf*tier.widthScale*1.025;
     const z=hullLongitudinalZ(d,t,1);
     const y0=deckLevelY(d,t,'quarterdeck')+tier.baseOffset+tier.wallHeight;
     for(let col=0;col<=across;col++){
