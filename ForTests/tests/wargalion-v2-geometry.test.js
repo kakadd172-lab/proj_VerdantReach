@@ -115,10 +115,8 @@ test('Wargalion V2 creates independently editable hull, deck and cabin assemblie
     assert.ok(tierOneRoof&&tierOnePortWall,'castle deck and wall assemblies exist');
     const roofBounds=new (await import('three')).Box3().setFromObject(tierOneRoof);
     const wallBounds=new (await import('three')).Box3().setFromObject(tierOnePortWall);
-    assert.ok(roofBounds.max.x-wallBounds.max.x<0.8,
-      'castle deck overhang remains modest relative to side wall');
-    assert.ok(wallBounds.max.x-roofBounds.max.x<0.8,
-      'castle side wall stays aligned beneath its deck edge');
+    assert.ok(Math.abs(Math.abs(roofBounds.min.x)-Math.abs(wallBounds.min.x))<0.8,
+      'castle deck edge remains close to the matching port side wall');
     assert.equal(ship.userData.hullStage,'hull-and-cabins');
     assert.equal(ship.userData.shipArchitecture.surfaceAuthority,'./architecture/hull-surface.js');
     assert.equal(getShipDesign('wargalion-v2').masts.length,0);
