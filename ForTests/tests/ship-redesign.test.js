@@ -1,23 +1,194 @@
 import test from 'node:test';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { SLOOP_ROCKING_VERSION } from '../ships/vessels/sloop/animation/rocking-animation.js';
+import { createPchipTable, deckPoint, deckSurfaceY, deckY, getWargalionStationProfile, hullLongitudinalZ, hullPoint, interpolatePchip, sectionBreadthRatio } from '../ships/vessels/wargalion/architecture/hull-geometry.js';
+import { WARGALION_BLUEPRINT_SOURCE, WARGALION_HULL_STATIONS, WARGALION_SECTION_PROFILE, WARGALION_STERN_STATIONS } from '../ships/vessels/wargalion/architecture/blueprint-data.js';
 
 import {
   SHIP_DESIGNS,getShipDesign,setShipDesignOverrides,resetShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
   getShipStructureBlueprint,setShipStructureOverrides,resetShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
   createShipModel,disposeShipModel,SHIP_GENERATORS,VESSEL_IDS,VESSEL_MODULES,SHIP_MODEL_MODULE_VERSION,
   getVesselModule,
-} from '../ships/index.js?v=0.8.30-reset-frame-registry';
+} from '../ships/index.js?v=0.8.43';
+ 
+function disposeAndRelease(ship) {
+  if (!ship) return;
+  disposeShipModel(ship);
+  ship.clear();
+  for (const key of Object.keys(ship.userData)) {
+    if (typeof ship.userData[key] === 'function') delete ship.userData[key];
+  }
+  ship.userData.ownedGeometries = [];
+  ship.userData.ownedMaterials = [];
+  globalThis.gc?.();
+}
+
 
 const ids = Object.keys(SHIP_DESIGNS).sort();
+const legacyIds = ids.filter(id => id !== 'wargalion-v2');
 
-test('the editor uses 16 self-contained ForTests vessel modules', () => {
+function collectWargalionJavaScript(directory) {
+  const files = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const fullPath = join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...collectWargalionJavaScript(fullPath));
+    else if (entry.isFile() && entry.name.endsWith('.js')) files.push(fullPath);
+  }
+  return files;
+}
+
+test('every Wargalion JavaScript module passes Node syntax validation', () => {
+  const moduleDirectory = fileURLToPath(new URL('../ships/vessels/wargalion/', import.meta.url));
+  const files = collectWargalionJavaScript(moduleDirectory);
+  assert.ok(files.length >= 20, 'Wargalion syntax audit includes its complete generator folder');
+  for (const file of files) {
+    assert.doesNotThrow(
+      () => execFileSync(process.execPath, ['--check', file], { stdio: 'pipe' }),
+      undefined,
+      'Wargalion module parses: ' + file
+    );
+  }
+});
+
+
+test('Wargalion definition exposes blueprint-driven editor assemblies', () => {
+  const design = getShipDesign('wargalion');
+  const module = getVesselModule('wargalion');
+  assert.ok(Array.isArray(design.editorPartNames));
+  assert.deepEqual(design.editorPartNames, module.architecture.editorPartNames);
+  assert.ok(design.editorPartNames.includes('hull-skin-port'));
+  assert.ok(design.editorPartNames.includes('sterncastle-roof'));
+  assert.ok(design.editorPartNames.includes('beakhead'));
+  assert.equal(module.architecture.blueprintData.offsetState, 'visually-interpreted-estimates');
+  assert.equal(module.architecture.blueprintData.calibrationRequired, true);
+  assert.ok(module.architecture.componentContracts.hull.validates.includes('port-starboard symmetry'));
+  assert.ok(module.architecture.componentContracts.stern.validates.includes('roof and end-wall closure'));
+});
+
+test('Wargalion blueprint data preserves provenance and uncalibrated offset status', () => {
+  assert.equal(WARGALION_BLUEPRINT_SOURCE.vesselId, 'wargalion');
+  assert.equal(WARGALION_BLUEPRINT_SOURCE.calibration.status, 'not-calibrated');
+  assert.equal(WARGALION_BLUEPRINT_SOURCE.offsetStatus, 'visually-interpreted-estimates');
+  assert.ok(WARGALION_BLUEPRINT_SOURCE.sourceRecordUrl.includes('0PLAN1B.html'));
+  assert.equal(WARGALION_SECTION_PROFILE.interpolation, 'shape-preserving-cubic-hermite');
+  assert.equal(WARGALION_HULL_STATIONS[0].station, 0);
+  assert.equal(WARGALION_HULL_STATIONS.at(-1).station, 1);
+  assert.ok(WARGALION_HULL_STATIONS.every(station => station.sourceState === 'visual-estimate'));
+  assert.ok(WARGALION_STERN_STATIONS.every(station =>
+    Number.isFinite(station.widthRatio) && Number.isFinite(station.wallHeight)
+  ));
+  for (let i = 1; i < WARGALION_HULL_STATIONS.length; i++) {
+    assert.ok(WARGALION_HULL_STATIONS[i].station > WARGALION_HULL_STATIONS[i - 1].station,
+      'Wargalion source stations are strictly ordered');
+  }
+});
+
+test('Wargalion PCHIP fairing preserves monotone offset intervals without overshoot', () => {
+  const table = createPchipTable([0, 1, 2, 3], [0, 0.2, 0.8, 1]);
+  let previous = interpolatePchip(table, 0);
+  for (let i = 1; i <= 300; i++) {
+    const x = i / 100;
+    const value = interpolatePchip(table, x);
+    assert.ok(Number.isFinite(value), 'Wargalion fairing returns finite values');
+    assert.ok(value >= -1e-8 && value <= 1 + 1e-8, 'Wargalion fairing stays inside its offset envelope');
+    assert.ok(value + 1e-8 >= previous, 'Wargalion monotone offset interval does not reverse');
+    previous = value;
+  }
+
+  const design = getShipDesign('wargalion');
+  for (const station of [0.08, 0.25, 0.50, 0.75, 0.925]) {
+    let lowerPrevious = sectionBreadthRatio(design, station, 0);
+    for (let i = 1; i <= 67; i++) {
+      const v = WARGALION_SECTION_PROFILE.floorBand
+        + (WARGALION_SECTION_PROFILE.bilgeEnd - WARGALION_SECTION_PROFILE.floorBand) * i / 67;
+      const breadth = sectionBreadthRatio(design, station, v);
+      assert.ok(Number.isFinite(breadth) && breadth >= 0 && breadth <= 1.001,
+        'Wargalion section breadth stays inside the local half-beam envelope');
+      assert.ok(breadth + 1e-8 >= lowerPrevious,
+        'Wargalion lower section expands monotonically from floor to bilge');
+      lowerPrevious = breadth;
+    }
+    const upperStart = sectionBreadthRatio(design, station, WARGALION_SECTION_PROFILE.bilgeEnd);
+    let upperPrevious = upperStart;
+    for (let i = 1; i <= 33; i++) {
+      const v = WARGALION_SECTION_PROFILE.bilgeEnd
+        + (1 - WARGALION_SECTION_PROFILE.bilgeEnd) * i / 33;
+      const breadth = sectionBreadthRatio(design, station, v);
+      assert.ok(breadth <= upperPrevious + 1e-8,
+        'Wargalion tumblehome returns inward monotonically toward the deck edge');
+      upperPrevious = breadth;
+    }
+    assert.ok(Number.isFinite(hullLongitudinalZ(design, station, 1)),
+      'Wargalion raked station mapping stays finite');
+  }
+});
+
+test('Wargalion hull follows separate fore, master and after station profiles', () => {
+  const design = getShipDesign('wargalion');
+  assert.equal(design.hullLength, 39.0, 'Wargalion length matches its declared working scene scale');
+  assert.equal(design.beam, 11.7, 'Wargalion beam matches its declared working scene scale');
+  const bow = getWargalionStationProfile(design, 0.08);
+  const master = getWargalionStationProfile(design, 0.50);
+  const stern = getWargalionStationProfile(design, 0.925);
+  const transom = getWargalionStationProfile(design, 1.0);
+
+  assert.ok(master.halfBreadthUnits > bow.halfBreadthUnits * 2,
+    'Wargalion master station is substantially fuller than the fine bow entry');
+  assert.ok(master.halfBreadthUnits > stern.halfBreadthUnits * 1.35,
+    'Wargalion master station is broader than the narrowing afterbody');
+  assert.ok(master.floorRatio > 0.15 && master.floorRatio < 0.30,
+    'Wargalion master frame retains a measurable flat floor');
+  assert.ok(master.maxBreadthHeight > master.floorHeight,
+    'Wargalion maximum breadth sits above the floor/turn-of-bilge point');
+  assert.ok(master.deckRatio <= 0.88 && master.deckRatio >= 0.84,
+    'Wargalion master section carries a pronounced, separate tumblehome');
+  assert.ok(transom.halfBreadthUnits * transom.deckRatio > master.halfBreadthUnits * master.deckRatio * 0.42,
+    'Wargalion transom remains broad instead of pinching to a point');
+  const bowRake = hullLongitudinalZ(design, 0.035, 1) - hullLongitudinalZ(design, 0.035, 0);
+  const sternRake = hullLongitudinalZ(design, 0.995, 1) - hullLongitudinalZ(design, 0.995, 0);
+  assert.ok(bowRake > 1.5, 'Wargalion stem has a visible backward rake above the keel');
+  assert.ok(sternRake > 1.4, 'Wargalion sternpost has a visible aft rake above the keel');
+
+  const keelCentre = hullPoint(design, 0.50, 0, 1);
+  const floor = hullPoint(design, 0.50, master.floorBand, 1);
+  const maximum = hullPoint(design, 0.50, master.bilgeEnd, 1);
+  const upper = hullPoint(design, 0.50, 1, 1);
+  const port = hullPoint(design, 0.50, master.bilgeEnd, -1);
+  const deckEdgeChecks = [0.14, 0.50, 0.82, 0.92].map(station => {
+    const hullEdge = hullPoint(design, station, 1, 1);
+    const deckLift = deckSurfaceY(design, station) - deckY(design, station);
+    const deckEdge = deckPoint(design, station, 1, deckLift);
+    return { station, gap: hullEdge.distanceTo(deckEdge) };
+  });
+  assert.ok(floor.x > keelCentre.x,
+    'Wargalion floor extends outboard from the keel centreline');
+  assert.ok(Math.abs(floor.y - keelCentre.y) < 1e-6,
+    'Wargalion floor is geometrically level from the centreline to the turn of the bilge');
+  for (const edge of deckEdgeChecks) {
+    assert.ok(edge.gap < 0.02,
+      'Wargalion upper hull and stepped deck share their sheer edge at station ' + edge.station);
+  }
+  assert.ok(maximum.x > floor.x * 3,
+    'Wargalion fair bilge/futtock transition expands from the floor to maximum breadth');
+  assert.ok(maximum.x > upper.x * 1.04,
+    'Wargalion upper side returns inward through the tumblehome');
+  assert.ok(Math.abs(maximum.x + port.x) < 1e-6,
+    'Wargalion port and starboard section profiles remain symmetrical');
+  assert.ok(Math.abs(maximum.y - port.y) < 1e-6 && Math.abs(maximum.z - port.z) < 1e-6,
+    'Wargalion opposing hull surfaces share the same section station');
+});
+
+
+test('the editor uses 19 self-contained ForTests vessel modules', () => {
   assert.equal(SHIP_DESIGN_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_STRUCTURE_MODULE_VERSION, '0.8.9');
   assert.equal(SHIP_MODEL_MODULE_VERSION, '0.8.30');
-  assert.equal(ids.length, 16);
+  assert.equal(ids.length, 19);
   assert.deepEqual([...VESSEL_IDS].sort(), ids);
   assert.deepEqual(Object.keys(VESSEL_MODULES).sort(), ids);
   for (const id of ids) {
@@ -32,12 +203,31 @@ test('the editor uses 16 self-contained ForTests vessel modules', () => {
 });
 
 
-const modularIds = new Set(["barque","brig","brigantine","caravel","carrack","sloop","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
+test('Sloop V2 follows the supplied Maid of Endor pocket-cruiser specification',()=>{
+  const design=getShipDesign('sloop-v2');
+  assert.equal(design.hullLength,6.18);
+  assert.equal(design.waterlineLength,5.64);
+  assert.equal(design.beam,2.34);
+  assert.equal(design.draft,1.02);
+  assert.equal(design.sailAreaSquareFeet,333);
+  assert.deepEqual(design.sailPlan,{mainsail:214,outerJib:60.5,innerStaysail:58.5});
+  const ship=createShipModel('sloop-v2');
+  try{
+    assert.ok(ship.userData.getPart('cockpit-well'),'Maid of Endor has a separate aft cockpit well');
+    assert.ok(ship.userData.getPart('stern-tier-1'),'Maid of Endor has its low trunk cabin');
+    assert.ok(ship.userData.getPart('running-backstays-single'),'Maid of Endor cutter rig has running backstays');
+    assert.equal(ship.userData.getPart('helm-wheel').userData.helmType,'aft-tiller');
+    assert.equal(ship.userData.vesselProvenance.designName,'Maid of Endor');
+  }finally{disposeAndRelease(ship);}
+});
+
+ 
+const modularIds = new Set(["barque","brig","brigantine","caravel","carrack","sloop","sloop-v2","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace","wargalion"]);
 
 test('each vessel owns its own geometry-generation algorithms', () => {
   const hullAlgorithms = [];
   const sailAlgorithms = [];
-  for (const id of ids) {
+  for (const id of legacyIds) {
     const module = getVesselModule(id);
     const sourcePath = module.editorModulePath.replace(/^ForTests\//, '../');
     const facade = readFileSync(new URL(sourcePath, import.meta.url), 'utf8');
@@ -78,15 +268,15 @@ test('each vessel owns its own geometry-generation algorithms', () => {
         'function buildAnchors(', 'function buildCanvasSail(', 'function buildRig(',
       ]) assert.ok(facade.includes(required), id + ' must own ' + required);
     }
-    const hull = geometrySource.match(/function halfBreadth\(d,t\)\s*\{([\s\S]*?)\}/);
+    const hull = geometrySource.match(/(?:export\s+)?function\s+halfBreadth\s*\(\s*d\s*,\s*t\s*\)\s*\{([\s\S]*?)\}/);
     const sail = sailSource.match(/function buildCanvasSail\(ctx,[\s\S]*?\n\}/);
     assert.ok(hull, id + ' has a readable local hull breadth function');
     assert.ok(sail, id + ' has a readable local curved sail function');
     hullAlgorithms.push(hull[1].trim());
     sailAlgorithms.push(sail[0].trim());
   }
-  assert.equal(new Set(hullAlgorithms).size, 16, 'All 16 ships must have different hull breadth algorithms');
-  assert.equal(new Set(sailAlgorithms).size, 16, 'All 16 ships must have their own sail surface profiles');
+  assert.equal(new Set(hullAlgorithms).size, 18, 'All 18 legacy ships must have different hull breadth algorithms');
+  assert.equal(new Set(sailAlgorithms).size, 18, 'All 18 legacy ships must have their own sail surface profiles');
 
   const kit = readFileSync(new URL('../ships/shared/ship-editor-kit.js', import.meta.url), 'utf8');
   for (const geometryRoutine of ['function halfBreadth(', 'function hullPoint(', 'function buildHull(', 'function buildCanvasSail(', 'function buildRig(']) {
@@ -103,7 +293,9 @@ test('each vessel has an independent design, structure profile and generator', (
     assert.ok(structure, id + ' structure');
     assert.equal(design.id, id);
     assert.ok(design.hullLength > 0 && design.beam > 0 && design.draft > 0, id + ' dimensions');
-    assert.ok(Array.isArray(design.masts) && design.masts.length > 0, id + ' rig');
+    assert.ok(Array.isArray(design.masts), id + ' mast definitions');
+    if (id === 'wargalion-v2') assert.equal(design.masts.length, 0, 'V2 defers rig geometry');
+    else assert.ok(design.masts.length > 0, id + ' rig');
     assert.ok(Array.isArray(design.partNames) && design.partNames.length > 10, id + ' parts');
     assert.ok(structure.frameCount >= 12, id + ' frames');
     assert.equal(module.design.id, id, id + ' module design');
@@ -113,7 +305,7 @@ test('each vessel has an independent design, structure profile and generator', (
   }
 });
 
-test('all 16 independent ForTests generators build separate editable models', () => {
+test('all 19 independent ForTests generators build separate editable models', () => {
   for (const id of ids) {
     const module = getVesselModule(id);
     const ship = module.createModel();
@@ -133,8 +325,107 @@ test('all 16 independent ForTests generators build separate editable models', ()
       assert.equal(ship.userData.shipGameDefinitionPath, 'src/world/ships/vessels/' + id + '.js');
       assert.equal(ship.userData.shipSourceVersion, 'ForTests-native');
       assert.ok(ship.userData.getPart('hull'), id + ' hull');
+      if (id === 'wargalion') {
+        const hull = ship.userData.getPart('hull');
+        const portSkin = ship.userData.getPart('hull-skin-port');
+        const starboardSkin = ship.userData.getPart('hull-skin-starboard');
+        assert.ok(portSkin && starboardSkin, 'wargalion has separate editable port and starboard hull skins');
+        assert.equal(portSkin.parent, hull, 'wargalion port skin is nested in the hull assembly');
+        assert.equal(starboardSkin.parent, hull, 'wargalion starboard skin is nested in the hull assembly');
+        const closureNames = [];
+        hull.traverse(object => {
+          if (object.isMesh && /wargalion-(?:bow-hull-closure|stern-transom-shell)/.test(object.name)) {
+            closureNames.push(object.name);
+          }
+        });
+        assert.ok(closureNames.some(name => name.includes('bow-hull-closure')),
+          'wargalion bow skin is closed at the forefoot');
+        assert.ok(closureNames.some(name => name.includes('stern-transom-shell')),
+          'wargalion has a complete stern transom skin');
+        assert.ok(ship.userData.getPart('deck-quarter'), 'wargalion quarterdeck is independently editable');
+        assert.ok(ship.userData.getPart('deck-poop'), 'wargalion poop deck is independently editable');
+
+        const design = getShipDesign('wargalion');
+        for (const partName of design.editorPartNames) {
+          assert.ok(ship.userData.partNames.includes(partName),
+            'wargalion editor catalogue exposes its additional component ' + partName);
+          assert.ok(ship.userData.getPart(partName),
+            'wargalion additional editor component is registered: ' + partName);
+        }
+        let rudderBlade = null;
+        ship.userData.getPart('rudder').traverse(object => {
+          if (object.isMesh && object.name === 'broad-rudder-blade') rudderBlade = object;
+        });
+        assert.ok(rudderBlade, 'wargalion has a shaped rudder leaf mesh');
+        rudderBlade.geometry.computeBoundingBox();
+        const rudderSize = new THREE.Vector3();
+        rudderBlade.geometry.boundingBox.getSize(rudderSize);
+        assert.ok(rudderSize.x < rudderSize.z * 0.30,
+          'wargalion rudder is a slender vertical leaf, not a broad transverse slab');
+        assert.ok(rudderSize.y > rudderSize.z * 1.4,
+          'wargalion rudder leaf has a tall, tapered proportion');
+
+        for (const partName of ['hull-skin-port', 'hull-skin-starboard', 'sterncastle-roof',
+          'stern-transom', 'beakhead', 'forecastle-bulwarks']) {
+          const part = ship.userData.getPart(partName);
+          assert.ok(part, 'wargalion exposes additional editable assembly ' + partName);
+          const meshes = [];
+          part.traverse(object => { if (object.isMesh) meshes.push(object); });
+          assert.ok(meshes.length > 0, 'wargalion editor assembly contains real geometry: ' + partName);
+          for (const object of meshes) {
+            const position = object.geometry?.attributes?.position;
+            assert.ok(position && position.count > 0, partName + ' mesh has a position attribute');
+            for (let i = 0; i < position.count; i++) {
+              assert.ok(Number.isFinite(position.getX(i))
+                && Number.isFinite(position.getY(i))
+                && Number.isFinite(position.getZ(i)),
+                partName + ' geometry has finite vertex coordinates');
+            }
+          }
+        }
+      }
+      if (id === 'wargalion-v2') {
+        const hull = ship.userData.getPart('hull');
+        assert.ok(hull, 'Wargalion V2 hull assembly');
+        for (const name of ['hull-skin-port','hull-skin-starboard']) {
+          const skin = ship.userData.getPart(name);
+          assert.ok(skin, 'Wargalion V2 has separate ' + name);
+          assert.equal(skin.parent, hull, name + ' nested in hull assembly');
+        }
+        for (const name of [
+          'keel','stem','sternpost','stern-transom','deck',
+          'main-deck','forecastle-deck','quarterdeck','aftercastle',
+          'aftercastle-tier-1','aftercastle-tier-2','aftercastle-tier-3',
+          'aftercastle-windows','quarter-gallery-port','quarter-gallery-starboard'
+        ]) assert.ok(ship.userData.getPart(name), 'Wargalion V2 registers ' + name);
+        assert.equal(ship.userData.hullStage, 'hull-and-cabins');
+        assert.equal(ship.userData.shipArchitecture.surfaceAuthority, './architecture/hull-surface.js');
+        assert.deepEqual(getShipDesign(id).masts, [], 'V2 defers masts and rigging');
+        let meshCount = 0;
+        ship.traverse(object => {
+          if (!object.isMesh) return;
+          meshCount++;
+          const pos = object.geometry?.getAttribute('position');
+          assert.ok(pos && pos.count > 0, 'V2 mesh has vertices: ' + object.name);
+          for (let i=0;i<pos.count;i++) {
+            assert.ok(Number.isFinite(pos.getX(i)),'finite x: '+object.name);
+            assert.ok(Number.isFinite(pos.getY(i)),'finite y: '+object.name);
+            assert.ok(Number.isFinite(pos.getZ(i)),'finite z: '+object.name);
+          }
+        });
+        assert.ok(meshCount >= 20, 'V2 builds genuine hull, deck and cabin mesh geometry');
+        continue;
+      }
       assert.ok(ship.userData.getPart('deck'), id + ' deck');
       assert.ok(ship.userData.getPart('rudder'), id + ' rudder');
+      assert.ok(ship.userData.getPart('deck-fittings'), id + ' deck fittings');
+      assert.ok(!ship.userData.partNames.some(name => /cannon|deck-gun|gun-carriage/i.test(name)),
+        id + ' must not embed vessel-specific cannon components');
+      const embeddedCannons = [];
+      ship.traverse(object => {
+        if (/cannon|deck-gun|gun-carriage-wheel/i.test(object.name)) embeddedCannons.push(object.name);
+      });
+      assert.deepEqual(embeddedCannons, [], id + ' must leave cannon models to the shared vessel module');
       // Conventional standing rigging is articulated where the vessel has it.
       // Chinese junk masts use battened lug sails and are intentionally unstayed;
       // do not invent shrouds merely to satisfy the shared animation test.
@@ -220,7 +511,99 @@ test('all 16 independent ForTests generators build separate editable models', ()
         const expectedHeadAfter=mast.userData.animationPivot.localToWorld(new Vector3Type(...metadata.mastHeadPivotLocal));
         assert.ok(sample.localToWorld(startAfter).distanceTo(expectedHeadAfter)<.02,id+' '+mastDefinition.id+' stay remains attached to its moving masthead after wind');
       }
-      if (id !== 'pinnace' && id !== 'sloop') {
+      if (id === 'wargalion') {
+        const stern = ship.userData.getPart('sternworks');
+        const firstTier = ship.userData.getPart('stern-tier-1');
+        const secondTier = ship.userData.getPart('stern-tier-2');
+        const thirdTier = ship.userData.getPart('stern-tier-3');
+        assert.ok(stern && firstTier && secondTier && thirdTier,
+          'wargalion has three registered sections of one continuous aftercastle');
+        let sideWallCount = 0;
+        let sideWindowCount = 0;
+        let quarterGalleryCount = 0;
+        let roofFrameCount = 0;
+        let endWallCount = 0;
+        stern.traverse(object => {
+          if (!object.isMesh) return;
+          if (object.name.includes('continuous-wall')) sideWallCount += 1;
+          if (object.name === 'quarter-gallery-side-window') sideWindowCount += 1;
+          if (object.name === 'quarter-gallery-walkway-edge'
+            || object.name === 'quarter-gallery-handrail') quarterGalleryCount += 1;
+          if (object.name === 'sterncastle-forward-bulkhead'
+            || object.name === 'sterncastle-after-transom-wall') endWallCount += 1;
+        });
+        const roof = ship.userData.getPart('sterncastle-roof');
+        assert.ok(roof, 'wargalion has a continuous crowned roof/deck over the aftercastle');
+        let roofSurfaceCount = 0;
+        roof.traverse(object => {
+          if (object.isMesh && object.name.startsWith('sterncastle-tier-roof-deck-')) roofSurfaceCount += 1;
+        });
+        assert.equal(roofSurfaceCount, 3, 'wargalion aftercastle has three distinct roof stages that follow its stepped tiers');
+        firstTier.traverse(object => {
+          if (object.isMesh && (object.name === 'folded-cabin-side-rib'
+            || object.name === 'folded-cabin-cross-rib')) roofFrameCount += 1;
+        });
+        assert.ok(sideWallCount >= 6,
+          'wargalion aftercastle has port and starboard station-lofted side walls in all three adjoining sections');
+        assert.ok(sideWindowCount >= 8,
+          'wargalion aftercastle has separate side-gallery windows');
+        assert.ok(quarterGalleryCount >= 4,
+          'wargalion quarter galleries have projecting walkways and handrails on both sides');
+        assert.ok(roofFrameCount >= 8,
+          'wargalion aftercastle retains editable transverse roof framing');
+        assert.ok(endWallCount >= 2,
+          'wargalion aftercastle has forward and aft closure walls above the hull transom');
+        assert.equal(firstTier.parent, stern, 'wargalion lower aftercastle section joins the common stern assembly');
+        assert.equal(secondTier.parent, stern, 'wargalion middle aftercastle section joins the common stern assembly');
+        assert.equal(thirdTier.parent, stern, 'wargalion upper aftercastle section joins the common stern assembly');
+        for (const mastId of ['fore', 'main', 'mizzen']) {
+          const chainplates = ship.userData.getPart('chainplates-' + mastId);
+          assert.ok(chainplates, 'wargalion ' + mastId + ' shroud chainplates are independently editable');
+          let chainplateMeshes = 0;
+          chainplates.traverse(object => { if (object.isMesh) chainplateMeshes += 1; });
+          assert.ok(chainplateMeshes >= 6, 'wargalion ' + mastId + ' has visible individual shroud chainplates');
+          if (mastId !== 'fore') {
+            const backstayPlates = ship.userData.getPart('backstay-chainplates-' + mastId);
+            assert.ok(backstayPlates, 'wargalion ' + mastId + ' backstay plates are independently editable');
+            let backstayPlateMeshes = 0;
+            backstayPlates.traverse(object => { if (object.isMesh) backstayPlateMeshes += 1; });
+            assert.ok(backstayPlateMeshes >= 3, 'wargalion ' + mastId + ' has visible backstay anchoring');
+          }
+        }
+        const hullStrakes = ship.userData.getPart('hull-strakes');
+        assert.ok(hullStrakes, 'wargalion hull planking remains a separately editable assembly');
+        let longitudinalSeams = 0, structuralWales = 0;
+        hullStrakes.traverse(object => {
+          if (!object.isMesh) return;
+          if (object.name.startsWith('hull-plank-seam-')) longitudinalSeams += 1;
+          if (object.name.startsWith('continuous-hull-wale-')) structuralWales += 1;
+        });
+        assert.ok(longitudinalSeams >= 40, 'wargalion has longitudinal plank seams on both hull sides');
+        assert.ok(structuralWales >= 6, 'wargalion has continuous structural wales on both hull sides');
+        for (const mastId of ['fore', 'main']) {
+          const course = ship.userData.getPart('sail-' + mastId + '-course');
+          const cloth = ship.userData.getPart('cloth-sail-' + mastId + '-course');
+          assert.ok(course && cloth, 'wargalion ' + mastId + ' has an independent square course');
+          assert.ok(Math.abs(course.rotation.y) >= 0.5,
+            'wargalion ' + mastId + ' course has a readable broadside brace angle');
+          assert.ok(Math.abs(cloth.userData.sailBraceAngle) >= 0.5,
+            'wargalion ' + mastId + ' cloth retains its authored brace angle');
+        }
+      } else if (id === 'sloop-v2') {
+        const cabin = ship.userData.getPart('stern-tier-1');
+        assert.ok(cabin, 'Maid of Endor should have its compact trunk cabin');
+        let shellCount = 0;
+        let coachroofCount = 0;
+        let portlightCount = 0;
+        cabin.traverse((object) => {
+          if (object.isMesh && object.geometry?.type === 'ExtrudeGeometry') shellCount += 1;
+          if (object.isMesh && object.name === 'coachroof-curved-top') coachroofCount += 1;
+          if (object.isMesh && object.name === 'coachroof-portlight') portlightCount += 1;
+        });
+        assert.ok(shellCount > 0, 'Maid of Endor cabin should have a shaped low trunk shell');
+        assert.ok(coachroofCount > 0, 'Maid of Endor cabin should have its compact coachroof');
+        assert.ok(portlightCount >= 2, 'Maid of Endor cabin should expose separate portlights');
+      } else if (id !== 'pinnace' && id !== 'sloop' && id !== 'wargalion') {
         const cabin = ship.userData.getPart('stern-tier-1');
         assert.ok(cabin, id + ' should have a proportioned aft cabin');
         let foldedShells = 0;
@@ -252,6 +635,19 @@ test('all 16 independent ForTests generators build separate editable models', ()
         assert.equal(deployment.parent,pivot,id+' '+sail.name+' deployment group is under its tack pivot');
         let canvas=null;cloth.traverse(object=>{if(object.isMesh&&object.name==='sail-shaped-cloth')canvas=object;});
         assert.ok(canvas?.userData.sailCloth?.rows>0&&canvas.userData.sailCloth?.columns>0,id+' '+sail.name+' wind-billow grid metadata');
+        if (id === 'wargalion') {
+          const sailIndex = canvas.geometry.index;
+          const sailPositions = canvas.geometry.attributes.position;
+          assert.ok(sailIndex && sailIndex.count >= 3, id+' '+sail.name+' has indexed cloth triangles');
+          for (let triangle = 0; triangle < sailIndex.count; triangle += 3) {
+            const a = new THREE.Vector3().fromBufferAttribute(sailPositions, sailIndex.getX(triangle));
+            const b = new THREE.Vector3().fromBufferAttribute(sailPositions, sailIndex.getX(triangle + 1));
+            const c = new THREE.Vector3().fromBufferAttribute(sailPositions, sailIndex.getX(triangle + 2));
+            const areaSquared = b.sub(a).cross(c.sub(a)).lengthSq();
+            assert.ok(areaSquared > 1e-12,
+              id+' '+sail.name+' cloth surface contains no zero-area triangles');
+          }
+        }
         const furlFrame=deployment.getObjectByName('sail-furl-frame-'+sail.name);
         assert.ok(furlFrame?.userData.sailFurlEdge,id+' '+sail.name+' furl frame follows its authored support edge');
         assert.equal(cloth.parent,furlFrame,id+' '+sail.name+' cloth remains inside its furl frame');
@@ -337,7 +733,88 @@ test('all 16 independent ForTests generators build separate editable models', ()
       ship.userData.animateShip(.05,{enabled:true,directionDeg:210,speedKnots:24});
       assert.ok(sampleCanvas.geometry.attributes.position.array.some((value,index)=>Math.abs(value-canvasBefore[index])>1e-6),id+' sail cloth responds to wind');
       if (getShipDesign(id).headsails > 0) {
-        assert.ok(ship.userData.partNames.some((name) => name.startsWith('head-stays-')), id + ' should generate correctly anchored headsails');
+        const headStayNames = ship.userData.partNames.filter(name => name.startsWith('head-stays-'));
+        assert.ok(headStayNames.length >= getShipDesign(id).headsails,
+          id + ' should generate an individually editable stay for every headsail');
+        if (id === 'wargalion') {
+          const bowsprit = ship.userData.getPart('bowsprit');
+          assert.ok(bowsprit, 'wargalion has a dedicated editable bowsprit component');
+          assert.equal(bowsprit.parent, ship, 'wargalion bowsprit is independently registered at the vessel root');
+          const bowspritMeshes = [];
+          bowsprit.traverse(object => {
+            if (object.isMesh) bowspritMeshes.push(object);
+          });
+          assert.ok(bowspritMeshes.some(object => object.name === 'main-bowsprit'),
+            'wargalion bowsprit component contains its main spar');
+          assert.ok(bowspritMeshes.some(object => object.name === 'dolphin-striker'),
+            'wargalion bowsprit component contains its dolphin striker');
+
+          const anchors = ship.userData.getPart('anchors');
+          assert.ok(anchors, 'wargalion anchor assembly exists');
+          for (const side of ['port', 'starboard']) {
+            const chain = ship.userData.getPart('anchor-chain-' + side);
+            assert.ok(chain, 'wargalion ' + side + ' anchor chain is independently registered');
+            assert.equal(chain.parent, anchors, 'wargalion ' + side + ' chain belongs to the anchor assembly');
+            let chainMesh = null;
+            chain.traverse(object => {
+              if (object.isMesh && object.name === 'anchor-rode') chainMesh = object;
+            });
+            assert.ok(chainMesh, 'wargalion ' + side + ' anchor chain has actual editable geometry');
+          }
+
+          for (let index = 1; index <= getShipDesign(id).headsails; index++) {
+            const stayGroup = ship.userData.getPart('head-stays-' + index);
+            assert.ok(stayGroup, 'wargalion headsail ' + index + ' has its own forestay group');
+            let stayMesh = null;
+            stayGroup.traverse(object => {
+              if (object.isMesh && object.userData.dynamicMastStay) stayMesh = object;
+            });
+            assert.ok(stayMesh, 'wargalion headsail ' + index + ' forestay is dynamically mast-anchored');
+            assert.equal(stayMesh.userData.dynamicMastStay.mastId, 'fore',
+              'wargalion headsail ' + index + ' forestay follows the foremast');
+            assert.equal(stayMesh.userData.dynamicMastStay.coordinateSpace, 'mast-group',
+              'wargalion headsail ' + index + ' uses the foremast reference frame');
+            assert.ok(Array.isArray(stayMesh.userData.dynamicMastStay.fixedPoint)
+              && stayMesh.userData.dynamicMastStay.fixedPoint.length === 3,
+              'wargalion headsail ' + index + ' forestay retains a fixed lower fitting');
+            const stayData = stayMesh.userData.dynamicMastStay;
+            assert.equal(stayData.anchorFrame, 'hull',
+              'wargalion headsail ' + index + ' lower fitting resolves into the hull frame');
+            assert.ok(Array.isArray(stayData.fixedPointHull) && stayData.fixedPointHull.length === 3,
+              'wargalion headsail ' + index + ' stores its resolved hull anchor');
+            assert.ok(Array.isArray(stayData.mastHeadPivotLocal) && stayData.mastHeadPivotLocal.length === 3,
+              'wargalion headsail ' + index + ' stores its moving masthead anchor');
+
+            const attribute = stayMesh.geometry.attributes.position;
+            const radialSegments = stayData.radialSegments;
+            const segments = stayData.segments;
+            const ringCenter = ring => {
+              const center = new THREE.Vector3();
+              const stride = radialSegments + 1;
+              for (let radial = 0; radial <= radialSegments; radial++) {
+                center.add(new THREE.Vector3().fromBufferAttribute(
+                  attribute, ring * stride + radial
+                ));
+              }
+              return center.multiplyScalar(1 / stride);
+            };
+            ship.updateMatrixWorld(true);
+            const mastPivot = ship.userData.getPart('mast-fore').userData.animationPivot;
+            const hullPart = ship.userData.getPart('hull');
+            const movingAnchor = mastPivot.localToWorld(
+              new THREE.Vector3(...stayData.mastHeadPivotLocal)
+            );
+            const fixedAnchor = hullPart.localToWorld(
+              new THREE.Vector3(...stayData.fixedPointHull)
+            );
+            const generatedMastEnd = stayMesh.localToWorld(ringCenter(0));
+            const generatedHullEnd = stayMesh.localToWorld(ringCenter(segments));
+            assert.ok(generatedMastEnd.distanceTo(movingAnchor) < 1e-3,
+              'wargalion headsail ' + index + ' forestay meets the foremast pivot');
+            assert.ok(generatedHullEnd.distanceTo(fixedAnchor) < 1e-3,
+              'wargalion headsail ' + index + ' forestay meets its fixed hull fitting');
+          }
+        }
       }
       if (id === 'fluyt') {
         assert.ok(ship.userData.getPart('cargo-deck-details'), 'fluyt merchant cargo deck');
@@ -437,13 +914,14 @@ test('all 16 independent ForTests generators build separate editable models', ()
         }
       });
     } finally {
-      disposeShipModel(ship);
+      disposeAndRelease(ship);
     }
   }
 });
 
 test('all vessels expose mast-step, rudder-stock and helm-axle pivots with linked steering',()=>{
   for(const id of ids){
+    if(id==='wargalion-v2') continue;
     const design=getShipDesign(id),ship=createShipModel(id);
     try{
       for(const definition of design.masts){
@@ -457,10 +935,15 @@ test('all vessels expose mast-step, rudder-stock and helm-axle pivots with linke
       const rudderPose=ship.userData.getPartTransform('rudder');
       const angle=.2;
       ship.userData.setRudderAngle(angle);
-      assert.ok(Math.abs(rudder.userData.steeringControl.pivotGroup.rotation.y-angle)<1e-6,id+' rudder rotation');
-      assert.ok(Math.abs(wheel.userData.steeringControl.pivotGroup.rotation.z-angle*(wheel.userData.steeringControl.ratio??4.5))<1e-6,id+' wheel follows rudder ratio');
+      const rudderControl=rudder.userData.steeringControl,wheelControl=wheel.userData.steeringControl;
+      const axisProperty=axis=>({x:'x',y:'y',z:'z'})[axis]||'z';
+      const rudderAxis=axisProperty(rudderControl.axis||'y');
+      const helmAxis=axisProperty(wheelControl.axis||'z');
+      assert.ok(Math.abs(rudderControl.pivotGroup.rotation[rudderAxis]-angle)<1e-6,id+' rudder rotation on declared axis');
+      assert.ok(Math.abs(wheelControl.pivotGroup.rotation[helmAxis]-angle*(wheelControl.ratio??4.5))<1e-6,
+        id+' helm control follows rudder ratio on its declared axis');
       assert.deepEqual(ship.userData.getPartTransform('rudder'),rudderPose,id+' steering stays outside saved editor transforms');
-    }finally{disposeShipModel(ship);}
+    }finally{disposeAndRelease(ship);}
   }
 });
 
@@ -477,7 +960,7 @@ test('design overrides rebuild only the selected vessel and can be reset', () =>
     try {
       assert.ok(Math.abs(ship.userData.shipDimensions.beam - (original.beam + 1.25)) < 1e-9);
     } finally {
-      disposeShipModel(ship);
+      disposeAndRelease(ship);
     }
   } finally {
     resetShipDesignOverrides('sloop');
@@ -494,7 +977,7 @@ test('structure overrides change the selected vessel frame layout and can be res
     try {
       assert.ok(ship.userData.getPart('frame-' + String(original.frameCount + 2).padStart(2, '0')));
     } finally {
-      disposeShipModel(ship);
+      disposeAndRelease(ship);
     }
   } finally {
     resetShipStructureOverrides('sloop');
@@ -529,10 +1012,10 @@ test('component move, rotation, scale and live gizmo values persist in ship stat
       assert.ok(Math.abs(result.ry - 0.12) < 1e-8);
       assert.ok(Math.abs(result.sz - initialTransform.sz * 1.15) < 1e-8);
     } finally {
-      disposeShipModel(restored);
+      disposeAndRelease(restored);
     }
   } finally {
-    disposeShipModel(ship);
+    disposeAndRelease(ship);
   }
 });
 
@@ -564,7 +1047,7 @@ test('reset component restores its original hierarchy, transform and visibility'
     assert.deepEqual(ship.userData.getShipState().unlinkedParts, []);
     assert.deepEqual(ship.userData.getShipState().hiddenParts, {});
   } finally {
-    disposeShipModel(ship);
+    disposeAndRelease(ship);
   }
 });
 
@@ -636,10 +1119,10 @@ test('sail fullness reverses to the lee side as wind direction changes', () => {
       assert.ok(Math.abs(calmPosition.getComponent(calmCenter, calmAxis) - neutral) < 1e-8,
         'A calm sail must relax to its neutral, flat reference surface');
     } finally {
-      disposeShipModel(calmShip);
+      disposeAndRelease(calmShip);
     }
   } finally {
-    disposeShipModel(ship);
+    disposeAndRelease(ship);
   }
 });
 
@@ -704,7 +1187,7 @@ test('the first two forward triangular sails keep their orientation while retain
         sail.name + ' directional billow must reverse with the wind');
     });
   } finally {
-    disposeShipModel(ship);
+    disposeAndRelease(ship);
   }
 });
 
@@ -766,7 +1249,7 @@ test('Sloop rocking responds to sea direction and height, then settles smoothly'
     assert.ok(Math.abs(ship.rotation.z - baseRotation.z) < 1e-7, 'Sloop returns to its original roll');
     assert.equal(rocking.enabled, false);
   } finally {
-    disposeShipModel(ship);
+    disposeAndRelease(ship);
   }
 });
 
@@ -785,6 +1268,6 @@ test('sea rocking is isolated to the Sloop and does not alter other vessel roots
     assert.ok(Math.abs(ship.rotation.x - rotation.x) < 1e-10, 'Galleon pitch remains unchanged');
     assert.ok(Math.abs(ship.rotation.z - rotation.z) < 1e-10, 'Galleon roll remains unchanged');
   } finally {
-    disposeShipModel(ship);
+    disposeAndRelease(ship);
   }
 });

@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 const here=dirname(fileURLToPath(import.meta.url));
 const shipRoot=join(here,'ships');
-const ids=['sloop','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','fluyt','xebec','junk','first-rate','pinnace'];
-const modularIds=new Set(["barque","brig","brigantine","caravel","carrack","sloop","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
+const ids=['sloop','sloop-v2','schooner','brigantine','brig','snow','cutter','frigate','barque','caravel','carrack','galleon','fluyt','xebec','junk','first-rate','pinnace'];
+const modularIds=new Set(["barque","brig","brigantine","caravel","carrack","sloop","sloop-v2","schooner","snow","cutter","frigate","galleon","fluyt","xebec","junk","first-rate","pinnace"]);
 const pascal=id=>id.split('-').map(p=>p[0].toUpperCase()+p.slice(1)).join('');
 const registry=readFileSync(join(shipRoot,'index.js'),'utf8');
 const definitions=readFileSync(join(shipRoot,'shared','vessel-definition.js'),'utf8');
@@ -68,9 +68,10 @@ for(const id of ids){
    'generators/rigging/standing-rigging-generator.js'
   ])assert.ok(existsSync(join(vesselDir,path)),id+' missing component generator '+path);
   assert.ok(source.includes('./architecture/layout.js'),id+' assembler must import its architecture.');
+  if(id==='sloop-v2')assert.ok(existsSync(join(vesselDir,'generators','cockpit','cockpit-generator.js')),'sloop-v2 requires its dedicated cockpit generator.');
   assert.ok(source.includes('ARCHITECTURE.assemblyOrder'),id+' must follow its architecture assembly order.');
   assert.ok(source.includes('shipArchitecture') && source.includes('ARCHITECTURE'),id+' should expose its architecture to the editor.');
-  const mastNames=[...readFileSync(join(vesselDir,'architecture','layout.js'),'utf8').matchAll(/id:\s*"([^"]+)",\s*foreAftStation/g)].map(m=>m[1]);
+  const mastNames=[...readFileSync(join(vesselDir,'architecture','layout.js'),'utf8').matchAll(/id:\s*["\']([^"\']+)["\'],\s*(?:longitudinalOffset|foreAftStation)/g)].map(m=>m[1]);
   for(const mastId of mastNames)assert.ok(existsSync(join(vesselDir,'generators','masts',mastId+'mast-generator.js')),id+' missing individual '+mastId+' mast generator.');
   assert.ok(!existsSync(join(shipRoot,'vessels',id+'.js')),id+' legacy flat generator should be removed.');
  }else{
@@ -88,11 +89,34 @@ for(const id of ids){
  hullFingerprints.add(hull[1].trim());
  sailFingerprints.add(sail[0].trim());
 }
-assert.equal(hullFingerprints.size,16,'Each vessel must implement a distinct hull breadth function.');
-assert.equal(sailFingerprints.size,16,'Each vessel must implement its own sail surface profile.');
+assert.equal(hullFingerprints.size,17,'Each vessel must implement a distinct hull breadth function.');
+assert.equal(sailFingerprints.size,17,'Each vessel must implement its own sail surface profile.');
+
+
+const v2Dir=join(shipRoot,'vessels','wargalion-v2');
+const v2Facade=join(v2Dir,'wargalion-v2.js');
+assert.ok(existsSync(v2Facade),'Missing Wargalion V2 hull-and-cabin facade.');
+assert.ok(registry.includes("./vessels/wargalion-v2/wargalion-v2.js"),'V2 must be registered independently.');
+const v2Source=readFileSync(v2Facade,'utf8');
+assert.ok(v2Source.includes('createShipContext(')&&v2Source.includes('finishShipModel('),'V2 must use the shared editor lifecycle.');
+assert.ok(v2Source.includes('WARGALION_V2_ARCHITECTURE.assemblyOrder'),'V2 must follow its own assembly map.');
+const v2Architecture=readFileSync(join(v2Dir,'architecture','layout.js'),'utf8');
+assert.ok(v2Architecture.includes('surfaceAuthority')&&v2Architecture.includes('lineFamilies'),'V2 declares one hull authority and three line families.');
+for(const path of [
+ 'architecture/blueprint-data.js','architecture/hull-surface.js',
+ 'generators/hull/hull-generator.js','generators/hull/keel-generator.js',
+ 'generators/hull/stem-generator.js','generators/hull/sternpost-generator.js',
+ 'generators/hull/transom-generator.js','generators/decks/deck-generator.js',
+ 'generators/cabins/aftercastle-generator.js','generators/cabins/aftercastle-side-walls-generator.js',
+ 'generators/cabins/aftercastle-end-walls-generator.js','generators/cabins/aftercastle-roof-generator.js',
+ 'generators/cabins/aftercastle-windows-generator.js','generators/cabins/quarter-gallery-generator.js',
+ 'editor-defaults.js','README.md','references/evidence-register.md',
+ 'references/historical-sources/README.md','references/drawings/README.md','references/photographs/README.md'
+])assert.ok(existsSync(join(v2Dir,path)),'V2 is missing '+path);
+assert.ok(!v2Source.includes('buildForemast')&&!v2Source.includes('buildHeadSails'),'Rig components remain deferred.');
 
 const preview=readFileSync(join(here,'preview.js'),'utf8');
-assert.ok(preview.includes("./ships/index.js?v=0.8.30-reset-frame-registry"),'Preview must load the persistent authoring registry.');
+assert.ok(preview.includes("./ships/index.js?v=0.8.45"),'Preview must load the persistent authoring registry.');
 assert.ok(preview.includes('VESSEL_EDITOR_DEFAULTS'),'Preview must load saved defaults for all vessels.');
 for(const legacy of ['ship-model-builder.js','hull-math.js','./ship-designs.js','./ship-structures.js','./ship-hull-parameterization.js','./ship-models.js']){
  assert.ok(!preview.includes(legacy),'Preview still references obsolete module '+legacy);
@@ -105,4 +129,4 @@ assert.ok(!pkg.scripts.postinstall,'Standalone ForTests must not install main-ga
 const vite=readFileSync(join(here,'vite.config.js'),'utf8');
 assert.ok(/fs:\s*\{\s*allow:\s*\[forTestsDir\]\s*\}/.test(vite),'Vite should serve only the ForTests workspace.');
 assert.ok(vite.includes('/__ship-editor/save')&&vite.includes('/__ship-editor/reset'),'Vite must expose validated save and reset handlers.');
-console.log('Verified all 16 ship generators use independent component-first vessel folders.');
+console.log('Verified the 17 legacy vessels plus the Wargalion V2 hull-and-cabin stage.');

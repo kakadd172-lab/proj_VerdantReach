@@ -46,11 +46,11 @@ try{
   await page.waitForFunction(()=>{
     const selector=document.querySelector('#ship-select');
     const status=document.querySelector('#status')?.textContent||'';
-    return (selector&&selector.options.length>=16)||status.startsWith('Editor startup failed:');
+    return (selector&&selector.options.length>=19)||status.startsWith('Editor startup failed:');
   },{timeout:30000});
 
   const optionCount=await page.locator('#ship-select option').count();
-  assert.equal(optionCount,16,'Expected all 16 vessel choices in the dropdown.');
+  assert.equal(optionCount,19,'Expected all 19 vessel choices in the dropdown.');
   await page.waitForFunction(()=>{
     const status=document.querySelector('#status')?.textContent||'';
     const parts=Number(document.querySelector('#parts')?.textContent||0);
@@ -95,6 +95,11 @@ try{
   await page.waitForFunction(()=>document.querySelector('#description')?.textContent?.toLowerCase().includes('galleon'));
   const galleonStatus=await page.locator('#status').innerText();
   assert.ok(galleonStatus.startsWith('Loaded '),'Galleon did not load: '+galleonStatus);
+  await page.locator('#ship-select').selectOption('sloop');
+  await page.locator('#ship-select').selectOption('sloop-v2');
+  await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('Maid of Endor'));
+  assert.ok(Number(await page.locator('#parts').innerText())>30,'Sloop V2 should load its independently editable component assembly.');
+  assert.ok(await page.locator('#part-select option').count()>30,'Sloop V2 should expose the new model parts in the selector.');
   await page.locator('#ship-select').selectOption('sloop');
 
   await page.locator('[data-mode="rotate"]').click();
@@ -240,7 +245,23 @@ try{
   await page.locator('#redo').click();
   assert.ok(Math.abs(Number((await page.locator('#beam').innerText()).replace(' m',''))-16.4)<1e-6,'Redo did not restore the imported vessel configuration.');
 
+  // Miscellaneous category exposes independent prop generators and returns cleanly to vessels.
+  await page.locator('#model-category').selectOption('miscellaneous');
+  assert.equal(await page.locator('#ship-select option').count(),8,'Miscellaneous category should expose three existing display variants and five maritime props/versions.');
+  assert.equal(await page.locator('#ship-select').inputValue(),'misc-cannon-9-pounder','Miscellaneous category should preserve its first existing item.');
+  for (const [id,label] of [['misc-prop-barrel','Cargo barrel'],['misc-prop-barrel-v2','Cargo barrel'],['misc-prop-crate','Cargo crate'],['misc-prop-lantern','Deck lantern'],['misc-prop-bollard','Mooring bollard']]) {
+    await page.locator('#ship-select').selectOption(id);
+    await page.waitForFunction(expected=>document.querySelector('#ship-caption')?.textContent?.toLowerCase().includes(expected),label.toLowerCase());
+    assert.ok(await page.locator('#part-select option').count()>=5,id+' did not expose independently editable components.');
+    assert.ok(Number(await page.locator('#parts').innerText())>=5,id+' did not build its component hierarchy.');
+  }
+  await page.locator('#model-category').selectOption('vessels');
+  assert.equal(await page.locator('#ship-select option').count(),19,'Switching back should restore all 19 vessel designs.');
+  assert.equal(await page.locator('#ship-select').inputValue(),'sloop','Returning to Sailing vessels should select the Sloop again.');
+  assert.ok(!(await page.locator('#ship-caption').innerText()).toLowerCase().includes('cannon'),'The editor did not return to a sailing vessel.');
+
   assert.deepEqual(pageErrors,[],'Browser runtime errors: '+pageErrors.join(' | '));
+  assert.deepEqual(consoleErrors,[],'Browser console errors: '+consoleErrors.join(' | '));
   assert.deepEqual(duplicateThreeWarnings,[],'Multiple Three.js instances detected: '+duplicateThreeWarnings.join(' | '));
   console.log('Browser smoke test passed.');
   console.log('Vessels in dropdown: '+optionCount);

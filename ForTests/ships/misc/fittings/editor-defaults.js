@@ -1,0 +1,1 @@
+export default Object.freeze({format:'verdant-reach-misc-model-defaults',schemaVersion:1,modelId:'misc-prop-bollard',savedAt:null,design:{},structure:{},componentState:{transformFrameVersion:2,partTransforms:{},hiddenParts:{},unlinkedParts:[]}});

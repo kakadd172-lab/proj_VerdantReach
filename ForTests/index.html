@@ -147,12 +147,18 @@
     </section>
 
     <aside class="sidebar">
-      <div class="sidebar-heading"><div><h2>Ship workspace</h2><p>Shape, inspect and compare each vessel.</p></div><span class="saved-dot" title="Local workspace active"></span></div>
+      <div class="sidebar-heading"><div><h2>Model workspace</h2><p>Edit sailing vessels and miscellaneous visual assets.</p></div><span class="saved-dot" title="Local workspace active"></span></div>
 
       <section class="card">
-        <label for="ship-select">Vessel design</label>
+        <label for="model-category">Model category</label>
+        <select id="model-category">
+          <option value="vessels" selected>Sailing vessels</option>
+          <option value="miscellaneous">Miscellaneous</option>
+        </select>
+        <label for="ship-select" style="margin-top:10px">Model / variant</label>
         <select id="ship-select">
-          <option value="sloop" selected>Caribbean merchant sloop</option>
+          <option value="sloop" selected>Loguivy decked lobster boat</option>
+          <option value="sloop-v2">Maid of Endor · Sloop V2</option>
           <option value="schooner">West Indies schooner</option>
           <option value="brigantine">Brigantine</option>
           <option value="brig">Full-rigged brig</option>
@@ -163,12 +169,15 @@
           <option value="caravel">Atlantic caravel redonda</option>
           <option value="carrack">Iberian carrack / nao</option>
           <option value="galleon">Iberian merchant galleon</option>
+          <option value="wargalion">Wargalion</option>
+          <option value="wargalion-v2">Wargalion V2 · hull and cabins</option>
           <option value="fluyt">Dutch fluyt merchantman</option>
           <option value="xebec">Mediterranean xebec</option>
           <option value="junk">Chinese ocean junk</option>
           <option value="first-rate">First-rate ship of the line</option>
           <option value="pinnace">Ship’s pinnace</option>
         </select>
+        <p id="model-category-caption" class="muted" aria-live="polite">Sailing vessels · 19 designs</p>
       </section>
 
       <details class="section-card" open>

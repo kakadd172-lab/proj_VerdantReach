@@ -213,12 +213,18 @@ function setupPartApi(root,registry,design){
   const point=metadata.fixedPoint||
    (Array.isArray(metadata.points)?metadata.points[metadata.fixedEndIndex??metadata.points.length-1]:null);
   if(!Array.isArray(point))return null;
-  // The points are authored in the standing group frame. Applying its saved
-  // transform first lets us find the actual chainplate position after edits.
-  const sourceFrame=metadata.coordinateSpace==='mast-group'?(standing||mast):(stay.mesh.parent||mast);
+  // "mast-group" is literally the mast component's local coordinate frame.
+  // Standing rigging is moved out of the mast component before this resolver
+  // runs, so using the reparented standing group here shifts the cable foot
+  // and can draw diagonal lines across the deck. Always resolve against the
+  // original authored frame, then express the final anchor in hull-local space.
+  const sourceFrame=metadata.coordinateSpace==='mast-group'?mast:(stay.mesh.parent||mast);
   const target=sourceFrame.localToWorld(new THREE.Vector3(...point));
   let best=null;
-  for(const fitting of fittings){
+  // Forestays and sheets terminate at their own bow/fairlead fittings, not at
+  // mast chainplates. Vessels can explicitly disable nearest-chainplate snap.
+  const candidateFittings=metadata.resolveAgainstChainplates===false?[]:fittings;
+  for(const fitting of candidateFittings){
    if(fitting.parent===unlinked)continue;
    fitting.updateWorldMatrix(true,true);
    fitting.traverse(object=>{
@@ -613,9 +619,18 @@ function setupPartApi(root,registry,design){
     const p=registry.get('rudder');if(!p)return false;
     const rc=p.userData.steeringControl||{},limit=Math.abs(Number(rc.maxAngle)||.62);
     state.rudderAngle=clamp(a,-limit,limit);
-    setRuntimeRotation('rudder',{ry:state.rudderAngle*(rc.rotationSign??1)});
+    const rudderAxis=rc.axis||'y',rudderKey=({x:'rx',y:'ry',z:'rz'})[rudderAxis]||'ry';
+    const rudderPose={rx:0,ry:0,rz:0};
+    rudderPose[rudderKey]=state.rudderAngle*(rc.rotationSign??1);
+    setRuntimeRotation('rudder',rudderPose);
     const wheel=registry.get('helm-wheel');
-    if(wheel){const wc=wheel.userData.steeringControl||{};setRuntimeRotation('helm-wheel',{rz:state.rudderAngle*(wc.ratio??4.5)*(wc.rotationSign??1)});}
+    if(wheel){
+     const wc=wheel.userData.steeringControl||{},axis=wc.axis||'z';
+     const rotationKey=({x:'rx',y:'ry',z:'rz'})[axis]||'rz';
+     const wheelPose={rx:0,ry:0,rz:0};
+     wheelPose[rotationKey]=state.rudderAngle*(wc.ratio??4.5)*(wc.rotationSign??1);
+     setRuntimeRotation('helm-wheel',wheelPose);
+    }
     return true;
    },
   setSailTrim(id,a){const targets=sailParts.filter(p=>p.userData.sailControl.mastId===id);if(!targets.length)return false;state.sailTrim[id]=clamp(a,-1.1,1.1);for(const p of targets)setRuntimeRotation(p.name,{ry:state.sailTrim[id]});return true;},

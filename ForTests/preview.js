@@ -1,9 +1,10 @@
 async function bootShipStudio(){
   const viewport=document.querySelector('#viewport');
   const selector=document.querySelector('#ship-select');
+  const categorySelector=document.querySelector('#model-category');
   const partSelector=document.querySelector('#part-select');
   const status=document.querySelector('#status');
-  if(!viewport||!selector||!partSelector||!status){
+  if(!viewport||!selector||!categorySelector||!partSelector||!status){
     throw new Error('Ship Design Studio HTML is incomplete. Update ForTests/index.html and reload.');
   }
   try{
@@ -32,10 +33,12 @@ async function bootShipStudio(){
     if(!DESIGN_OVERRIDES||typeof DESIGN_OVERRIDES!=='object'||Array.isArray(DESIGN_OVERRIDES)){
       throw new Error('design-overrides.json must contain a JSON object (use {} for an empty workspace).');
     }
-    const shipModule=await import('./ships/index.js?v=0.8.30-reset-frame-registry');
+    const shipModule=await import('./ships/index.js?v=0.8.45');
+    const miscModule=await import('./ships/misc/index.js?v=0.4.1');
     const {SHIP_DESIGNS,VESSEL_IDS,VESSEL_EDITOR_DEFAULTS,getShipDesign,setShipDesignOverrides,SHIP_DESIGN_MODULE_VERSION,
       getShipStructureBlueprint,setShipStructureOverrides,SHIP_STRUCTURE_MODULE_VERSION,
       createShipModel,disposeShipModel,SHIP_MODEL_MODULE_VERSION}=shipModule;
+    const {MISC_MODEL_CATEGORIES,MISC_MODEL_IDS,createMiscModel,getMiscModelDefinition,getMiscModelDefaults,isMiscModelId}=miscModule;
     const apiProblems=[];
     if(typeof setShipDesignOverrides!=='function')apiProblems.push('ships/index.js: setShipDesignOverrides');
     if(typeof getShipDesign!=='function')apiProblems.push('ships/index.js: getShipDesign');
@@ -46,8 +49,10 @@ async function bootShipStudio(){
     if(SHIP_DESIGN_MODULE_VERSION!=='0.8.9')apiProblems.push('ships/index.js design API version '+String(SHIP_DESIGN_MODULE_VERSION));
     if(SHIP_STRUCTURE_MODULE_VERSION!=='0.8.9')apiProblems.push('ships/index.js structure API version '+String(SHIP_STRUCTURE_MODULE_VERSION));
     if(SHIP_MODEL_MODULE_VERSION!=='0.8.30')apiProblems.push('ships/shared/ship-editor-kit.js version '+String(SHIP_MODEL_MODULE_VERSION));
-    if(Object.keys(SHIP_DESIGNS||{}).length!==16)apiProblems.push('ship catalogue count '+Object.keys(SHIP_DESIGNS||{}).length);
-    if(Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length!==16)apiProblems.push('per-vessel editor defaults count '+Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length);
+    if(Object.keys(SHIP_DESIGNS||{}).length!==19)apiProblems.push('ship catalogue count '+Object.keys(SHIP_DESIGNS||{}).length);
+    if(Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length!==19)apiProblems.push('per-vessel editor defaults count '+Object.keys(VESSEL_EDITOR_DEFAULTS||{}).length);
+    if(typeof createMiscModel!=='function'||typeof getMiscModelDefinition!=='function'||typeof getMiscModelDefaults!=='function')apiProblems.push('ships/misc/index.js miscellaneous model API');
+    if(!Array.isArray(MISC_MODEL_IDS)||MISC_MODEL_IDS.length!==8)apiProblems.push('miscellaneous model catalogue count '+(MISC_MODEL_IDS||[]).length);
     if(apiProblems.length){
       throw new Error('Ship module mismatch: '+apiProblems.join('; ')+'. Pull the latest ForTests files, restart Vite, then hard-refresh the preview.');
     }
@@ -65,12 +70,14 @@ for(const [id,d] of Object.entries(SHIP_DESIGNS)){
   option.textContent=d.label;
   selector.appendChild(option);
 }
-// Optional direct-review URL: ?ship=barque&camera=side&part=hull
+// Optional direct-review URL: ?ship=barque&camera=side&part=hull or ?model=misc-prop-barrel
 const reviewParams=new URLSearchParams(window.location.search);
 const reviewShipId=reviewParams.get('ship')||'';
 const reviewPartName=reviewParams.get('part')||'';
 const reviewCamera=reviewParams.get('camera')||'';
 if(Object.hasOwn(SHIP_DESIGNS,reviewShipId))selector.value=reviewShipId;
+const reviewModelId=reviewParams.get('model')||'';
+if(isMiscModelId(reviewModelId)){categorySelector.value='miscellaneous';selector.value=reviewModelId;}
 
 const compareSelector=document.querySelector('#compare-select');
 for(const [id,design] of Object.entries(SHIP_DESIGNS)){
@@ -166,6 +173,19 @@ let marqueeMode=false;
 let marqueeStart=null;
 let suppressCanvasClick=false;
 let activeShipId=selector.value||Object.keys(SHIP_DESIGNS)[0];
+let activeCategory=categorySelector.value||'vessels';
+function getActiveDefinition(id=activeShipId){return isMiscModelId(id)?getMiscModelDefinition(id):getShipDesign(id);}
+function getActiveDefaults(id=activeShipId){return isMiscModelId(id)?getMiscModelDefaults(id):(VESSEL_EDITOR_DEFAULTS[id]||{});}
+function createActiveModel(id,transforms={},state={}){return isMiscModelId(id)?createMiscModel(id,transforms,state):createShipModel(id,transforms,state);}
+function refreshModelOptions(category,preferredId){
+  activeCategory=category;
+  const entries=category==='miscellaneous'?MISC_MODEL_IDS.map(id=>[id,getMiscModelDefinition(id)]):Object.entries(SHIP_DESIGNS);
+  selector.replaceChildren();
+  for(const [id,definition] of entries){const option=document.createElement('option');option.value=id;option.textContent=definition.label;selector.appendChild(option);}
+  const next=preferredId&&entries.some(([id])=>id===preferredId)?preferredId:entries[0]?.[0];
+  if(next)selector.value=next;
+  const caption=document.querySelector('#model-category-caption');if(caption)caption.textContent=category==='miscellaneous'?'Miscellaneous props and display assets · '+entries.length+' models':'Sailing vessels · '+entries.length+' designs';
+}
 let historyEntries=[];
 let historyCursor=0;
 let hasUnsavedChanges=Object.keys(overrideConfig||{}).length>0;
@@ -297,7 +317,7 @@ function updateSloopRockingTelemetry(){
  if(!status&&!roll&&!pitch&&!heave)return;
  const motion=ship?.userData?.sloopRocking;
  if(!motion){
-  if(status)status.textContent='Sloop only · select Sloop';
+  if(status)status.textContent='Sloop sea motion · select Sloop or Sloop V2';
   if(roll)roll.textContent='0.0°';
   if(pitch)pitch.textContent='0.0°';
   if(heave)heave.textContent='0.00 m';
@@ -367,7 +387,7 @@ function setStatus(message,error=false){
 function updateSaveIndicator(){
   const node=document.querySelector('#save-state');
   if(!node)return;
-  node.textContent=hasUnsavedChanges?'Unsaved edits':'Vessel files saved';
+  node.textContent=hasUnsavedChanges?'Unsaved edits':'Model defaults saved';
   node.classList.toggle('dirty',hasUnsavedChanges);
 }
 function fit(object){
@@ -431,7 +451,9 @@ function commitHistory(before,label='Edit'){
 function restoreDocumentSnapshot(snapshot){
   overrideConfig=clone(snapshot.ships||{});
   applyOverrides();
-  const nextId=Object.hasOwn(SHIP_DESIGNS,snapshot.activeShip)?snapshot.activeShip:Object.keys(SHIP_DESIGNS)[0];
+  const nextId=(Object.hasOwn(SHIP_DESIGNS,snapshot.activeShip)||isMiscModelId(snapshot.activeShip))?snapshot.activeShip:Object.keys(SHIP_DESIGNS)[0];
+  categorySelector.value=isMiscModelId(nextId)?'miscellaneous':'vessels';
+  refreshModelOptions(categorySelector.value,nextId);
   selector.value=nextId;
   const restoreNames=Array.isArray(snapshot.selectedNames)?snapshot.selectedNames:[];
   const restoreSingle=snapshot.selectedName||restoreNames[0]||selectedName;
@@ -825,7 +847,7 @@ function showAllComponents(){
 function resetVesselDesign(){
   if(!activeShipId)return;
   const before=captureDocumentSnapshot();
-  const label=getShipDesign(activeShipId)?.label||activeShipId;
+  const label=getActiveDefinition(activeShipId)?.label||activeShipId;
   delete overrideConfig[activeShipId];
   applyOverrides();
   loadShip(activeShipId,selectedName,false,true);
@@ -859,9 +881,13 @@ function renderTransformInputs(){
 function renderDesignInputs(){
   const container=document.querySelector('#design-controls');
   container.replaceChildren();
-  const design=getShipDesign(selector.value);
-  const structure=getShipStructureBlueprint(selector.value);
-  for(const field of DESIGN_FIELDS){
+  const design=getActiveDefinition(selector.value);
+  const structure=isMiscModelId(selector.value)?null:getShipStructureBlueprint(selector.value);
+  if(isMiscModelId(selector.value)){container.textContent='Miscellaneous model · use the shared component inspector and transform tools to edit its individual parts.';return;}
+  const applicableFields=activeShipId==='wargalion-v2'
+    ?DESIGN_FIELDS.filter(field=>['design.hullLength','design.beam','design.draft','design.freeboard','design.hull.deckCamber'].includes(field.path))
+    :DESIGN_FIELDS;
+  for(const field of applicableFields){
     const root=field.path.startsWith('design.')?design:structure;
     const localPath=field.path.replace(/^design\./,'');
     const value=getNested(root,localPath);
@@ -891,6 +917,7 @@ function updateComparison(){
   const target=compareSelector?.value;
   const output=document.querySelector('#compare-summary');
   if(!output)return;
+  if(isMiscModelId(activeShipId)){output.textContent='Dimension comparison is available for sailing vessels.';return;}
   if(!target||target===activeShipId){output.textContent='Choose a different vessel to compare principal dimensions.';return;}
   const current=getShipDesign(activeShipId),other=getShipDesign(target);
   if(!current||!other){output.textContent='Comparison data is unavailable.';return;}
@@ -986,20 +1013,22 @@ function updateInfo(design){
   document.querySelector('#length').textContent=design.hullLength.toFixed(2)+' m';
   document.querySelector('#beam').textContent=design.beam.toFixed(2)+' m';
   document.querySelector('#draft').textContent=design.draft.toFixed(2)+' m';
-  document.querySelector('#masts').textContent=design.masts.length;
+  document.querySelector('#masts').textContent=(design.masts||[]).length;
   document.querySelector('#parts').textContent=ship.userData.partNames.length;
-  document.querySelector('#description').textContent=design.hullProfile+' '+(design.reference||'');
+  document.querySelector('#description').textContent=(design.hullProfile||'Miscellaneous visual model')+' '+(design.reference||'');
   updateComparison();
 }
 function loadShip(type,preferredPart='',reframe=true,skipSync=false){
   if(ship){if(!skipSync)syncCurrentShipState();removeSelectionPivot();clearSelectionHelpers();selectedNames=[];selectedName='';gizmo.detach();disposeShipModel(ship);ship=null;}
   activeShipId=type;
-  const design=getShipDesign(type);
-  if(!design){setStatus('Unknown vessel design.',true);return;}
+  const design=getActiveDefinition(type);
+  if(!design){setStatus('Unknown model design.',true);return;}
   try{
     const config=getConfig(type);
-    const savedState=config.partState||(config.componentTransforms?{partTransforms:config.componentTransforms}:{});
-    ship=createShipModel(type,savedState.partTransforms||config.componentTransforms||{},savedState);
+    const sourceState=getActiveDefaults(type)?.componentState||{};
+    const editState=config.partState||(config.componentTransforms?{partTransforms:config.componentTransforms}:{});
+    const savedState={...clone(sourceState),...clone(editState),partTransforms:clone(editState.partTransforms||editState.componentTransforms||sourceState.partTransforms||{})};
+    ship=createActiveModel(type,savedState.partTransforms||{},savedState);
     scene.add(ship);
     applyWireframe();
     if(reframe)fit(ship);
@@ -1038,9 +1067,15 @@ function effectiveVesselConfig(id){
   if(!Object.prototype.hasOwnProperty.call(editState,'partTransforms')&&edits.componentTransforms)partState.partTransforms=clone(edits.componentTransforms);
   return {design:mergePatch(source.design||{},edits.design),structure:mergePatch(source.structure||{},edits.structure),partState,componentTransforms:clone(partState.partTransforms||{})};
 }
+function effectiveMiscModelConfig(id){
+  const source=getMiscModelDefaults(id)||{},edits=overrideConfig[id]||{};
+  const sourceState=source.componentState||{},editState=edits.partState||{};
+  return {componentState:{...clone(sourceState),...clone(editState),partTransforms:clone(editState.partTransforms||sourceState.partTransforms||{}),hiddenParts:clone(editState.hiddenParts||sourceState.hiddenParts||{}),unlinkedParts:clone(editState.unlinkedParts||sourceState.unlinkedParts||[])}};
+}
 function buildExport(){
   syncCurrentShipState();const ships={};for(const id of VESSEL_IDS)ships[id]=effectiveVesselConfig(id);
-  return {format:'verdant-reach-ship-editor',version:3,savedAt:new Date().toISOString(),ships};
+  const miscModels={};for(const id of MISC_MODEL_IDS)miscModels[id]=effectiveMiscModelConfig(id);
+  return {format:'verdant-reach-ship-editor',version:4,savedAt:new Date().toISOString(),ships,miscModels};
 }
 async function saveDesign(){
   const button=document.querySelector('#save-design');if(button)button.disabled=true;
@@ -1049,26 +1084,26 @@ async function saveDesign(){
     let result={};
     try{result=await response.json();}catch{result={};}
     if(!response.ok||!result.saved)throw new Error(result.error||('Local save endpoint returned HTTP '+response.status+'.'));
-    hasUnsavedChanges=false;updateSaveIndicator();setStatus('Saved '+result.vessels+' per-vessel default modules. Reloading from those source files…');window.location.reload();
+    hasUnsavedChanges=false;updateSaveIndicator();setStatus('Saved '+result.vessels+' vessel designs and '+(result.miscModels||0)+' miscellaneous models. Reloading from their source defaults…');window.location.reload();
   }catch(error){setStatus('Save failed. Your edits remain in this editor; use Export backup as an additional copy. '+error.message,true);}
   finally{if(button)button.disabled=false;}
 }
 async function restoreGeneratorDefaults(){
-  if(!activeShipId)return;const label=getShipDesign(activeShipId)?.label||activeShipId;
+  if(!activeShipId)return;const label=getActiveDefinition(activeShipId)?.label||activeShipId;
   if(!window.confirm('Restore '+label+' to its original generator defaults? This clears only its editor-defaults.js file and leaves all individual part generators untouched.'))return;
   const button=document.querySelector('#restore-generator-defaults');if(button)button.disabled=true;
   try{
     const response=await fetch('/__ship-editor/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shipId:activeShipId})});
     if(!response.ok)throw new Error('Local reset endpoint returned '+response.status);
     const result=await response.json();if(!result.saved)throw new Error(result.error||'The local server did not confirm the reset.');
-    setStatus('Restored '+label+' to the original generator defaults. Reloading…');window.location.reload();
+    setStatus('Restored '+label+' to its original model defaults. Reloading…');window.location.reload();
   }catch(error){setStatus('Could not restore generator defaults: '+error.message,true);}
   finally{if(button)button.disabled=false;}
 }
 function exportDesign(){
   const blob=new Blob([JSON.stringify(buildExport(),null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),link=document.createElement('a');
-  link.href=url;link.download='verdant-reach-vessel-authoring-backup.json';link.click();URL.revokeObjectURL(url);
-  setStatus('Exported a full backup of all 16 vessels, including saved defaults and current edits.');
+  link.href=url;link.download='verdant-reach-model-authoring-backup.json';link.click();URL.revokeObjectURL(url);
+  setStatus('Exported a full backup of all 19 vessels and 8 miscellaneous models, including saved defaults and current edits.');
 }
 
 renderTransformInputs();
@@ -1076,6 +1111,13 @@ refreshSeaControls();
 refreshSelectionCount();
 updateSaveIndicator();
 window.addEventListener('beforeunload',event=>{if(!hasUnsavedChanges)return;event.preventDefault();event.returnValue='';});
+categorySelector.addEventListener('change',()=>{
+  syncCurrentShipState();
+  const first=categorySelector.value==='miscellaneous'?MISC_MODEL_IDS[0]:VESSEL_IDS[0];
+  refreshModelOptions(categorySelector.value,first);
+  loadShip(selector.value);
+  refreshHistory();
+});
 selector.addEventListener('change',()=>{
   syncCurrentShipState();
   loadShip(selector.value);
@@ -1197,14 +1239,20 @@ document.querySelector('#import-file')?.addEventListener('change',async event=>{
   try{
     const parsed=JSON.parse(await file.text());
     const imported=parsed?.ships&&typeof parsed.ships==='object'?parsed.ships:parsed;
-    if(!imported||typeof imported!=='object'||Array.isArray(imported))throw new Error('The file must contain a vessel configuration object.');
+    const importedMisc=parsed?.miscModels&&typeof parsed.miscModels==='object'?parsed.miscModels:{};
+    if(!imported||typeof imported!=='object'||Array.isArray(imported))throw new Error('The file must contain a model configuration object.');
     const next={};
     for(const [id,config] of Object.entries(imported)){
-      if(!Object.hasOwn(SHIP_DESIGNS,id))continue;
+      if(!Object.hasOwn(SHIP_DESIGNS,id)&&!isMiscModelId(id))continue;
       if(!config||typeof config!=='object'||Array.isArray(config))throw new Error('Invalid configuration for '+id+'.');
       next[id]=clone(config);
     }
-    if(!Object.keys(next).length)throw new Error('No known vessel configurations were found in this file.');
+    for(const [id,config] of Object.entries(importedMisc)){
+      if(!isMiscModelId(id))continue;
+      if(!config||typeof config!=='object'||Array.isArray(config))throw new Error('Invalid configuration for '+id+'.');
+      next[id]=clone(config);
+    }
+    if(!Object.keys(next).length)throw new Error('No known model configurations were found in this file.');
     const before=captureDocumentSnapshot();
     const previous=overrideConfig;
     try{
@@ -1214,7 +1262,7 @@ document.querySelector('#import-file')?.addEventListener('change',async event=>{
     }catch(error){overrideConfig=previous;applyOverrides();loadShip(activeShipId,selectedName,false,true);throw error;}
     commitHistory(before,'Import '+file.name);
     hasUnsavedChanges=true;updateSaveIndicator();
-    setStatus('Imported '+Object.keys(next).length+' vessel configuration(s) from '+file.name+'. This is an unsaved draft; press Save to ship files to commit it.');
+    setStatus('Imported '+Object.keys(next).length+' model configuration(s) from '+file.name+'. This is an unsaved draft; press Save to ship files to commit it.');
   }catch(error){setStatus('Import failed: '+error.message,true);}
   finally{event.target.value='';}
 });
@@ -1320,6 +1368,7 @@ function animate(){
   updateSloopRockingTelemetry();
   orbit.update();updateSelectionHelpers();renderer.render(scene,camera);
 }
+refreshModelOptions(categorySelector.value,selector.value);
 loadShip(selector.value||Object.keys(SHIP_DESIGNS)[0],reviewPartName);
 if(['top','side','bow','stern'].includes(reviewCamera))setCameraPreset(reviewCamera);
 animate();

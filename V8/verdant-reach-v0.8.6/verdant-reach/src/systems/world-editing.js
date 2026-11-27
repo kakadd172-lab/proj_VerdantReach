@@ -8,14 +8,24 @@ export const CREATIVE_ENTITY_TYPES = Object.freeze([
   'bridge', 'campfire', 'treasure-chest', 'well', 'mine', 'village', 'port',
 ]);
 
-const cloneShipState = (state) => state && typeof state === 'object' ? {
-  rudderAngle: Number(state.rudderAngle) || 0,
-  sailTrim: { ...(state.sailTrim ?? {}) },
-  mastLean: { ...(state.mastLean ?? {}) },
-  hiddenParts: { ...(state.hiddenParts ?? {}) },
-  unlinkedParts: [...(state.unlinkedParts ?? [])],
-  partTransforms: Object.fromEntries(Object.entries(state.partTransforms ?? {}).map(([name, values]) => [name, { ...values }])),
-} : undefined;
+const cloneStateRecord = (value) => value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
+
+const cloneShipState = (state) => {
+  if (!state || typeof state !== 'object' || Array.isArray(state)) return undefined;
+  const transformFrameVersion = Number.isSafeInteger(state.transformFrameVersion) && state.transformFrameVersion > 0
+    ? state.transformFrameVersion
+    : undefined;
+  return {
+    rudderAngle: Number(state.rudderAngle) || 0,
+    sailTrim: cloneStateRecord(state.sailTrim),
+    sailDeployment: cloneStateRecord(state.sailDeployment),
+    mastLean: cloneStateRecord(state.mastLean),
+    hiddenParts: cloneStateRecord(state.hiddenParts),
+    unlinkedParts: Array.isArray(state.unlinkedParts) ? [...state.unlinkedParts] : [],
+    partTransforms: Object.fromEntries(Object.entries(cloneStateRecord(state.partTransforms)).map(([name, values]) => [name, cloneStateRecord(values)])),
+    ...(transformFrameVersion !== undefined ? { transformFrameVersion } : {}),
+  };
+};
 
 export class WorldEditSystem {
   constructor(saved = null) {
